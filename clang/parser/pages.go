@@ -76,10 +76,11 @@ func (p *PagedReader) WriteTo(w io.Writer) (written int64, err error) {
 		ipage++
 		page := src.getPage(ipage)
 		n, err = w.Write(page)
+		written += int64(n)
 		if err != nil {
+			p.ipage, p.curr, p.off = ipage, page, n
 			return
 		}
-		written += int64(n)
 	}
 }
 
