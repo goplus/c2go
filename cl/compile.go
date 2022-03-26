@@ -6,21 +6,26 @@ import (
 	"log"
 	"syscall"
 
+	goast "go/ast"
+
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
 )
 
 const (
 	DbgFlagCompileDecl = 1 << iota
-	DbgFlagAll         = DbgFlagCompileDecl
+	DbgFlagCompileStmt
+	DbgFlagAll = DbgFlagCompileDecl
 )
 
 var (
 	debugCompileDecl bool
+	debugCompileStmt bool
 )
 
 func SetDebug(flags int) {
 	debugCompileDecl = (flags & DbgFlagCompileDecl) != 0
+	debugCompileStmt = (flags & DbgFlagCompileStmt) != 0
 }
 
 func logFile(node *ast.Node) {
@@ -29,6 +34,10 @@ func logFile(node *ast.Node) {
 			log.Println("==>", f)
 		}
 	}
+}
+
+func goNode(node *ast.Node) goast.Node {
+	return nil // TODO:
 }
 
 // -----------------------------------------------------------------------------
@@ -100,6 +109,14 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 				log.Println("  => param", item.Name, "-", item.Type.QualType)
 			}
 		case ast.CompoundStmt:
+			sig := gox.NewSignature(nil, nil, nil, false) // TODO:
+			f, err := ctx.pkg.NewFuncWith(token.NoPos, fn.Name, sig, nil)
+			if err != nil {
+				panic(err)
+			}
+			cb := f.BodyStart(ctx.pkg)
+			compileCompoundStmt(ctx, item)
+			cb.End()
 		case ast.BuiltinAttr:
 		case ast.FormatAttr:
 		case ast.AsmLabelAttr:
