@@ -89,9 +89,27 @@ func loadFile(p *gox.Package, file *ast.Node) (err error) {
 	return
 }
 
-func compileFunc(ctx *blockCtx, decl *ast.Node) {
+func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	if debugCompileDecl {
-		log.Println("func", decl.Name, "-", decl.Type.QualType, decl.Loc.PresumedLine)
+		log.Println("func", fn.Name, "-", fn.Type.QualType, fn.Loc.PresumedLine)
+	}
+	for _, item := range fn.Inner {
+		switch item.Kind {
+		case ast.ParmVarDecl:
+			if debugCompileDecl {
+				log.Println("  => param", item.Name, "-", item.Type.QualType)
+			}
+		case ast.CompoundStmt:
+		case ast.BuiltinAttr:
+		case ast.FormatAttr:
+		case ast.AsmLabelAttr:
+		case ast.AvailabilityAttr:
+		case ast.ColdAttr:
+		case ast.DeprecatedAttr:
+		case ast.AlwaysInlineAttr:
+		default:
+			log.Fatalln("compileFunc: unknown kind =", item.Kind)
+		}
 	}
 }
 

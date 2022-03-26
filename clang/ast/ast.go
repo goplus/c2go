@@ -22,6 +22,8 @@ type Pos struct {
 	Col          int           `json:"col,omitempty"`
 	TokLen       int           `json:"tokLen,omitempty"`
 	IncludedFrom *IncludedFrom `json:"includedFrom,omitempty"` // "sqlite3.c"
+	SpellingLoc  *Loc          `json:"spellingLoc,omitempty"`
+	ExpansionLoc *Loc          `json:"expansionLoc,omitempty"`
 }
 
 type Range struct {
@@ -56,6 +58,7 @@ const (
 	DeprecatedAttr      Kind = "DeprecatedAttr"
 	BuiltinAttr         Kind = "BuiltinAttr"
 	FormatAttr          Kind = "FormatAttr"
+	ColdAttr            Kind = "ColdAttr"
 	ConstAttr           Kind = "ConstAttr"
 	PackedAttr          Kind = "PackedAttr"
 	NoThrowAttr         Kind = "NoThrowAttr"
