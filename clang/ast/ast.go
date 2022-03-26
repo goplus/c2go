@@ -141,7 +141,7 @@ type Type struct {
 	//   volatile uint32_t
 	//   int (*)(void *, int, char **, char **)
 	//   int (*)(const char *, ...)
-	//   const char *(void)
+	//   int (*)(void)
 	//   const char *restrict
 	//   const char [7]
 	//   char *
