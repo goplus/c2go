@@ -5,13 +5,17 @@ import (
 	"log"
 
 	"github.com/goplus/c2go/clang/ast"
+	"github.com/goplus/c2go/clang/types/parser"
 )
 
 // -----------------------------------------------------------------------------
 
-func toType(ctx *blockCtx, typ *ast.Type) types.Type {
-	log.Fatalln("toType:", typ.QualType)
-	return nil
+func toType(ctx *blockCtx, typ *ast.Type, isParam bool) types.Type {
+	t, err := parser.ParseType(nil, ctx.fset, typ.QualType, isParam)
+	if err != nil {
+		log.Fatalln("toType:", err)
+	}
+	return t
 }
 
 // -----------------------------------------------------------------------------

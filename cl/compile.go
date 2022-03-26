@@ -72,15 +72,30 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 // -----------------------------------------------------------------------------
 
 type blockCtx struct {
-	pkg *gox.Package
-	cb  *gox.CodeBuilder
+	pkg  *gox.Package
+	cb   *gox.CodeBuilder
+	fset *token.FileSet
 }
+
+/*
+func (p *blockCtx) Pkg() *types.Package {
+	return p.pkg.Types
+}
+
+func (p *blockCtx) LookupType(typ string, unsigned bool) (t types.Type, err error) {
+	_, o := p.cb.Scope().LookupParent(typ, token.NoPos)
+	if o != nil {
+		return o.Type(), nil
+	}
+	return nil, syscall.ENOENT
+}
+*/
 
 func loadFile(p *gox.Package, file *ast.Node) (err error) {
 	if file.Kind != ast.TranslationUnitDecl {
 		return syscall.EINVAL
 	}
-	ctx := &blockCtx{pkg: p, cb: p.CB()}
+	ctx := &blockCtx{pkg: p, cb: p.CB(), fset: p.Fset}
 	for _, decl := range file.Inner {
 		logFile(decl)
 		if decl.IsImplicit {
@@ -137,7 +152,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 }
 
 func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
-	typ := toType(ctx, decl.Type)
+	typ := toType(ctx, decl.Type, true)
 	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
 }
 
