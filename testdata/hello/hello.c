@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 int main() {
-    printf("Hello, world\n");
+    const int N = 32;
+    char msg[N] = "Hello, world";
+    printf("%s\n", msg);
     return 0;
 }

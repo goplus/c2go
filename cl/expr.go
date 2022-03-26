@@ -15,7 +15,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 	case ast.BinaryOperator:
 		compileBinaryExpr(ctx, expr)
 	case ast.UnaryOperator:
-		compileUnaryOperator(ctx, expr)
+		compileUnaryOperator(ctx, expr, lhs)
 	case ast.CallExpr:
 		compileCallExpr(ctx, expr)
 	case ast.ImplicitCastExpr:
@@ -84,13 +84,13 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileBinaryExpr(ctx *blockCtx, v *ast.Node) {
-	compileExpr(ctx, v.Inner[0])
-	compileExpr(ctx, v.Inner[1])
-	op, ok := binaryOps[v.OpCode]
-	if !ok {
-		log.Fatalln("compileBinaryExpr: unknown operator =", v.OpCode)
+	if op, ok := binaryOps[v.OpCode]; ok {
+		compileExpr(ctx, v.Inner[0])
+		compileExpr(ctx, v.Inner[1])
+		ctx.cb.BinaryOp(op, goNode(v))
+		return
 	}
-	ctx.cb.BinaryOp(op, goNode(v))
+	log.Fatalln("compileBinaryExpr: unknown operator =", v.OpCode)
 }
 
 var (
@@ -136,36 +136,52 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 	n := 0
 	addr := cb.Scope().Lookup(addrVarName)
 	if v.IsPostfix {
-		cb.VarRef(addr).Star().VarRef(ret).Assign(1).
-			VarRef(addr).Star().IncDec(op)
+		cb.VarRef(ret).Val(addr).Elem().Assign(1).
+			Val(addr).ElemRef().IncDec(op)
 	} else {
-		cb.VarRef(addr).Star().IncDec(op)
-		cb.VarRef(addr).Star()
+		cb.Val(addr).ElemRef().IncDec(op)
+		cb.Val(addr).Elem()
 		n = 1
 	}
 	cb.Return(n).End()
 }
 
-func compileUnaryOperator(ctx *blockCtx, v *ast.Node) {
+func compileStarExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	compileExpr(ctx, v.Inner[0])
-	op, ok := unaryOps[v.OpCode]
-	if !ok {
-		switch v.OpCode {
-		case "++":
-			compileIncDec(ctx, token.INC, v)
-		case "--":
-			compileIncDec(ctx, token.DEC, v)
-		default:
-			log.Fatalln("compileUnaryOperator: unknown operator =", v.OpCode)
-		}
+	src := goNode(v)
+	if lhs {
+		ctx.cb.ElemRef(src)
+	} else {
+		ctx.cb.Elem(src)
 	}
-	ctx.cb.UnaryOp(op)
+}
+
+func compileUnaryOperator(ctx *blockCtx, v *ast.Node, lhs bool) {
+	if v.OpCode == "*" {
+		compileStarExpr(ctx, v, lhs)
+		return
+	}
+	if lhs {
+		log.Fatalln("compileUnaryOperator: not a lhs expression -", v.OpCode)
+	}
+	if op, ok := unaryOps[v.OpCode]; ok {
+		compileExpr(ctx, v.Inner[0])
+		ctx.cb.UnaryOp(op)
+		return
+	}
+	switch v.OpCode {
+	case "++":
+		compileIncDec(ctx, token.INC, v)
+	case "--":
+		compileIncDec(ctx, token.DEC, v)
+	default:
+		log.Fatalln("compileUnaryOperator: unknown operator =", v.OpCode)
+	}
 }
 
 var (
 	unaryOps = map[ast.OpCode]token.Token{
 		"-": token.SUB,
-		"*": token.MUL,
 		"&": token.AND,
 		"~": token.XOR,
 		"!": token.NOT,

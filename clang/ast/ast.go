@@ -140,6 +140,7 @@ type Type struct {
 	//   struct ConstantString
 	//   volatile uint32_t
 	//   int (*)(void *, int, char **, char **)
+	//   int (*)(const char *, ...)
 	//   const char *(void)
 	//   const char *restrict
 	//   const char [7]
