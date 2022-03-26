@@ -164,7 +164,7 @@ type Node struct {
 	HasElse              bool          `json:"hasElse,omitempty"`
 	Inline               bool          `json:"inline,omitempty"`
 	StorageClass         StorageClass  `json:"storageClass,omitempty"`
-	TagUsed              string        `json:"tagUsed,omitempty"` // struct
+	TagUsed              string        `json:"tagUsed,omitempty"` // struct | union
 	CompleteDefinition   bool          `json:"completeDefinition,omitempty"`
 	Name                 string        `json:"name,omitempty"`
 	MangledName          string        `json:"mangledName,omitempty"`
@@ -178,6 +178,7 @@ type Node struct {
 	ValueCategory        ValueCategory `json:"valueCategory,omitempty"`
 	Value                interface{}   `json:"value,omitempty"`
 	CastKind             CastKind      `json:"castKind,omitempty"`
+	Size                 int           `json:"size,omitempty"` // array size
 	Inner                []*Node       `json:"inner,omitempty"`
 }
 
