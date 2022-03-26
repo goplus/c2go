@@ -12,47 +12,50 @@ type Mode uint
 
 // -----------------------------------------------------------------------------
 
-type ParseFileError struct {
+type ParseError struct {
 	Err    error
 	Stderr []byte
-	File   string
 }
 
-func (p *ParseFileError) Error() string {
-	return p.Err.Error() // TODO:
+func (p *ParseError) Error() string {
+	if len(p.Stderr) > 0 {
+		return string(p.Stderr)
+	}
+	return p.Err.Error()
 }
 
 // -----------------------------------------------------------------------------
 
-func DumpAST(filename string) ([]byte, error) {
+func DumpAST(filename string) (result []byte, warning []byte, err error) {
 	stdout := NewPagedWriter()
 	stderr := new(bytes.Buffer)
 	cmd := exec.Command(
-		"clang", "-Xclang", "-ast-dump=json", "-fsyntax-only", "-fno-color-diagnostics", filename)
+		"clang", "-Xclang", "-ast-dump=json", "-fsyntax-only", filename)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	err := cmd.Run()
+	err = cmd.Run()
+	errmsg := stderr.Bytes()
 	if err != nil {
-		return nil, &ParseFileError{Err: err, Stderr: stderr.Bytes(), File: filename}
+		return nil, nil, &ParseError{Err: err, Stderr: errmsg}
 	}
-	return stdout.Bytes(), nil
+	return stdout.Bytes(), errmsg, nil
 }
 
 // -----------------------------------------------------------------------------
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func ParseFile(filename string, mode Mode) (*ast.Node, error) {
-	out, err := DumpAST(filename)
+func ParseFile(filename string, mode Mode) (file *ast.Node, warning []byte, err error) {
+	out, warning, err := DumpAST(filename)
 	if err != nil {
-		return nil, err
+		return
 	}
-	var doc ast.Node
-	err = json.Unmarshal(out, &doc)
+	file = new(ast.Node)
+	err = json.Unmarshal(out, file)
 	if err != nil {
-		return nil, &ParseFileError{Err: err, File: filename}
+		err = &ParseError{Err: err}
 	}
-	return &doc, nil
+	return
 }
 
 // -----------------------------------------------------------------------------

@@ -28,14 +28,14 @@ func main() {
 	var file = flag.Arg(0)
 	var err error
 	if *dump {
-		doc, e := parser.DumpAST(file)
+		doc, _, e := parser.DumpAST(file)
 		if e == nil {
 			os.Stdout.Write(doc)
 			return
 		}
 		err = e
 	} else {
-		doc, e := parser.ParseFile(file, 0)
+		doc, _, e := parser.ParseFile(file, 0)
 		if e == nil {
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
