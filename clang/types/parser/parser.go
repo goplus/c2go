@@ -111,7 +111,7 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 			if t == nil {
 				return nil, p.newError("pointer to nil")
 			}
-			t = types.NewPointer(t)
+			t = p.newPointer(t)
 		case token.LBRACK: // [
 			if t == nil {
 				return nil, p.newError("pointer to nil")
@@ -128,7 +128,7 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 				return
 			}
 			if isParam {
-				t = types.NewPointer(t)
+				t = p.newPointer(t)
 			} else {
 				t = types.NewArray(t, int64(n))
 			}
@@ -181,6 +181,13 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 			log.Fatalln("c.types.ParseType: unknown -", p.tok, p.lit)
 		}
 	}
+}
+
+func (p *parser) newPointer(t types.Type) types.Type {
+	if p.notVoid(t) {
+		return types.NewPointer(t)
+	}
+	return types.Typ[types.UnsafePointer]
 }
 
 // -----------------------------------------------------------------------------
