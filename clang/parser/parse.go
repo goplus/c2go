@@ -2,10 +2,10 @@ package parser
 
 import (
 	"bytes"
-	"encoding/json"
 	"os/exec"
 
 	"github.com/goplus/c2go/clang/ast"
+	jsoniter "github.com/json-iterator/go"
 )
 
 type Mode uint
@@ -39,6 +39,8 @@ func DumpAST(filename string) ([]byte, error) {
 }
 
 // -----------------------------------------------------------------------------
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func ParseFile(filename string, mode Mode) (*ast.Node, error) {
 	out, err := DumpAST(filename)
