@@ -12,6 +12,10 @@ import (
 type clangTypeSys struct {
 }
 
+func (p *clangTypeSys) Pkg() *types.Package {
+	return pkg
+}
+
 func (p *clangTypeSys) LookupType(typ string, unsigned bool) (t types.Type, err error) {
 	if typs, ok := intTypes[typ]; ok {
 		idx := 0
@@ -73,6 +77,7 @@ var cases = []testCase{
 	{qualType: "struct ConstantString", typ: tyConstantString},
 	{qualType: "volatile signed int", typ: tyInt},
 	{qualType: "int (*)(void)", typ: types.NewSignature(nil, nil, types.NewTuple(paramInt), false)},
+	{qualType: "int (*)()", typ: types.NewSignature(nil, nil, types.NewTuple(paramInt), false)},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
 	{qualType: "const char [7]", isParam: true, typ: tyCharPtr},

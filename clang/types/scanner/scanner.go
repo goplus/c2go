@@ -108,6 +108,10 @@ func (s *Scanner) Init(file *token.File, src string, err ErrorHandler) {
 	}
 }
 
+func (s *Scanner) Source() string {
+	return s.src
+}
+
 func (s *Scanner) error(offs int, msg string) {
 	if s.err != nil {
 		s.err(s.file.Position(s.file.Pos(offs)), msg)
