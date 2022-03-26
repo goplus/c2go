@@ -1,10 +1,8 @@
 package scanner
 
 import (
-	"bytes"
 	"fmt"
 	"go/token"
-	"strconv"
 	"unicode"
 	"unicode/utf8"
 )
@@ -121,60 +119,6 @@ func (s *Scanner) error(offs int, msg string) {
 
 func (s *Scanner) errorf(offs int, format string, args ...interface{}) {
 	s.error(offs, fmt.Sprintf(format, args...))
-}
-
-func trailingDigits(text []byte) (int, int, bool) {
-	i := bytes.LastIndexByte(text, ':') // look from right (Windows filenames may contain ':')
-	if i < 0 {
-		return 0, 0, false // no ":"
-	}
-	// i >= 0
-	n, err := strconv.ParseUint(string(text[i+1:]), 10, 0)
-	return i + 1, int(n), err == nil
-}
-
-func (s *Scanner) findLineEnd() bool {
-	// initial '/' already consumed
-
-	defer func(offs int) {
-		// reset scanner state to where it was upon calling findLineEnd
-		s.ch = '/'
-		s.offset = offs
-		s.rdOffset = offs + 1
-		s.next() // consume initial '/' again
-	}(s.offset - 1)
-
-	// read ahead until a newline, EOF, or non-comment token is found
-	for s.ch == '/' || s.ch == '*' {
-		if s.ch == '/' {
-			//-style comment always contains a newline
-			return true
-		}
-		/*-style comment: look for newline */
-		s.next()
-		for s.ch >= 0 {
-			ch := s.ch
-			if ch == '\n' {
-				return true
-			}
-			s.next()
-			if ch == '*' && s.ch == '/' {
-				s.next()
-				break
-			}
-		}
-		s.skipWhitespace() // s.insertSemi is set
-		if s.ch < 0 || s.ch == '\n' {
-			return true
-		}
-		if s.ch != '/' {
-			// non-comment token
-			return false
-		}
-		s.next() // consume '/'
-	}
-
-	return false
 }
 
 func isLetter(ch rune) bool {
