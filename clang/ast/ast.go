@@ -125,6 +125,7 @@ const (
 	PointerToIntegral      CastKind = "PointerToIntegral"
 	FunctionToPointerDecay CastKind = "FunctionToPointerDecay"
 	BuiltinFnToFnPtr       CastKind = "BuiltinFnToFnPtr"
+	NoOp                   CastKind = "NoOp"
 )
 
 type (
@@ -161,7 +162,7 @@ type Node struct {
 	IsImplicit           bool          `json:"isImplicit,omitempty"`   // is this type implicit defined
 	IsReferenced         bool          `json:"isReferenced,omitempty"` // is this type refered or not
 	IsUsed               bool          `json:"isUsed,omitempty"`       // is this variable used or not
-	IsArrow              bool          `json:"isArrow,omitempty"`
+	IsArrow              bool          `json:"isArrow,omitempty"`      // is ptr->member not obj.member
 	IsPostfix            bool          `json:"isPostfix,omitempty"`
 	IsPartOfExplicitCast bool          `json:"isPartOfExplicitCast,omitempty"`
 	HasElse              bool          `json:"hasElse,omitempty"`

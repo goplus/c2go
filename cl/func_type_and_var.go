@@ -1,10 +1,18 @@
 package cl
 
 import (
+	"go/types"
 	"log"
 
 	"github.com/goplus/c2go/clang/ast"
 )
+
+// -----------------------------------------------------------------------------
+
+func toType(ctx *blockCtx, typ *ast.Type) types.Type {
+	log.Fatalln("toType:", typ.QualType)
+	return nil
+}
 
 // -----------------------------------------------------------------------------
 

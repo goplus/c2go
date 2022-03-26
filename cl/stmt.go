@@ -13,7 +13,7 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 	case ast.ReturnStmt:
 		compileReturnStmt(ctx, stmt)
 	default:
-		compileExprEx(ctx, stmt, "compileStmt: unknown kind =")
+		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", false)
 	}
 }
 

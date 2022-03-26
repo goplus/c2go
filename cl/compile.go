@@ -40,6 +40,10 @@ func goNode(node *ast.Node) goast.Node {
 	return nil // TODO:
 }
 
+func goNodePos(node *ast.Node) token.Pos {
+	return token.NoPos // TODO:
+}
+
 // -----------------------------------------------------------------------------
 
 type Config struct {
@@ -102,17 +106,19 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	if debugCompileDecl {
 		log.Println("func", fn.Name, "-", fn.Type.QualType, fn.Loc.PresumedLine)
 	}
+	var params []*types.Var
 	for _, item := range fn.Inner {
 		switch item.Kind {
 		case ast.ParmVarDecl:
 			if debugCompileDecl {
 				log.Println("  => param", item.Name, "-", item.Type.QualType)
 			}
+			params = append(params, newParam(ctx, item))
 		case ast.CompoundStmt:
-			sig := gox.NewSignature(nil, nil, nil, false) // TODO:
-			f, err := ctx.pkg.NewFuncWith(token.NoPos, fn.Name, sig, nil)
+			sig := gox.NewSignature(nil, types.NewTuple(params...), nil, false) // TODO:
+			f, err := ctx.pkg.NewFuncWith(goNodePos(fn), fn.Name, sig, nil)
 			if err != nil {
-				panic(err)
+				log.Fatalln("compileFunc:", err)
 			}
 			cb := f.BodyStart(ctx.pkg)
 			compileCompoundStmt(ctx, item)
@@ -128,6 +134,11 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}
 	}
+}
+
+func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
+	typ := toType(ctx, decl.Type)
+	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
 }
 
 // -----------------------------------------------------------------------------
