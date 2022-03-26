@@ -13,6 +13,8 @@
 
 *.i
 *.json
+*.i.go
+*.c.go
 
 # Dependency directories (remove the comment below to include it)
 # vendor/

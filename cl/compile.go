@@ -10,6 +10,27 @@ import (
 	"github.com/goplus/gox"
 )
 
+const (
+	DbgFlagCompileDecl = 1 << iota
+	DbgFlagAll         = DbgFlagCompileDecl
+)
+
+var (
+	debugCompileDecl bool
+)
+
+func SetDebug(flags int) {
+	debugCompileDecl = (flags & DbgFlagCompileDecl) != 0
+}
+
+func logFile(node *ast.Node) {
+	if debugCompileDecl {
+		if f := node.Loc.PresumedFile; f != "" {
+			log.Println("==>", f)
+		}
+	}
+}
+
 // -----------------------------------------------------------------------------
 
 type Config struct {
@@ -47,17 +68,31 @@ func loadFile(p *gox.Package, file *ast.Node) (err error) {
 		return syscall.EINVAL
 	}
 	ctx := &blockCtx{pkg: p, cb: p.CB()}
-	_ = ctx
 	for _, decl := range file.Inner {
+		logFile(decl)
 		if decl.IsImplicit {
 			continue
 		}
 		switch decl.Kind {
+		case ast.FunctionDecl:
+			compileFunc(ctx, decl)
+		case ast.TypedefDecl:
+			compileTypedef(ctx, decl)
+		case ast.RecordDecl:
+			compileStructOrUnion(ctx, decl)
+		case ast.VarDecl:
+			compileVar(ctx, decl)
 		default:
 			log.Fatalln("loadFile: unknown kind =", decl.Kind)
 		}
 	}
 	return
+}
+
+func compileFunc(ctx *blockCtx, decl *ast.Node) {
+	if debugCompileDecl {
+		log.Println("func", decl.Name, "-", decl.Type.QualType, decl.Loc.PresumedLine)
+	}
 }
 
 // -----------------------------------------------------------------------------

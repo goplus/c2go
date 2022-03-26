@@ -21,11 +21,12 @@ func main() {
 		usage()
 		return
 	}
+	cl.SetDebug(cl.DbgFlagAll)
 
 	pkgname, infile := os.Args[1], os.Args[2]
 	outfile := infile
 	if filepath.Ext(infile) != ".i" {
-		outfile := infile + ".i"
+		outfile = infile + ".i"
 		err := preprocessor.Do(infile, outfile, nil)
 		checkerr(err)
 	}
