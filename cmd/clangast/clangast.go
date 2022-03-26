@@ -26,18 +26,24 @@ func main() {
 		return
 	}
 	var file = flag.Arg(0)
-	var out []byte
 	var err error
 	if *dump {
-		out, err = parser.DumpAST(file)
-	} else if doc, e := parser.ParseFile(file, 0); e == nil {
-		out, _ = json.MarshalIndent(doc, "", "  ")
+		doc, e := parser.DumpAST(file)
+		if e == nil {
+			os.Stdout.Write(doc)
+			return
+		}
+		err = e
 	} else {
+		doc, e := parser.ParseFile(file, 0)
+		if e == nil {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			enc.Encode(doc)
+			return
+		}
 		err = e
 	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	os.Stdout.Write(out)
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(1)
 }

@@ -25,12 +25,12 @@ func (p *ParseFileError) Error() string {
 // -----------------------------------------------------------------------------
 
 func DumpAST(filename string) ([]byte, error) {
-	var stdout, stderr bytes.Buffer
+	stdout := NewPagedWriter()
+	stderr := new(bytes.Buffer)
 	cmd := exec.Command(
 		"clang", "-Xclang", "-ast-dump=json", "-fsyntax-only", "-fno-color-diagnostics", filename)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	stdout.Grow(0x200000)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	err := cmd.Run()
 	if err != nil {
 		return nil, &ParseFileError{Err: err, Stderr: stderr.Bytes(), File: filename}
