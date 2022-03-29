@@ -105,6 +105,8 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		log.Println("func", fn.Name, "-", fn.Type.QualType, fn.Loc.PresumedLine)
 	}
 	var params []*types.Var
+	var results *types.Tuple
+	var body *ast.Node
 	for _, item := range fn.Inner {
 		switch item.Kind {
 		case ast.ParmVarDecl:
@@ -113,19 +115,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			}
 			params = append(params, newParam(ctx, item))
 		case ast.CompoundStmt:
-			var results *types.Tuple
-			if t := toType(ctx, fn.Type, parser.FlagGetRetType); parser.NotVoid(t) {
-				ret := types.NewParam(token.NoPos, ctx.pkg.Types, "", t)
-				results = types.NewTuple(ret)
-			}
-			sig := gox.NewSignature(nil, types.NewTuple(params...), results, false)
-			f, err := ctx.pkg.NewFuncWith(goNodePos(fn), fn.Name, sig, nil)
-			if err != nil {
-				log.Fatalln("compileFunc:", err)
-			}
-			cb := f.BodyStart(ctx.pkg)
-			compileCompoundStmt(ctx, item)
-			cb.End()
+			body = item
 		case ast.BuiltinAttr:
 		case ast.FormatAttr:
 		case ast.AsmLabelAttr:
@@ -136,6 +126,20 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		default:
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}
+	}
+	if t := toType(ctx, fn.Type, parser.FlagGetRetType); parser.NotVoid(t) {
+		ret := types.NewParam(token.NoPos, ctx.pkg.Types, "", t)
+		results = types.NewTuple(ret)
+	}
+	sig := gox.NewSignature(nil, types.NewTuple(params...), results, false)
+	f, err := ctx.pkg.NewFuncWith(goNodePos(fn), fn.Name, sig, nil)
+	if err != nil {
+		log.Fatalln("compileFunc:", err)
+	}
+	if body != nil {
+		cb := f.BodyStart(ctx.pkg)
+		compileCompoundStmt(ctx, body)
+		cb.End()
 	}
 }
 

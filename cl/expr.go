@@ -61,11 +61,10 @@ func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
 
 func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	switch v.CastKind {
-	case ast.LValueToRValue:
+	case ast.LValueToRValue, ast.FunctionToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 	case ast.IntegralCast:
 		compileTypeCast(ctx, v, nil)
-	// case ast.FunctionToPointerDecay:
 	default:
 		log.Fatalln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
 	}
