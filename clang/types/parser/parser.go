@@ -70,6 +70,10 @@ var (
 	TyUint128 = TyNotImpl
 )
 
+func NotVoid(t types.Type) bool {
+	return t != TyVoid
+}
+
 // -----------------------------------------------------------------------------
 
 type parser struct {
@@ -79,10 +83,6 @@ type parser struct {
 	pos token.Pos
 	tok token.Token
 	lit string
-}
-
-func (p *parser) notVoid(t types.Type) bool {
-	return t != TyVoid
 }
 
 func (p *parser) next() {
@@ -230,6 +230,10 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 				return nil, p.newError("no function return type")
 			}
 			if err = p.expect(token.MUL); err != nil { // *
+				if getRetType(inFlags) {
+					err = nil
+					p.tok = token.EOF
+				}
 				return
 			}
 		nextTok:
@@ -255,7 +259,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 				if e != nil {
 					return nil, e
 				}
-				if p.notVoid(arg) {
+				if NotVoid(arg) {
 					args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
 				}
 				if p.tok != token.COMMA {
@@ -265,7 +269,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 			if p.tok != token.RPAREN { // )
 				return nil, p.newError("expect )")
 			}
-			if p.notVoid(t) {
+			if NotVoid(t) {
 				results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
 			}
 			t = types.NewSignature(nil, types.NewTuple(args...), results, false)
@@ -286,7 +290,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 }
 
 func (p *parser) newPointer(t types.Type) types.Type {
-	if p.notVoid(t) {
+	if NotVoid(t) {
 		return types.NewPointer(t)
 	}
 	return types.Typ[types.UnsafePointer]

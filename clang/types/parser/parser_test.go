@@ -99,6 +99,7 @@ var cases = []testCase{
 	{qualType: "unsigned long long", typ: tyUint64},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
+	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
 	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
@@ -116,10 +117,10 @@ func TestCases(t *testing.T) {
 			typ, err := ParseType(ts, fset, c.qualType, c.flags)
 			if err != nil {
 				if errMsgOf(err) != c.err {
-					t.Fatal("ParseType:", err, "expected:", c.err)
+					t.Fatal("ParseType:", err, ", expected:", c.err)
 				}
 			} else if !types.Identical(typ, c.typ) {
-				t.Fatal("ParseType:", typ, "expected:", c.typ)
+				t.Fatal("ParseType:", typ, ", expected:", c.typ)
 			}
 		})
 	}
