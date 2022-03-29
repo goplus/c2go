@@ -18,6 +18,30 @@ func toType(ctx *blockCtx, typ *ast.Type, isParam bool) types.Type {
 	return t
 }
 
+func toStructType(ctx *blockCtx, decl *ast.Node) *types.Struct {
+	fields := make([]*types.Var, 0, len(decl.Inner))
+	for _, item := range decl.Inner {
+		switch item.Kind {
+		case ast.FieldDecl:
+			fld := newField(ctx, item)
+			fields = append(fields, fld)
+		default:
+			log.Fatalln("toStructType: unknown field kind =", item.Kind)
+		}
+	}
+	return types.NewStruct(fields, nil)
+}
+
+func toUnionType(ctx *blockCtx, decl *ast.Node) types.Type {
+	// TODO: union
+	return parser.TyNotImpl
+}
+
+func newField(ctx *blockCtx, decl *ast.Node) *types.Var {
+	typ := toType(ctx, decl.Type, true)
+	return types.NewField(goNodePos(decl), ctx.pkg.Types, decl.Name, typ, false)
+}
+
 // -----------------------------------------------------------------------------
 
 func compileTypedef(ctx *blockCtx, decl *ast.Node) {
@@ -50,8 +74,16 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) {
 		ctx.unnameds[decl.ID] = decl
 		return
 	}
-	// TODO:
-	ctx.pkg.NewType(name, goNodePos(decl)).InitType(ctx.pkg, types.Typ[types.Int])
+	var inner types.Type
+	var pkg = ctx.pkg
+	var t = pkg.NewType(name, goNodePos(decl))
+	switch decl.TagUsed {
+	case "struct":
+		inner = toStructType(ctx, decl)
+	default:
+		inner = toUnionType(ctx, decl)
+	}
+	t.InitType(pkg, inner)
 }
 
 func compileVar(ctx *blockCtx, decl *ast.Node) {
