@@ -23,6 +23,8 @@ func (p *clangTypeSys) LookupType(typ string) (t types.Type, err error) {
 		return types.Typ[types.Int8], nil
 	case "void":
 		return TyVoid, nil
+	case "__int128":
+		return TyInt128, nil
 	case "string":
 		return tyString, nil
 	case "ConstantString":
@@ -86,10 +88,13 @@ var cases = []testCase{
 	{qualType: "unsigned int", typ: tyUint},
 	{qualType: "struct ConstantString", typ: tyConstantString},
 	{qualType: "volatile signed int", typ: tyInt},
+	{qualType: "__int128", typ: TyInt128},
 	{qualType: "signed", typ: tyInt},
 	{qualType: "signed short", typ: tyInt16},
 	{qualType: "signed long", typ: tyInt32},
 	{qualType: "unsigned", typ: tyUint},
+	{qualType: "unsigned char", typ: tyUchar},
+	{qualType: "unsigned __int128", typ: TyUint128},
 	{qualType: "unsigned long", typ: tyUint32},
 	{qualType: "unsigned long long", typ: tyUint64},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},

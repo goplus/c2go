@@ -50,7 +50,11 @@ func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, isParam bool
 }
 
 var (
-	TyVoid = types.Typ[types.UntypedNil]
+	TyNotImpl = types.Typ[types.UnsafePointer]
+
+	TyVoid    = types.Typ[types.UntypedNil]
+	TyInt128  = TyNotImpl
+	TyUint128 = TyNotImpl
 )
 
 // -----------------------------------------------------------------------------
@@ -105,6 +109,13 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 				return types.Typ[types.Uint8], nil
 			case flagSigned:
 				return types.Typ[types.Int8], nil
+			}
+		case "__int128":
+			switch flags {
+			case flagUnsigned:
+				return TyInt128, nil
+			case flagSigned:
+				return TyUint128, nil
 			}
 		}
 		log.Fatalln("lookupType: TODO - invalid type")
