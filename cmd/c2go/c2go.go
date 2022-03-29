@@ -22,6 +22,7 @@ func main() {
 		return
 	}
 	cl.SetDebug(cl.DbgFlagAll)
+	gox.SetDebug(gox.DbgFlagInstruction)
 
 	pkgname, infile := os.Args[1], os.Args[2]
 	outfile := infile

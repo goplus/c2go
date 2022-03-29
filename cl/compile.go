@@ -14,18 +14,15 @@ import (
 
 const (
 	DbgFlagCompileDecl = 1 << iota
-	DbgFlagCompileStmt
-	DbgFlagAll = DbgFlagCompileDecl
+	DbgFlagAll         = DbgFlagCompileDecl
 )
 
 var (
 	debugCompileDecl bool
-	debugCompileStmt bool
 )
 
 func SetDebug(flags int) {
 	debugCompileDecl = (flags & DbgFlagCompileDecl) != 0
-	debugCompileStmt = (flags & DbgFlagCompileStmt) != 0
 }
 
 func logFile(node *ast.Node) {

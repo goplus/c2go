@@ -1,6 +1,7 @@
 package cl
 
 import (
+	goast "go/ast"
 	"go/token"
 	"go/types"
 	"log"
@@ -23,7 +24,13 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 	case ast.DeclRefExpr:
 		compileDeclRefExpr(ctx, expr, lhs)
 	case ast.MemberExpr:
-		compileMemberExpr(ctx, expr)
+		compileMemberExpr(ctx, expr, lhs)
+	case ast.IntegerLiteral:
+		compileLiteral(ctx, token.INT, expr)
+	case ast.StringLiteral:
+		compileLiteral(ctx, token.STRING, expr)
+	case ast.CharacterLiteral:
+		compileCharacterLiteral(ctx, expr)
 	case ast.ParenExpr:
 		compileExpr(ctx, expr.Inner[0])
 	default:
@@ -33,6 +40,14 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 
 func compileExpr(ctx *blockCtx, expr *ast.Node) {
 	compileExprEx(ctx, expr, "compileExpr: unknown kind =", false)
+}
+
+func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
+	ctx.cb.Val(&goast.BasicLit{Kind: kind, Value: expr.Value.(string)}, goNode(expr))
+}
+
+func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
+	ctx.cb.Val(rune(expr.Value.(float64)), goNode(expr))
 }
 
 // -----------------------------------------------------------------------------
@@ -76,9 +91,14 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 
 // -----------------------------------------------------------------------------
 
-func compileMemberExpr(ctx *blockCtx, v *ast.Node) {
+func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	compileExpr(ctx, v.Inner[0])
-	ctx.cb.MemberRef(v.Name, goNode(v))
+	src := goNode(v)
+	if lhs {
+		ctx.cb.MemberRef(v.Name, src)
+	} else {
+		ctx.cb.MemberVal(v.Name, src)
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -130,7 +150,7 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 	cb := ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg)
 
 	cb.DefineVarStart(token.NoPos, addrVarName)
-	compileExpr(ctx, v.Inner[0])
+	compileExprEx(ctx, v.Inner[0], "compileExpr: unknown kind =", true)
 	cb.UnaryOp(token.AND).EndInit(1)
 
 	n := 0
