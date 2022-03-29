@@ -94,7 +94,19 @@ func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
 		log.Println("var", decl.Name, "global:", global, "-", decl.Loc.PresumedLine)
 	}
 	if decl.StorageClass != ast.Extern {
-		log.Fatalln("compileVar:", decl.Name)
+		var scope *types.Scope
+		if global {
+			scope = ctx.pkg.Types.Scope()
+		} else {
+			scope = ctx.cb.Scope()
+		}
+		typ := toType(ctx, decl.Type, 0)
+		varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
+		if len(decl.Inner) > 0 {
+			cb := varDecl.InitStart(ctx.pkg)
+			compileExpr(ctx, decl.Inner[0])
+			cb.EndInit(1)
+		}
 	}
 }
 
