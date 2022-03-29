@@ -10,8 +10,8 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func toType(ctx *blockCtx, typ *ast.Type, isParam bool) types.Type {
-	t, err := parser.ParseType(ctx, ctx.fset, typ.QualType, isParam)
+func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
+	t, err := parser.ParseType(ctx, ctx.fset, typ.QualType, flags)
 	if err != nil {
 		log.Fatalln("toType:", err)
 	}
@@ -41,7 +41,7 @@ func toUnionType(ctx *blockCtx, decl *ast.Node) types.Type {
 }
 
 func newField(ctx *blockCtx, decl *ast.Node) *types.Var {
-	typ := toType(ctx, decl.Type, true)
+	typ := toType(ctx, decl.Type, 0)
 	return types.NewField(goNodePos(decl), ctx.pkg.Types, decl.Name, typ, false)
 }
 
@@ -65,7 +65,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 			}
 		}
 	}
-	typ := toType(ctx, decl.Type, false)
+	typ := toType(ctx, decl.Type, 0)
 	ctx.pkg.AliasType(name, typ, goNodePos(decl))
 }
 

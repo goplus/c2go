@@ -9,6 +9,7 @@ import (
 	goast "go/ast"
 
 	"github.com/goplus/c2go/clang/ast"
+	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
 )
 
@@ -134,7 +135,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 }
 
 func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
-	typ := toType(ctx, decl.Type, true)
+	typ := toType(ctx, decl.Type, parser.FlagIsParam)
 	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
 }
 

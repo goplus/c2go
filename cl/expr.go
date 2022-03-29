@@ -72,7 +72,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 }
 
 func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
-	t := toType(ctx, v.Type, false)
+	t := toType(ctx, v.Type, 0)
 	cb := ctx.cb.Typ(t, src)
 	compileExpr(ctx, v.Inner[0])
 	cb.Call(1)

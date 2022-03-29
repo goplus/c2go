@@ -78,7 +78,7 @@ func newFn(in, out *types.Tuple) types.Type {
 
 type testCase struct {
 	qualType string
-	isParam  bool
+	flags    int
 	typ      types.Type
 	err      string
 }
@@ -101,7 +101,7 @@ var cases = []testCase{
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
-	{qualType: "const char [7]", isParam: true, typ: tyCharPtr},
+	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
 	{qualType: "char *", typ: tyCharPtr},
 	{qualType: "void", typ: TyVoid},
 	{qualType: "void *", typ: tyVoidPtr},
@@ -113,7 +113,7 @@ func TestCases(t *testing.T) {
 	fset := token.NewFileSet()
 	for _, c := range cases {
 		t.Run(c.qualType, func(t *testing.T) {
-			typ, err := ParseType(ts, fset, c.qualType, c.isParam)
+			typ, err := ParseType(ts, fset, c.qualType, c.flags)
 			if err != nil {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, "expected:", c.err)

@@ -23,6 +23,19 @@ type TypeSystem interface {
 	LookupType(typ string) (t types.Type, err error)
 }
 
+const (
+	FlagIsParam = 1 << iota
+	FlagGetRetType
+)
+
+func isParam(flags int) bool {
+	return (flags & FlagIsParam) != 0
+}
+
+func getRetType(flags int) bool {
+	return (flags & FlagGetRetType) != 0
+}
+
 // qualType can be:
 //   unsigned int
 //   struct ConstantString
@@ -35,12 +48,12 @@ type TypeSystem interface {
 //   char *
 //   void
 //   ...
-func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, isParam bool) (t types.Type, err error) {
+func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, flags int) (t types.Type, err error) {
 	p := &parser{ts: ts}
 	file := fset.AddFile("", fset.Base(), len(qualType))
 	p.s.Init(file, qualType, nil)
 
-	if t, err = p.parse(isParam); err != nil {
+	if t, err = p.parse(flags); err != nil {
 		return
 	}
 	if p.tok != token.EOF {
@@ -136,7 +149,7 @@ var intTypes = [...]types.Type{
 	flagShort | flagLong | flagLongLong | flagUnsigned: nil,
 }
 
-func (p *parser) parse(isParam bool) (t types.Type, err error) {
+func (p *parser) parse(inFlags int) (t types.Type, err error) {
 	flags := 0
 	for {
 		p.next()
@@ -207,7 +220,7 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 			if err = p.expect(token.RBRACK); err != nil { // ]
 				return
 			}
-			if isParam {
+			if isParam(inFlags) {
 				t = p.newPointer(t)
 			} else {
 				t = types.NewArray(t, int64(n))
@@ -238,7 +251,7 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 			var results *types.Tuple
 			var pkg = p.ts.Pkg()
 			for {
-				arg, e := p.parse(true)
+				arg, e := p.parse(FlagIsParam)
 				if e != nil {
 					return nil, e
 				}
