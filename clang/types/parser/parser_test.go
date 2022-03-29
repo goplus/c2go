@@ -16,28 +16,20 @@ func (p *clangTypeSys) Pkg() *types.Package {
 	return pkg
 }
 
-func (p *clangTypeSys) LookupType(typ string, unsigned bool) (t types.Type, err error) {
-	if typs, ok := intTypes[typ]; ok {
-		idx := 0
-		if unsigned {
-			idx++
-		}
-		return typs[idx], nil
-	}
+func (p *clangTypeSys) LookupType(typ string) (t types.Type, err error) {
 	switch typ {
+	case "int":
+		return types.Typ[types.Int], nil
+	case "char":
+		return types.Typ[types.Int8], nil
 	case "void":
-		return tyVoid, nil
+		return TyVoid, nil
 	case "string":
 		return tyString, nil
 	case "ConstantString":
 		return tyConstantString, nil
 	}
 	return nil, syscall.ENOENT
-}
-
-var intTypes = map[string][2]types.Type{
-	"int":  {tyInt, tyUint},
-	"char": {tyChar, tyUchar},
 }
 
 var (
@@ -51,10 +43,15 @@ var (
 var (
 	tyChar           = types.Typ[types.Int8]
 	tyUchar          = types.Typ[types.Uint8]
+	tyInt16          = types.Typ[types.Int16]
+	tyUint16         = types.Typ[types.Uint16]
+	tyInt32          = types.Typ[types.Int32]
+	tyUint32         = types.Typ[types.Uint32]
+	tyInt64          = types.Typ[types.Int64]
+	tyUint64         = types.Typ[types.Uint64]
 	tyInt            = types.Typ[types.Int]
 	tyUint           = types.Typ[types.Uint]
 	tyString         = types.Typ[types.String]
-	tyVoid           = types.Typ[types.UntypedNil]
 	tyVoidPtr        = types.Typ[types.UnsafePointer]
 	tyCharPtr        = types.NewPointer(tyChar)
 	tyCharPtrPtr     = types.NewPointer(tyCharPtr)
@@ -89,13 +86,19 @@ var cases = []testCase{
 	{qualType: "unsigned int", typ: tyUint},
 	{qualType: "struct ConstantString", typ: tyConstantString},
 	{qualType: "volatile signed int", typ: tyInt},
+	{qualType: "signed", typ: tyInt},
+	{qualType: "signed short", typ: tyInt16},
+	{qualType: "signed long", typ: tyInt32},
+	{qualType: "unsigned", typ: tyUint},
+	{qualType: "unsigned long", typ: tyUint32},
+	{qualType: "unsigned long long", typ: tyUint64},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
 	{qualType: "const char [7]", isParam: true, typ: tyCharPtr},
 	{qualType: "char *", typ: tyCharPtr},
-	{qualType: "void", typ: tyVoid},
+	{qualType: "void", typ: TyVoid},
 	{qualType: "void *", typ: tyVoidPtr},
 	{qualType: "int (*)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
 }

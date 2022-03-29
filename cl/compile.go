@@ -71,26 +71,6 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 
 // -----------------------------------------------------------------------------
 
-type blockCtx struct {
-	pkg  *gox.Package
-	cb   *gox.CodeBuilder
-	fset *token.FileSet
-}
-
-/*
-func (p *blockCtx) Pkg() *types.Package {
-	return p.pkg.Types
-}
-
-func (p *blockCtx) LookupType(typ string, unsigned bool) (t types.Type, err error) {
-	_, o := p.cb.Scope().LookupParent(typ, token.NoPos)
-	if o != nil {
-		return o.Type(), nil
-	}
-	return nil, syscall.ENOENT
-}
-*/
-
 func loadFile(p *gox.Package, file *ast.Node) (err error) {
 	if file.Kind != ast.TranslationUnitDecl {
 		return syscall.EINVAL

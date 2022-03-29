@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"syscall"
 
 	"github.com/goplus/c2go/clang/types/scanner"
 )
@@ -14,7 +15,7 @@ import (
 
 type TypeSystem interface {
 	Pkg() *types.Package
-	LookupType(typ string, unsigned bool) (t types.Type, err error)
+	LookupType(typ string) (t types.Type, err error)
 }
 
 // qualType can be:
@@ -43,6 +44,10 @@ func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, isParam bool
 	return
 }
 
+var (
+	TyVoid = types.Typ[types.UntypedNil]
+)
+
 // -----------------------------------------------------------------------------
 
 type parser struct {
@@ -52,19 +57,10 @@ type parser struct {
 	pos token.Pos
 	tok token.Token
 	lit string
-
-	tyVoid types.Type
 }
 
 func (p *parser) notVoid(t types.Type) bool {
-	return p.void() != t
-}
-
-func (p *parser) void() types.Type {
-	if p.tyVoid == nil {
-		p.tyVoid, _ = p.ts.LookupType("void", false)
-	}
-	return p.tyVoid
+	return t != TyVoid
 }
 
 func (p *parser) next() {
@@ -83,16 +79,69 @@ func (p *parser) expect(tokExp token.Token) error {
 	return nil
 }
 
+const (
+	flagShort = 1 << iota
+	flagLong
+	flagLongLong
+	flagUnsigned
+	flagSigned
+)
+
+func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
+	if flags != 0 {
+		switch lit {
+		case "int":
+			if t = intTypes[flags&^flagSigned]; t != nil {
+				return
+			}
+		case "char":
+			switch flags {
+			case flagUnsigned:
+				return types.Typ[types.Uint8], nil
+			case flagSigned:
+				return types.Typ[types.Int8], nil
+			}
+		}
+		log.Fatalln("lookupType: TODO - invalid type")
+		return nil, syscall.EINVAL
+	}
+	return p.ts.LookupType(lit)
+}
+
+var intTypes = [...]types.Type{
+	0:                                      types.Typ[types.Int],
+	flagShort:                              types.Typ[types.Int16],
+	flagLong:                               types.Typ[types.Int32],
+	flagLong | flagLongLong:                types.Typ[types.Int64],
+	flagUnsigned:                           types.Typ[types.Uint],
+	flagShort | flagUnsigned:               types.Typ[types.Uint16],
+	flagLong | flagUnsigned:                types.Typ[types.Uint32],
+	flagLong | flagLongLong | flagUnsigned: types.Typ[types.Uint64],
+	flagShort | flagLong | flagLongLong | flagUnsigned: nil,
+}
+
 func (p *parser) parse(isParam bool) (t types.Type, err error) {
-	unsigned := false
+	flags := 0
 	for {
 		p.next()
+	retry:
 		switch p.tok {
 		case token.IDENT:
+		ident:
 			switch p.lit {
 			case "unsigned":
-				unsigned = true
-			case "const", "signed", "volatile", "restrict":
+				flags |= flagUnsigned
+			case "short":
+				flags |= flagShort
+			case "long":
+				if (flags & flagLong) != 0 {
+					flags |= flagLongLong
+				} else {
+					flags |= flagLong
+				}
+			case "signed":
+				flags |= flagSigned
+			case "const", "volatile", "restrict":
 			case "struct", "union":
 				p.next()
 				if p.tok != token.IDENT {
@@ -103,9 +152,24 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 				if t != nil {
 					return nil, p.newError("illegal syntax: multiple types?")
 				}
-				if t, err = p.ts.LookupType(p.lit, unsigned); err != nil {
+				if t, err = p.lookupType(p.lit, flags); err != nil {
 					return
 				}
+				flags = 0
+			}
+			if flags != 0 {
+				p.next()
+				if p.tok == token.IDENT {
+					goto ident
+				}
+				if t != nil {
+					return nil, p.newError("illegal syntax: multiple types?")
+				}
+				if t, err = p.lookupType("int", flags); err != nil {
+					return
+				}
+				flags = 0
+				goto retry
 			}
 		case token.MUL: // *
 			if t == nil {
@@ -169,7 +233,7 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 			t = types.NewSignature(nil, types.NewTuple(args...), results, false)
 		case token.RPAREN:
 			if t == nil {
-				t = p.void()
+				t = TyVoid
 			}
 			return
 		case token.COMMA, token.EOF:

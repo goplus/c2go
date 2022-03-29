@@ -11,7 +11,7 @@ import (
 // -----------------------------------------------------------------------------
 
 func toType(ctx *blockCtx, typ *ast.Type, isParam bool) types.Type {
-	t, err := parser.ParseType(nil, ctx.fset, typ.QualType, isParam)
+	t, err := parser.ParseType(ctx, ctx.fset, typ.QualType, isParam)
 	if err != nil {
 		log.Fatalln("toType:", err)
 	}

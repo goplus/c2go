@@ -175,7 +175,7 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, lhs bool) {
 	case "--":
 		compileIncDec(ctx, token.DEC, v)
 	default:
-		log.Fatalln("compileUnaryOperator: unknown operator =", v.OpCode)
+		log.Fatalln("compileUnaryOperator: unknown operator -", v.OpCode)
 	}
 }
 
