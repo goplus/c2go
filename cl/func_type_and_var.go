@@ -27,13 +27,15 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 	}
 	if len(decl.Inner) > 0 {
 		item := decl.Inner[0]
-		if item.Kind == "ElaboratedType" && item.OwnedTagDecl != nil {
-			id := item.OwnedTagDecl.ID
-			if detail, ok := ctx.unnameds[id]; ok {
-				compileStructOrUnion(ctx, name, detail)
-				return
+		if item.Kind == "ElaboratedType" {
+			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
+				id := owned.ID
+				if detail, ok := ctx.unnameds[id]; ok {
+					compileStructOrUnion(ctx, name, detail)
+					return
+				}
+				log.Fatalln("compileTypedef: unknown id =", id)
 			}
-			log.Fatalln("compileTypedef: unknown id =", id)
 		}
 	}
 	typ := toType(ctx, decl.Type, false)
