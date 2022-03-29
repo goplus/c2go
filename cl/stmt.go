@@ -1,6 +1,8 @@
 package cl
 
 import (
+	"log"
+
 	"github.com/goplus/c2go/clang/ast"
 )
 
@@ -12,8 +14,21 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileIfStmt(ctx, stmt)
 	case ast.ReturnStmt:
 		compileReturnStmt(ctx, stmt)
+	case ast.DeclStmt:
+		compileDeclStmt(ctx, stmt)
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", false)
+	}
+}
+
+func compileDeclStmt(ctx *blockCtx, stmt *ast.Node) {
+	for _, item := range stmt.Inner {
+		switch item.Kind {
+		case ast.VarDecl:
+			compileVar(ctx, item, false)
+		default:
+			log.Fatalln("compileDeclStmt: unknown kind =", item.Kind)
+		}
 	}
 }
 

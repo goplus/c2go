@@ -89,9 +89,12 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) {
 	t.InitType(pkg, inner)
 }
 
-func compileVar(ctx *blockCtx, decl *ast.Node) {
+func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
 	if debugCompileDecl {
-		log.Println("var", decl.Name, "-", decl.Loc.PresumedLine)
+		log.Println("var", decl.Name, "global:", global, "-", decl.Loc.PresumedLine)
+	}
+	if decl.StorageClass != ast.Extern {
+		log.Fatalln("compileVar:", decl.Name)
 	}
 }
 
