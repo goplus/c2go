@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/goplus/c2go/clang/ast"
+	"github.com/goplus/gox"
 )
 
 // -----------------------------------------------------------------------------
@@ -42,6 +43,10 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 
 func compileExpr(ctx *blockCtx, expr *ast.Node) {
 	compileExprEx(ctx, expr, "compileExpr: unknown kind =", false)
+}
+
+func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
+	compileExprEx(ctx, expr, "compileExpr: unknown kind =", true)
 }
 
 func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
@@ -121,7 +126,12 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node) {
 		ctx.cb.BinaryOp(op, goNode(v))
 		return
 	}
-	log.Fatalln("compileBinaryExpr: unknown operator =", v.OpCode)
+	switch v.OpCode {
+	case "=":
+		compileAssignExpr(ctx, v)
+	default:
+		log.Fatalln("compileBinaryExpr unknown operator:", v.OpCode)
+	}
 }
 
 var (
@@ -152,18 +162,23 @@ var (
 
 // -----------------------------------------------------------------------------
 
+const (
+	addrVarName = "_cgo_addr"
+)
+
+func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
+	cb, _ := closureStartInitAddr(ctx, v)
+
+	addr := cb.Scope().Lookup(addrVarName)
+	cb.Val(addr).ElemRef()
+	compileExpr(ctx, v.Inner[1])
+	cb.AssignWith(1, 1, goNode(v.Inner[1]))
+
+	cb.Val(addr).Elem().Return(1).End().Call(0)
+}
+
 func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
-	const (
-		addrVarName = "_cgo_addr"
-	)
-	pkg := ctx.pkg
-	ret := pkg.NewAutoParam("_cgo_ret")
-	cb := ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg)
-
-	cb.DefineVarStart(token.NoPos, addrVarName)
-	compileExprEx(ctx, v.Inner[0], "compileExpr: unknown kind =", true)
-	cb.UnaryOp(token.AND).EndInit(1)
-
+	cb, ret := closureStartInitAddr(ctx, v)
 	n := 0
 	addr := cb.Scope().Lookup(addrVarName)
 	if v.IsPostfix {
@@ -176,6 +191,19 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 	}
 	cb.Return(n).End().Call(0)
 }
+
+func closureStartInitAddr(ctx *blockCtx, v *ast.Node) (*gox.CodeBuilder, *types.Var) {
+	pkg := ctx.pkg
+	ret := pkg.NewAutoParam("_cgo_ret")
+	cb := ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg)
+
+	cb.DefineVarStart(token.NoPos, addrVarName)
+	compileExprLHS(ctx, v.Inner[0])
+	cb.UnaryOp(token.AND).EndInit(1)
+	return cb, ret
+}
+
+// -----------------------------------------------------------------------------
 
 func compileStarExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	compileExpr(ctx, v.Inner[0])
