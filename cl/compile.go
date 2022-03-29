@@ -113,7 +113,12 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			}
 			params = append(params, newParam(ctx, item))
 		case ast.CompoundStmt:
-			sig := gox.NewSignature(nil, types.NewTuple(params...), nil, false) // TODO:
+			var results *types.Tuple
+			if t := toType(ctx, fn.Type, parser.FlagGetRetType); parser.NotVoid(t) {
+				ret := types.NewParam(token.NoPos, ctx.pkg.Types, "", t)
+				results = types.NewTuple(ret)
+			}
+			sig := gox.NewSignature(nil, types.NewTuple(params...), results, false)
 			f, err := ctx.pkg.NewFuncWith(goNodePos(fn), fn.Name, sig, nil)
 			if err != nil {
 				log.Fatalln("compileFunc:", err)
