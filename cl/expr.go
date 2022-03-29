@@ -163,7 +163,7 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 		cb.Val(addr).Elem()
 		n = 1
 	}
-	cb.Return(n).End()
+	cb.Return(n).End().Call(0)
 }
 
 func compileStarExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
