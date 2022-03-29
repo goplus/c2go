@@ -32,7 +32,7 @@ func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
 		return parser.TyVoid, nil
 	case "__int128":
 		return parser.TyInt128, nil
-	case "__builtin_va_list":
+	case "__builtin_va_list", "__va_list_tag":
 		return parser.TyNotImpl, nil
 	}
 	_, o := p.cb.Scope().LookupParent(typ, token.NoPos)
