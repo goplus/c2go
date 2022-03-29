@@ -56,8 +56,12 @@ type Config struct {
 }
 
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.Package, err error) {
+	fset := conf.Fset
+	if fset == nil {
+		fset = token.NewFileSet()
+	}
 	confGox := &gox.Config{
-		Fset:            conf.Fset,
+		Fset:            fset,
 		Importer:        conf.Importer,
 		LoadNamed:       nil,
 		HandleErr:       nil,

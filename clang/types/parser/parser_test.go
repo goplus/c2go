@@ -83,6 +83,7 @@ type testCase struct {
 }
 
 var cases = []testCase{
+	{qualType: "int", typ: tyInt},
 	{qualType: "unsigned int", typ: tyUint},
 	{qualType: "struct ConstantString", typ: tyConstantString},
 	{qualType: "volatile signed int", typ: tyInt},
