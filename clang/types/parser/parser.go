@@ -1,14 +1,19 @@
 package parser
 
 import (
+	"errors"
 	"go/token"
 	"go/types"
 	"io"
 	"log"
 	"strconv"
-	"syscall"
 
 	"github.com/goplus/c2go/clang/types/scanner"
+)
+
+var (
+	ErrInvalidType  = errors.New("invalid type")
+	ErrTypeNotFound = errors.New("type not found")
 )
 
 // -----------------------------------------------------------------------------
@@ -103,7 +108,7 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 			}
 		}
 		log.Fatalln("lookupType: TODO - invalid type")
-		return nil, syscall.EINVAL
+		return nil, ErrInvalidType
 	}
 	return p.ts.LookupType(lit)
 }

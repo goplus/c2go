@@ -3,8 +3,8 @@ package cl
 import (
 	"go/token"
 	"go/types"
-	"syscall"
 
+	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
 )
@@ -12,9 +12,10 @@ import (
 // -----------------------------------------------------------------------------
 
 type blockCtx struct {
-	pkg  *gox.Package
-	cb   *gox.CodeBuilder
-	fset *token.FileSet
+	pkg      *gox.Package
+	cb       *gox.CodeBuilder
+	fset     *token.FileSet
+	unnameds map[ast.ID]*ast.Node
 }
 
 func (p *blockCtx) Pkg() *types.Package {
@@ -34,7 +35,7 @@ func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
 	if o != nil {
 		return o.Type(), nil
 	}
-	return nil, syscall.ENOENT
+	return nil, parser.ErrTypeNotFound
 }
 
 // -----------------------------------------------------------------------------

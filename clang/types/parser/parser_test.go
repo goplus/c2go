@@ -3,7 +3,6 @@ package parser
 import (
 	"go/token"
 	"go/types"
-	"syscall"
 	"testing"
 )
 
@@ -29,7 +28,7 @@ func (p *clangTypeSys) LookupType(typ string) (t types.Type, err error) {
 	case "ConstantString":
 		return tyConstantString, nil
 	}
-	return nil, syscall.ENOENT
+	return nil, ErrTypeNotFound
 }
 
 var (

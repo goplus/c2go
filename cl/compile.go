@@ -79,7 +79,8 @@ func loadFile(p *gox.Package, file *ast.Node) (err error) {
 	if file.Kind != ast.TranslationUnitDecl {
 		return syscall.EINVAL
 	}
-	ctx := &blockCtx{pkg: p, cb: p.CB(), fset: p.Fset}
+	ctx := &blockCtx{
+		pkg: p, cb: p.CB(), fset: p.Fset, unnameds: make(map[ast.ID]*ast.Node)}
 	for _, decl := range file.Inner {
 		logFile(decl)
 		if decl.IsImplicit {
@@ -91,7 +92,7 @@ func loadFile(p *gox.Package, file *ast.Node) (err error) {
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		case ast.RecordDecl:
-			compileStructOrUnion(ctx, decl)
+			compileStructOrUnion(ctx, decl.Name, decl)
 		case ast.VarDecl:
 			compileVar(ctx, decl)
 		default:
