@@ -33,6 +33,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 		compileCharacterLiteral(ctx, expr)
 	case ast.ParenExpr:
 		compileExpr(ctx, expr.Inner[0])
+	case ast.CStyleCastExpr:
+		compileTypeCast(ctx, expr, goNode(expr))
 	default:
 		log.Fatalln(prompt, expr.Kind)
 	}
@@ -56,10 +58,19 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	switch v.CastKind {
 	case ast.LValueToRValue:
 		compileExpr(ctx, v.Inner[0])
+	case ast.IntegralCast:
+		compileTypeCast(ctx, v, nil)
 	// case ast.FunctionToPointerDecay:
 	default:
 		log.Fatalln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
 	}
+}
+
+func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
+	t := toType(ctx, v.Type, false)
+	cb := ctx.cb.Typ(t, src)
+	compileExpr(ctx, v.Inner[0])
+	cb.Call(1)
 }
 
 // -----------------------------------------------------------------------------
