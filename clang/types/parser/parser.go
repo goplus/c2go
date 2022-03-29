@@ -157,7 +157,7 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 				}
 			case "signed":
 				flags |= flagSigned
-			case "const", "volatile", "restrict":
+			case "const", "volatile", "restrict", "_Nullable":
 			case "struct", "union":
 				p.next()
 				if p.tok != token.IDENT {
@@ -219,8 +219,17 @@ func (p *parser) parse(isParam bool) (t types.Type, err error) {
 			if err = p.expect(token.MUL); err != nil { // *
 				return
 			}
-			if err = p.expect(token.RPAREN); err != nil { // )
-				return
+		nextTok:
+			p.next()
+			switch p.tok {
+			case token.RPAREN: // )
+			case token.IDENT:
+				if p.lit == "_Nullable" {
+					goto nextTok
+				}
+				fallthrough
+			default:
+				return nil, p.newError("expect )")
 			}
 			if err = p.expect(token.LPAREN); err != nil { // (
 				return

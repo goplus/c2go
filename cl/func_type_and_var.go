@@ -23,6 +23,9 @@ func toStructType(ctx *blockCtx, decl *ast.Node) *types.Struct {
 	for _, item := range decl.Inner {
 		switch item.Kind {
 		case ast.FieldDecl:
+			if debugCompileDecl {
+				log.Println("  => field", item.Name, "-", item.Type.QualType)
+			}
 			fld := newField(ctx, item)
 			fields = append(fields, fld)
 		default:
