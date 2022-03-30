@@ -144,12 +144,7 @@ func initWithStringLiteral(ctx *blockCtx, typ types.Type, decl *ast.Node) bool {
 			if err != nil {
 				log.Fatalln("initWithStringLiteral:", err)
 			}
-			n := len(s)
-			cb := ctx.cb
-			for i := 0; i < n; i++ {
-				cb.Val(rune(s[i]))
-			}
-			cb.Val(rune(0)).ArrayLit(typ, n+1)
+			stringLit(ctx.cb, s, typ)
 			return true
 		}
 	}

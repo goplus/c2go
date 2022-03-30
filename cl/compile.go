@@ -108,7 +108,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	if debugCompileDecl {
 		log.Println("func", fn.Name, "-", fnType.QualType, fn.Loc.PresumedLine)
 	}
-	var variadic bool
+	var variadic, hasName bool
 	var params []*types.Var
 	var results *types.Tuple
 	var body *ast.Node
@@ -117,6 +117,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		case ast.ParmVarDecl:
 			if debugCompileDecl {
 				log.Println("  => param", item.Name, "-", item.Type.QualType)
+			}
+			if item.Name != "" {
+				hasName = true
 			}
 			params = append(params, newParam(ctx, item))
 		case ast.CompoundStmt:
@@ -133,25 +136,36 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 	}
 	if variadic = isVariadicFn(fnType); variadic {
-		params = append(params, newVariadicParam(ctx))
+		params = append(params, newVariadicParam(ctx, hasName))
 	} else {
-		variadic = checkVariadic(ctx, params)
+		variadic = checkVariadic(ctx, params, hasName)
 	}
+	pkg := ctx.pkg
 	if t := toType(ctx, fnType, parser.FlagGetRetType); ctypes.NotVoid(t) {
-		ret := types.NewParam(token.NoPos, ctx.pkg.Types, "", t)
+		ret := types.NewParam(token.NoPos, pkg.Types, "", t)
 		results = types.NewTuple(ret)
 	}
 	sig := gox.NewSignature(nil, types.NewTuple(params...), results, variadic)
-	f := ctx.pkg.NewFuncDecl(goNodePos(fn), fn.Name, sig)
 	if body != nil {
-		cb := f.BodyStart(ctx.pkg)
+		f, err := pkg.NewFuncWith(goNodePos(fn), fn.Name, sig, nil)
+		if err != nil {
+			log.Fatalln("compileFunc:", err)
+		}
+		cb := f.BodyStart(pkg)
 		compileCompoundStmt(ctx, body)
 		cb.End()
+	} else {
+		f := types.NewFunc(goNodePos(fn), pkg.Types, fn.Name, sig)
+		pkg.Types.Scope().Insert(f)
 	}
 }
 
-func newVariadicParam(ctx *blockCtx) *types.Var {
-	return types.NewParam(token.NoPos, ctx.pkg.Types, "", types.NewSlice(gox.TyEmptyInterface))
+func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
+	name := ""
+	if hasName {
+		name = "__cgo_args"
+	}
+	return types.NewParam(token.NoPos, ctx.pkg.Types, name, types.NewSlice(gox.TyEmptyInterface))
 }
 
 func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
@@ -159,11 +173,11 @@ func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
 }
 
-func checkVariadic(ctx *blockCtx, params []*types.Var) bool {
+func checkVariadic(ctx *blockCtx, params []*types.Var, hasName bool) bool {
 	n := len(params)
 	if n > 0 {
 		if last := params[n-1]; types.Identical(last.Type(), ctx.tyValist) {
-			params[n-1] = newVariadicParam(ctx)
+			params[n-1] = newVariadicParam(ctx, hasName)
 			return true
 		}
 	}

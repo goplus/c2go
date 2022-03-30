@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"go/types"
 	"log"
+	"strconv"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
@@ -29,7 +30,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 	case ast.IntegerLiteral:
 		compileLiteral(ctx, token.INT, expr)
 	case ast.StringLiteral:
-		compileLiteral(ctx, token.STRING, expr)
+		compileStringLiteral(ctx, expr)
 	case ast.CharacterLiteral:
 		compileCharacterLiteral(ctx, expr)
 	case ast.ParenExpr:
@@ -57,16 +58,25 @@ func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
 	ctx.cb.Val(rune(expr.Value.(float64)), goNode(expr))
 }
 
+func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
+	s, err := strconv.Unquote(expr.Value.(string))
+	if err != nil {
+		log.Fatalln("compileStringLiteral:", err)
+	}
+	stringLit(ctx.cb, s, nil)
+}
+
 // -----------------------------------------------------------------------------
 
 func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	switch v.CastKind {
 	case ast.LValueToRValue, ast.FunctionToPointerDecay, ast.NoOp:
 		compileExpr(ctx, v.Inner[0])
+	case ast.ArrayToPointerDecay:
+		compileExpr(ctx, v.Inner[0])
+		arrayToElemPtr(ctx.cb)
 	case ast.IntegralCast:
 		compileTypeCast(ctx, v, nil)
-	case ast.ArrayToPointerDecay:
-		ctx.cb.Val(nil) // TODO:
 	default:
 		log.Fatalln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
 	}
