@@ -3,6 +3,8 @@ package cl
 import (
 	"go/types"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
@@ -11,6 +13,10 @@ import (
 )
 
 // -----------------------------------------------------------------------------
+
+func isVariadic(typ *ast.Type) bool {
+	return strings.HasSuffix(typ.QualType, "...)")
+}
 
 func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 	t, err := parser.ParseType(ctx, ctx.fset, typ.QualType, flags)
@@ -106,10 +112,44 @@ func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
 		varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
 		if len(decl.Inner) > 0 {
 			cb := varDecl.InitStart(ctx.pkg)
-			compileExpr(ctx, decl.Inner[0])
+			initExpr := decl.Inner[0]
+			if !initWithStringLiteral(ctx, typ, initExpr) {
+				compileExpr(ctx, initExpr)
+			}
 			cb.EndInit(1)
 		}
 	}
+}
+
+// char[N], char[], unsigned char[N], unsigned char[]
+func isCharArray(typ types.Type) bool {
+	if t, ok := typ.(*types.Array); ok {
+		switch t.Elem() {
+		case types.Typ[types.Int8], types.Typ[types.Uint8]:
+			return true
+		}
+	}
+	return false
+}
+
+func initWithStringLiteral(ctx *blockCtx, typ types.Type, decl *ast.Node) bool {
+	if isCharArray(typ) {
+		switch decl.Kind {
+		case ast.StringLiteral:
+			s, err := strconv.Unquote(decl.Value.(string))
+			if err != nil {
+				log.Fatalln("initWithStringLiteral:", err)
+			}
+			n := len(s)
+			cb := ctx.cb
+			for i := 0; i < n; i++ {
+				cb.Val(rune(s[i]))
+			}
+			cb.Val(rune(0)).ArrayLit(typ, n+1)
+			return true
+		}
+	}
+	return false
 }
 
 // -----------------------------------------------------------------------------

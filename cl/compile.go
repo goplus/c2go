@@ -103,9 +103,11 @@ func loadFile(p *gox.Package, file *ast.Node) (err error) {
 }
 
 func compileFunc(ctx *blockCtx, fn *ast.Node) {
+	fnType := fn.Type
 	if debugCompileDecl {
-		log.Println("func", fn.Name, "-", fn.Type.QualType, fn.Loc.PresumedLine)
+		log.Println("func", fn.Name, "-", fnType.QualType, fn.Loc.PresumedLine)
 	}
+	var variadic bool
 	var params []*types.Var
 	var results *types.Tuple
 	var body *ast.Node
@@ -129,11 +131,15 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}
 	}
-	if t := toType(ctx, fn.Type, parser.FlagGetRetType); ctypes.NotVoid(t) {
+	if variadic = isVariadic(fnType); variadic {
+		arg := types.NewParam(token.NoPos, ctx.pkg.Types, "", types.NewSlice(gox.TyEmptyInterface))
+		params = append(params, arg)
+	}
+	if t := toType(ctx, fnType, parser.FlagGetRetType); ctypes.NotVoid(t) {
 		ret := types.NewParam(token.NoPos, ctx.pkg.Types, "", t)
 		results = types.NewTuple(ret)
 	}
-	sig := gox.NewSignature(nil, types.NewTuple(params...), results, false)
+	sig := gox.NewSignature(nil, types.NewTuple(params...), results, variadic)
 	f := ctx.pkg.NewFuncDecl(goNodePos(fn), fn.Name, sig)
 	if body != nil {
 		cb := f.BodyStart(ctx.pkg)

@@ -124,6 +124,7 @@ const (
 	IntegralToPointer      CastKind = "IntegralToPointer"
 	PointerToIntegral      CastKind = "PointerToIntegral"
 	FunctionToPointerDecay CastKind = "FunctionToPointerDecay"
+	ArrayToPointerDecay    CastKind = "ArrayToPointerDecay"
 	BuiltinFnToFnPtr       CastKind = "BuiltinFnToFnPtr"
 	NoOp                   CastKind = "NoOp"
 )
