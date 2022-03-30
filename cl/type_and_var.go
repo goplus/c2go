@@ -14,7 +14,7 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func isVariadic(typ *ast.Type) bool {
+func isVariadicFn(typ *ast.Type) bool {
 	return strings.HasSuffix(typ.QualType, "...)")
 }
 

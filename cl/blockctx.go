@@ -16,6 +16,7 @@ type blockCtx struct {
 	pkg      *gox.Package
 	cb       *gox.CodeBuilder
 	fset     *token.FileSet
+	tyValist types.Type
 	unnameds map[ast.ID]*ast.Node
 }
 
@@ -31,24 +32,27 @@ func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
 	return nil, ctypes.ErrNotFound
 }
 
-func initValist(scope *types.Scope, pkg *types.Package) {
+func (p *blockCtx) initCTypes() {
+	scope := types.Universe
+	pkg := p.pkg.Types
+	p.tyValist = initValist(scope, pkg)
+	aliasType(scope, pkg, "char", types.Typ[types.Int8])
+	aliasType(scope, pkg, "void", ctypes.Void)
+	aliasType(scope, pkg, "__int128", ctypes.Int128)
+}
+
+func initValist(scope *types.Scope, pkg *types.Package) types.Type {
 	valist := types.NewTypeName(token.NoPos, pkg, "__va_list_tag", nil)
 	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
 	scope.Insert(valist)
-	aliasType(scope, pkg, "__builtin_va_list", types.NewPointer(t))
+	tyValist := types.NewPointer(t)
+	aliasType(scope, pkg, "__builtin_va_list", tyValist)
+	return tyValist
 }
 
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
 	o := types.NewTypeName(token.NoPos, pkg, name, typ)
 	scope.Insert(o)
-}
-
-func initCTypes(pkg *types.Package) {
-	scope := types.Universe
-	initValist(scope, pkg)
-	aliasType(scope, pkg, "char", types.Typ[types.Int8])
-	aliasType(scope, pkg, "void", ctypes.Void)
-	aliasType(scope, pkg, "__int128", ctypes.Int128)
 }
 
 // -----------------------------------------------------------------------------

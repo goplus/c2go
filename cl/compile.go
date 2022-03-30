@@ -69,7 +69,6 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 		NewBuiltin:      nil,
 	}
 	p = gox.NewPackage(pkgPath, pkgName, confGox)
-	initCTypes(p.Types)
 	err = loadFile(p, file)
 	return
 }
@@ -82,6 +81,7 @@ func loadFile(p *gox.Package, file *ast.Node) (err error) {
 	}
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset, unnameds: make(map[ast.ID]*ast.Node)}
+	ctx.initCTypes()
 	for _, decl := range file.Inner {
 		logFile(decl)
 		if decl.IsImplicit {
@@ -132,9 +132,11 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}
 	}
-	if variadic = isVariadic(fnType); variadic {
+	if variadic = isVariadicFn(fnType); variadic {
 		arg := types.NewParam(token.NoPos, ctx.pkg.Types, "", types.NewSlice(gox.TyEmptyInterface))
 		params = append(params, arg)
+	} else {
+		variadic = checkVariadic(ctx, params)
 	}
 	if t := toType(ctx, fnType, parser.FlagGetRetType); ctypes.NotVoid(t) {
 		ret := types.NewParam(token.NoPos, ctx.pkg.Types, "", t)
@@ -149,9 +151,25 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	}
 }
 
+func newVariadicParam(ctx *blockCtx) *types.Var {
+	return types.NewParam(token.NoPos, ctx.pkg.Types, "", types.NewSlice(gox.TyEmptyInterface))
+}
+
 func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 	typ := toType(ctx, decl.Type, parser.FlagIsParam)
 	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
+}
+
+func checkVariadic(ctx *blockCtx, params []*types.Var) bool {
+	n := len(params)
+	if n > 0 {
+		if last := params[n-1]; types.Identical(last.Type(), ctx.tyValist) {
+			arg := newVariadicParam(ctx)
+			params[n-1] = arg
+			return true
+		}
+	}
+	return false
 }
 
 // -----------------------------------------------------------------------------
