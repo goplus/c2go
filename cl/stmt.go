@@ -18,6 +18,7 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileDeclStmt(ctx, stmt)
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", false)
+		ctx.cb.EndStmt()
 	}
 }
 
