@@ -193,10 +193,10 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 	n := 0
 	addr := cb.Scope().Lookup(addrVarName)
 	if v.IsPostfix {
-		cb.VarRef(ret).Val(addr).Elem().Assign(1).
-			Val(addr).ElemRef().IncDec(op)
-	} else {
-		cb.Val(addr).ElemRef().IncDec(op)
+		cb.VarRef(ret).Val(addr).Elem().Assign(1)
+	}
+	valOfAddr(cb, addr).ElemRef().IncDec(op)
+	if !v.IsPostfix {
 		cb.Val(addr).Elem()
 		n = 1
 	}
