@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	ErrInvalidType  = errors.New("invalid type")
-	ErrTypeNotFound = errors.New("type not found")
+	ErrInvalidType = errors.New("invalid type")
 )
 
 // -----------------------------------------------------------------------------

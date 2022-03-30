@@ -69,6 +69,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 		NewBuiltin:      nil,
 	}
 	p = gox.NewPackage(pkgPath, pkgName, confGox)
+	initCTypes(p.Types)
 	err = loadFile(p, file)
 	return
 }

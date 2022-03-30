@@ -32,7 +32,7 @@ func (p *clangTypeSys) LookupType(typ string) (t types.Type, err error) {
 	case "ConstantString":
 		return tyConstantString, nil
 	}
-	return nil, ErrTypeNotFound
+	return nil, ctypes.ErrNotFound
 }
 
 var (
