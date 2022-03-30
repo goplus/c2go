@@ -1,4 +1,4 @@
-go.work
+go.work*
 
 # Binaries for programs and plugins
 *.exe

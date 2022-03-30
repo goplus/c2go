@@ -134,10 +134,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		results = types.NewTuple(ret)
 	}
 	sig := gox.NewSignature(nil, types.NewTuple(params...), results, false)
-	f, err := ctx.pkg.NewFuncWith(goNodePos(fn), fn.Name, sig, nil)
-	if err != nil {
-		log.Fatalln("compileFunc:", err)
-	}
+	f := ctx.pkg.NewFuncDecl(goNodePos(fn), fn.Name, sig)
 	if body != nil {
 		cb := f.BodyStart(ctx.pkg)
 		compileCompoundStmt(ctx, body)
