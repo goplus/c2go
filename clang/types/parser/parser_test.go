@@ -93,11 +93,11 @@ var cases = []testCase{
 	{qualType: "__int128", typ: ctypes.Int128},
 	{qualType: "signed", typ: tyInt},
 	{qualType: "signed short", typ: tyInt16},
-	{qualType: "signed long", typ: tyInt32},
+	{qualType: "signed long", typ: ctypes.Long},
 	{qualType: "unsigned", typ: tyUint},
 	{qualType: "unsigned char", typ: tyUchar},
 	{qualType: "unsigned __int128", typ: ctypes.Uint128},
-	{qualType: "unsigned long", typ: tyUint32},
+	{qualType: "unsigned long", typ: ctypes.Ulong},
 	{qualType: "unsigned long long", typ: tyUint64},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
@@ -116,7 +116,7 @@ func TestCases(t *testing.T) {
 	fset := token.NewFileSet()
 	for _, c := range cases {
 		t.Run(c.qualType, func(t *testing.T) {
-			typ, err := ParseType(ts, fset, c.qualType, c.flags)
+			typ, _, err := ParseType(ts, fset, c.qualType, c.flags)
 			if err != nil {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, ", expected:", c.err)

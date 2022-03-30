@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"strconv"
-	"unsafe"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 	"github.com/goplus/c2go/clang/types/scanner"
@@ -49,12 +48,12 @@ func getRetType(flags int) bool {
 //   char *
 //   void
 //   ...
-func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, flags int) (t types.Type, err error) {
+func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, flags int) (t types.Type, isConst bool, err error) {
 	p := &parser{ts: ts}
 	file := fset.AddFile("", fset.Base(), len(qualType))
 	p.s.Init(file, qualType, nil)
 
-	if t, err = p.parse(flags); err != nil {
+	if t, isConst, err = p.parse(flags); err != nil {
 		return
 	}
 	if p.tok != token.EOF {
@@ -129,23 +128,16 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 var intTypes = [...]types.Type{
 	0:                                      types.Typ[types.Int],
 	flagShort:                              types.Typ[types.Int16],
-	flagLong:                               types.Typ[types.Int64],
+	flagLong:                               ctypes.Long,
 	flagLong | flagLongLong:                types.Typ[types.Int64],
 	flagUnsigned:                           types.Typ[types.Uint],
 	flagShort | flagUnsigned:               types.Typ[types.Uint16],
-	flagLong | flagUnsigned:                types.Typ[types.Uint64],
+	flagLong | flagUnsigned:                ctypes.Ulong,
 	flagLong | flagLongLong | flagUnsigned: types.Typ[types.Uint64],
 	flagShort | flagLong | flagLongLong | flagUnsigned: nil,
 }
 
-func init() { // TODO: how to support cross-compiling?
-	if unsafe.Sizeof(uintptr(0)) == 4 {
-		intTypes[flagLong] = types.Typ[types.Int32]
-		intTypes[flagLong|flagUnsigned] = types.Typ[types.Uint32]
-	}
-}
-
-func (p *parser) parse(inFlags int) (t types.Type, err error) {
+func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 	flags := 0
 	for {
 		p.next()
@@ -166,7 +158,9 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 				}
 			case "signed":
 				flags |= flagSigned
-			case "const", "volatile", "restrict", "_Nullable":
+			case "const":
+				isConst = true
+			case "volatile", "restrict", "_Nullable":
 			case "struct", "union":
 				p.next()
 				if p.tok != token.IDENT {
@@ -175,7 +169,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 				fallthrough
 			default:
 				if t != nil {
-					return nil, p.newError("illegal syntax: multiple types?")
+					return nil, false, p.newError("illegal syntax: multiple types?")
 				}
 				if t, err = p.lookupType(p.lit, flags); err != nil {
 					return
@@ -188,7 +182,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 					goto ident
 				}
 				if t != nil {
-					return nil, p.newError("illegal syntax: multiple types?")
+					return nil, false, p.newError("illegal syntax: multiple types?")
 				}
 				if t, err = p.lookupType("int", flags); err != nil {
 					return
@@ -198,20 +192,20 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 			}
 		case token.MUL: // *
 			if t == nil {
-				return nil, p.newError("pointer to nil")
+				return nil, false, p.newError("pointer to nil")
 			}
 			t = p.newPointer(t)
 		case token.LBRACK: // [
 			if t == nil {
-				return nil, p.newError("pointer to nil")
+				return nil, false, p.newError("pointer to nil")
 			}
 			p.next()
 			if p.tok != token.INT {
-				return nil, p.newError("array length not an integer")
+				return nil, false, p.newError("array length not an integer")
 			}
 			n, e := strconv.Atoi(p.lit)
 			if e != nil {
-				return nil, p.newError(e.Error())
+				return nil, false, p.newError(e.Error())
 			}
 			if err = p.expect(token.RBRACK); err != nil { // ]
 				return
@@ -223,7 +217,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 			}
 		case token.LPAREN: // (
 			if t == nil {
-				return nil, p.newError("no function return type")
+				return nil, false, p.newError("no function return type")
 			}
 			if err = p.expect(token.MUL); err != nil { // *
 				if getRetType(inFlags) {
@@ -242,7 +236,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 				}
 				fallthrough
 			default:
-				return nil, p.newError("expect )")
+				return nil, false, p.newError("expect )")
 			}
 			if err = p.expect(token.LPAREN); err != nil { // (
 				return
@@ -251,9 +245,9 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 			var results *types.Tuple
 			var pkg = p.ts.Pkg()
 			for {
-				arg, e := p.parse(FlagIsParam)
+				arg, _, e := p.parse(FlagIsParam)
 				if e != nil {
-					return nil, e
+					return nil, false, e
 				}
 				if ctypes.NotVoid(arg) {
 					args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
@@ -263,7 +257,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 				}
 			}
 			if p.tok != token.RPAREN { // )
-				return nil, p.newError("expect )")
+				return nil, false, p.newError("expect )")
 			}
 			if ctypes.NotVoid(t) {
 				results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))

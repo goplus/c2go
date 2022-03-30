@@ -19,11 +19,16 @@ func isVariadicFn(typ *ast.Type) bool {
 }
 
 func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
-	t, err := parser.ParseType(ctx, ctx.fset, typ.QualType, flags)
+	t, _ := toTypeEx(ctx, typ, flags)
+	return t
+}
+
+func toTypeEx(ctx *blockCtx, typ *ast.Type, flags int) (t types.Type, isConst bool) {
+	t, isConst, err := parser.ParseType(ctx, ctx.fset, typ.QualType, flags)
 	if err != nil {
 		log.Fatalln("toType:", err)
 	}
-	return t
+	return
 }
 
 func toStructType(ctx *blockCtx, decl *ast.Node) *types.Struct {
