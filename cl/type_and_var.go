@@ -117,7 +117,10 @@ func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
 		} else {
 			scope = ctx.cb.Scope()
 		}
-		typ := toType(ctx, decl.Type, 0)
+		typ, isConst := toTypeEx(ctx, decl.Type, 0)
+		if isConst && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
+			return
+		}
 		varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
 		if len(decl.Inner) > 0 {
 			cb := varDecl.InitStart(ctx.pkg)
@@ -128,6 +131,13 @@ func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
 			cb.EndInit(1)
 		}
 	}
+}
+
+func isInteger(typ types.Type) bool {
+	if t, ok := typ.(*types.Basic); ok {
+		return (t.Info() & types.IsInteger) != 0
+	}
+	return false
 }
 
 // char[N], char[], unsigned char[N], unsigned char[]
@@ -150,6 +160,20 @@ func initWithStringLiteral(ctx *blockCtx, typ types.Type, decl *ast.Node) bool {
 				log.Fatalln("initWithStringLiteral:", err)
 			}
 			stringLit(ctx.cb, s, typ)
+			return true
+		}
+	}
+	return false
+}
+
+func tryNewConstInteger(ctx *blockCtx, typ types.Type, decl *ast.Node) bool {
+	if len(decl.Inner) > 0 {
+		initExpr := decl.Inner[0]
+		switch initExpr.Kind {
+		case ast.IntegerLiteral:
+			cb := ctx.cb.NewConstStart(typ, decl.Name)
+			compileExpr(ctx, initExpr)
+			cb.EndInit(1)
 			return true
 		}
 	}
