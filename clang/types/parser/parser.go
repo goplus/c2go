@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"unsafe"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 	"github.com/goplus/c2go/clang/types/scanner"
@@ -128,13 +129,20 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 var intTypes = [...]types.Type{
 	0:                                      types.Typ[types.Int],
 	flagShort:                              types.Typ[types.Int16],
-	flagLong:                               types.Typ[types.Int32],
+	flagLong:                               types.Typ[types.Int64],
 	flagLong | flagLongLong:                types.Typ[types.Int64],
 	flagUnsigned:                           types.Typ[types.Uint],
 	flagShort | flagUnsigned:               types.Typ[types.Uint16],
-	flagLong | flagUnsigned:                types.Typ[types.Uint32],
+	flagLong | flagUnsigned:                types.Typ[types.Uint64],
 	flagLong | flagLongLong | flagUnsigned: types.Typ[types.Uint64],
 	flagShort | flagLong | flagLongLong | flagUnsigned: nil,
+}
+
+func init() { // TODO: how to support cross-compiling?
+	if unsafe.Sizeof(uintptr(0)) == 4 {
+		intTypes[flagLong] = types.Typ[types.Int32]
+		intTypes[flagLong|flagUnsigned] = types.Typ[types.Uint32]
+	}
 }
 
 func (p *parser) parse(inFlags int) (t types.Type, err error) {

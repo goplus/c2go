@@ -133,8 +133,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 	}
 	if variadic = isVariadicFn(fnType); variadic {
-		arg := types.NewParam(token.NoPos, ctx.pkg.Types, "", types.NewSlice(gox.TyEmptyInterface))
-		params = append(params, arg)
+		params = append(params, newVariadicParam(ctx))
 	} else {
 		variadic = checkVariadic(ctx, params)
 	}
@@ -164,8 +163,7 @@ func checkVariadic(ctx *blockCtx, params []*types.Var) bool {
 	n := len(params)
 	if n > 0 {
 		if last := params[n-1]; types.Identical(last.Type(), ctx.tyValist) {
-			arg := newVariadicParam(ctx)
-			params[n-1] = arg
+			params[n-1] = newVariadicParam(ctx)
 			return true
 		}
 	}

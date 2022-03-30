@@ -74,6 +74,10 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		}
 	}
 	typ := toType(ctx, decl.Type, 0)
+	if types.Identical(typ, ctx.tyValist) {
+		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
+		return
+	}
 	ctx.pkg.AliasType(name, typ, goNodePos(decl))
 }
 

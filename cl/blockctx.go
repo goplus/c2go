@@ -33,8 +33,8 @@ func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
 }
 
 func (p *blockCtx) initCTypes() {
-	scope := types.Universe
 	pkg := p.pkg.Types
+	scope := pkg.Scope()
 	p.tyValist = initValist(scope, pkg)
 	aliasType(scope, pkg, "char", types.Typ[types.Int8])
 	aliasType(scope, pkg, "void", ctypes.Void)
