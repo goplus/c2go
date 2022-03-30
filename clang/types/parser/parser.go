@@ -8,6 +8,7 @@ import (
 	"log"
 	"strconv"
 
+	ctypes "github.com/goplus/c2go/clang/types"
 	"github.com/goplus/c2go/clang/types/scanner"
 )
 
@@ -62,18 +63,6 @@ func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, flags int) (
 	return
 }
 
-var (
-	TyNotImpl = types.Typ[types.UnsafePointer]
-
-	TyVoid    = types.Typ[types.UntypedNil]
-	TyInt128  = TyNotImpl
-	TyUint128 = TyNotImpl
-)
-
-func NotVoid(t types.Type) bool {
-	return t != TyVoid
-}
-
 // -----------------------------------------------------------------------------
 
 type parser struct {
@@ -126,9 +115,9 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 		case "__int128":
 			switch flags {
 			case flagUnsigned:
-				return TyInt128, nil
+				return ctypes.Int128, nil
 			case flagSigned:
-				return TyUint128, nil
+				return ctypes.Uint128, nil
 			}
 		}
 		log.Fatalln("lookupType: TODO - invalid type")
@@ -259,7 +248,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 				if e != nil {
 					return nil, e
 				}
-				if NotVoid(arg) {
+				if ctypes.NotVoid(arg) {
 					args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
 				}
 				if p.tok != token.COMMA {
@@ -269,13 +258,13 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 			if p.tok != token.RPAREN { // )
 				return nil, p.newError("expect )")
 			}
-			if NotVoid(t) {
+			if ctypes.NotVoid(t) {
 				results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
 			}
 			t = types.NewSignature(nil, types.NewTuple(args...), results, false)
 		case token.RPAREN:
 			if t == nil {
-				t = TyVoid
+				t = ctypes.Void
 			}
 			return
 		case token.COMMA, token.EOF:
@@ -290,7 +279,7 @@ func (p *parser) parse(inFlags int) (t types.Type, err error) {
 }
 
 func (p *parser) newPointer(t types.Type) types.Type {
-	if NotVoid(t) {
+	if ctypes.NotVoid(t) {
 		return types.NewPointer(t)
 	}
 	return types.Typ[types.UnsafePointer]

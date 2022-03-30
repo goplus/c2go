@@ -11,6 +11,8 @@ import (
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
+
+	ctypes "github.com/goplus/c2go/clang/types"
 )
 
 const (
@@ -127,7 +129,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}
 	}
-	if t := toType(ctx, fn.Type, parser.FlagGetRetType); parser.NotVoid(t) {
+	if t := toType(ctx, fn.Type, parser.FlagGetRetType); ctypes.NotVoid(t) {
 		ret := types.NewParam(token.NoPos, ctx.pkg.Types, "", t)
 		results = types.NewTuple(ret)
 	}

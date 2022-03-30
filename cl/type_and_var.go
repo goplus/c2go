@@ -6,6 +6,8 @@ import (
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
+
+	ctypes "github.com/goplus/c2go/clang/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -37,7 +39,7 @@ func toStructType(ctx *blockCtx, decl *ast.Node) *types.Struct {
 
 func toUnionType(ctx *blockCtx, decl *ast.Node) types.Type {
 	// TODO: union
-	return parser.TyNotImpl
+	return ctypes.NotImpl
 }
 
 func newField(ctx *blockCtx, decl *ast.Node) *types.Var {

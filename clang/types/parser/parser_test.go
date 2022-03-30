@@ -4,6 +4,8 @@ import (
 	"go/token"
 	"go/types"
 	"testing"
+
+	ctypes "github.com/goplus/c2go/clang/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -22,9 +24,9 @@ func (p *clangTypeSys) LookupType(typ string) (t types.Type, err error) {
 	case "char":
 		return types.Typ[types.Int8], nil
 	case "void":
-		return TyVoid, nil
+		return ctypes.Void, nil
 	case "__int128":
-		return TyInt128, nil
+		return ctypes.Int128, nil
 	case "string":
 		return tyString, nil
 	case "ConstantString":
@@ -88,13 +90,13 @@ var cases = []testCase{
 	{qualType: "unsigned int", typ: tyUint},
 	{qualType: "struct ConstantString", typ: tyConstantString},
 	{qualType: "volatile signed int", typ: tyInt},
-	{qualType: "__int128", typ: TyInt128},
+	{qualType: "__int128", typ: ctypes.Int128},
 	{qualType: "signed", typ: tyInt},
 	{qualType: "signed short", typ: tyInt16},
 	{qualType: "signed long", typ: tyInt32},
 	{qualType: "unsigned", typ: tyUint},
 	{qualType: "unsigned char", typ: tyUchar},
-	{qualType: "unsigned __int128", typ: TyUint128},
+	{qualType: "unsigned __int128", typ: ctypes.Uint128},
 	{qualType: "unsigned long", typ: tyUint32},
 	{qualType: "unsigned long long", typ: tyUint64},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
@@ -104,7 +106,7 @@ var cases = []testCase{
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
 	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
 	{qualType: "char *", typ: tyCharPtr},
-	{qualType: "void", typ: TyVoid},
+	{qualType: "void", typ: ctypes.Void},
 	{qualType: "void *", typ: tyVoidPtr},
 	{qualType: "int (*)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
 }

@@ -7,6 +7,8 @@ import (
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
+
+	ctypes "github.com/goplus/c2go/clang/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -29,11 +31,11 @@ func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
 	case "char":
 		return types.Typ[types.Int8], nil
 	case "void":
-		return parser.TyVoid, nil
+		return ctypes.Void, nil
 	case "__int128":
-		return parser.TyInt128, nil
+		return ctypes.Int128, nil
 	case "__builtin_va_list", "__va_list_tag":
-		return parser.TyNotImpl, nil
+		return ctypes.NotImpl, nil
 	}
 	_, o := p.cb.Scope().LookupParent(typ, token.NoPos)
 	if o != nil {
