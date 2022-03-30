@@ -147,13 +147,32 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	}
 	sig := gox.NewSignature(nil, types.NewTuple(params...), results, variadic)
 	if body != nil {
-		f, err := pkg.NewFuncWith(goNodePos(fn), fn.Name, sig, nil)
+		fnName, isMain := fn.Name, false
+		if fnName == "main" && (results != nil || params != nil) {
+			fnName, isMain = "_cmain", true
+		}
+		f, err := pkg.NewFuncWith(goNodePos(fn), fnName, sig, nil)
 		if err != nil {
 			log.Fatalln("compileFunc:", err)
 		}
 		cb := f.BodyStart(pkg)
 		compileCompoundStmt(ctx, body)
 		cb.End()
+		if isMain {
+			pkg.NewFunc(nil, "main", nil, nil, false).BodyStart(pkg)
+			if results != nil {
+				cb.Val(pkg.Import("os").Ref("Exit"))
+			}
+			cb.Val(f.Func)
+			if params != nil {
+				panic("TODO: main func with params")
+			}
+			cb.Call(len(params))
+			if results != nil {
+				cb.Call(1)
+			}
+			cb.EndStmt().End()
+		}
 	} else {
 		f := types.NewFunc(goNodePos(fn), pkg.Types, fn.Name, sig)
 		pkg.Types.Scope().Insert(f)
