@@ -3,6 +3,7 @@ package cl
 import (
 	"go/token"
 	"go/types"
+	"runtime"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
@@ -17,6 +18,7 @@ type blockCtx struct {
 	cb       *gox.CodeBuilder
 	fset     *token.FileSet
 	tyValist types.Type
+	sizes    types.Sizes
 	unnameds map[ast.ID]*ast.Node
 }
 
@@ -32,10 +34,15 @@ func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
 	return nil, ctypes.ErrNotFound
 }
 
+func (p *blockCtx) sizeof(typ types.Type) int {
+	return int(p.sizes.Sizeof(typ))
+}
+
 func (p *blockCtx) initCTypes() {
 	pkg := p.pkg.Types
 	scope := pkg.Scope()
 	p.tyValist = initValist(scope, pkg)
+	p.sizes = types.SizesFor(runtime.Compiler, runtime.GOARCH)
 	aliasType(scope, pkg, "char", types.Typ[types.Int8])
 	aliasType(scope, pkg, "void", ctypes.Void)
 	aliasType(scope, pkg, "__int128", ctypes.Int128)
