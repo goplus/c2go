@@ -56,7 +56,7 @@ func main() {
 	pkg, err := cl.NewPackage("", pkgname, doc, confCl)
 	check(err)
 
-	gofile := infile + ".go"
+	gofile := outfile + ".go"
 	err = gox.WriteFile(gofile, pkg, false)
 	check(err)
 
