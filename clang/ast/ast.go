@@ -122,6 +122,7 @@ type CastKind string
 
 const (
 	LValueToRValue         CastKind = "LValueToRValue"
+	BitCast                CastKind = "BitCast"
 	IntegralCast           CastKind = "IntegralCast"
 	IntegralToPointer      CastKind = "IntegralToPointer"
 	PointerToIntegral      CastKind = "PointerToIntegral"

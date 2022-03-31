@@ -16,17 +16,17 @@ func binaryOp(ctx *blockCtx, op token.Token, src ast.Node) {
 	case token.SUB, token.ADD: // ptr-ptr, ptr-n, ptr+n
 		cb := ctx.cb
 		stk := cb.InternalStack()
-		args := stk.GetArgs(2)
-		if t, ok := args[0].Type.(*types.Pointer); ok {
-			stk.PopN(2)
+		arg0 := stk.Get(-2)
+		if t, ok := arg0.Type.(*types.Pointer); ok {
 			elemSize := ctx.sizeof(t.Elem())
-			t2 := args[1].Type
-			if isInteger(t2) {
-				castPtrType(cb, tyUintptr, args[0])
+			arg1 := stk.Get(-1)
+			stk.PopN(2)
+			if t2 := arg1.Type; isInteger(t2) {
+				castPtrType(cb, tyUintptr, arg0)
 				if t2 != tyUintptr {
-					castPtrType(cb, tyUintptr, args[1])
+					castPtrType(cb, tyUintptr, arg1)
 				} else {
-					stk.Push(args[1])
+					stk.Push(arg1)
 				}
 				if elemSize != 1 {
 					cb.Val(elemSize).BinaryOp(token.MUL)
@@ -35,8 +35,8 @@ func binaryOp(ctx *blockCtx, op token.Token, src ast.Node) {
 				castPtrType(cb, t, stk.Pop())
 				return
 			} else if op == token.SUB && types.Identical(t, t2) {
-				castPtrType(cb, tyUintptr, args[0])
-				castPtrType(cb, tyUintptr, args[1])
+				castPtrType(cb, tyUintptr, arg0)
+				castPtrType(cb, tyUintptr, arg1)
 				cb.BinaryOp(token.SUB, src)
 				if elemSize != 1 {
 					cb.Val(elemSize).BinaryOp(token.MUL)
