@@ -83,7 +83,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 		return
 	}
-	ctx.pkg.AliasType(name, typ, goNodePos(decl))
+	ctx.cb.AliasType(name, typ, goNodePos(decl))
 }
 
 func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) {

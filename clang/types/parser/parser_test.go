@@ -55,7 +55,6 @@ var (
 	tyInt            = types.Typ[types.Int]
 	tyUint           = types.Typ[types.Uint]
 	tyString         = types.Typ[types.String]
-	tyVoidPtr        = types.Typ[types.UnsafePointer]
 	tyCharPtr        = types.NewPointer(tyChar)
 	tyCharPtrPtr     = types.NewPointer(tyCharPtr)
 	tyConstantString = types.NewNamed(tnameConstantString, tyString, nil)
@@ -63,7 +62,7 @@ var (
 
 var (
 	paramInt        = types.NewParam(token.NoPos, pkg, "", tyInt)
-	paramVoidPtr    = types.NewParam(token.NoPos, pkg, "", tyVoidPtr)
+	paramVoidPtr    = types.NewParam(token.NoPos, pkg, "", ctypes.UnsafePointer)
 	paramCharPtrPtr = types.NewParam(token.NoPos, pkg, "", tyCharPtrPtr)
 )
 
@@ -107,7 +106,7 @@ var cases = []testCase{
 	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
 	{qualType: "char *", typ: tyCharPtr},
 	{qualType: "void", typ: ctypes.Void},
-	{qualType: "void *", typ: tyVoidPtr},
+	{qualType: "void *", typ: ctypes.UnsafePointer},
 	{qualType: "int (*)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
 }
 

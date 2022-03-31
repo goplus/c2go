@@ -7,6 +7,8 @@ import (
 	"log"
 
 	"github.com/goplus/gox"
+
+	ctypes "github.com/goplus/c2go/clang/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -64,7 +66,7 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 	arr := cb.InternalStack().Pop()
 	t, _ := gox.DerefType(arr.Type)
 	elem := t.(*types.Array).Elem()
-	cb.Typ(types.NewPointer(elem)).Typ(types.Typ[types.UnsafePointer]).
+	cb.Typ(types.NewPointer(elem)).Typ(ctypes.UnsafePointer).
 		Val(arr).UnaryOp(token.AND).Call(1).Call(1)
 }
 
@@ -88,8 +90,22 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
+func typeCastCall(cb *gox.CodeBuilder, typ types.Type) {
+	stk := cb.InternalStack()
+	v := stk.Get(-1)
+	if _, ok := v.Type.(*types.Pointer); ok {
+		stk.Pop()
+		if _, ok = typ.(*types.Pointer); ok || typ == tyUintptr {
+			cb.Typ(ctypes.UnsafePointer).Val(v).Call(1)
+		} else {
+			castPtrType(cb, tyUintptr, v)
+		}
+	}
+	cb.Call(1)
+}
+
 func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {
-	cb.Typ(typ).Typ(types.Typ[types.UnsafePointer]).Val(v).Call(1).Call(1)
+	cb.Typ(typ).Typ(ctypes.UnsafePointer).Val(v).Call(1).Call(1)
 }
 
 var (
