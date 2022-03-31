@@ -62,6 +62,7 @@ const (
 	ConstAttr           Kind = "ConstAttr"
 	PackedAttr          Kind = "PackedAttr"
 	NoThrowAttr         Kind = "NoThrowAttr"
+	MayAliasAttr        Kind = "MayAliasAttr"
 	FunctionProtoType   Kind = "FunctionProtoType"
 	FunctionDecl        Kind = "FunctionDecl"
 	ParmVarDecl         Kind = "ParmVarDecl"

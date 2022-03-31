@@ -12,25 +12,49 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 	switch stmt.Kind {
 	case ast.IfStmt:
 		compileIfStmt(ctx, stmt)
+	case ast.ForStmt:
+		compileForStmt(ctx, stmt)
 	case ast.ReturnStmt:
 		compileReturnStmt(ctx, stmt)
 	case ast.DeclStmt:
 		compileDeclStmt(ctx, stmt)
+	case ast.NullStmt:
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", false)
 		ctx.cb.EndStmt()
 	}
 }
 
-func compileDeclStmt(ctx *blockCtx, stmt *ast.Node) {
-	for _, item := range stmt.Inner {
-		switch item.Kind {
+func compileDeclStmt(ctx *blockCtx, node *ast.Node) {
+	for _, decl := range node.Inner {
+		switch decl.Kind {
 		case ast.VarDecl:
-			compileVar(ctx, item, false)
+			compileVar(ctx, decl, false)
+		case ast.TypedefDecl:
+			compileTypedef(ctx, decl)
 		default:
-			log.Fatalln("compileDeclStmt: unknown kind =", item.Kind)
+			log.Fatalln("compileDeclStmt: unknown kind =", decl.Kind)
 		}
 	}
+}
+
+func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
+	cb := ctx.cb.For()
+	if initStmt := stmt.Inner[0]; initStmt.Kind != "" {
+		compileStmt(ctx, initStmt)
+	}
+	if cond := stmt.Inner[2]; cond.Kind != "" {
+		compileExpr(ctx, cond)
+	} else {
+		cb.None()
+	}
+	cb.Then()
+	compileStmt(ctx, stmt.Inner[4])
+	if postStmt := stmt.Inner[3]; postStmt.Kind != "" {
+		cb.Post()
+		compileStmt(ctx, postStmt)
+	}
+	cb.End()
 }
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
