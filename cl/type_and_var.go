@@ -14,6 +14,10 @@ import (
 
 // -----------------------------------------------------------------------------
 
+func sizeof(typ types.Type) int {
+	return 0
+}
+
 func isVariadicFn(typ *ast.Type) bool {
 	return strings.HasSuffix(typ.QualType, "...)")
 }

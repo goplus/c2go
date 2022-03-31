@@ -29,7 +29,7 @@ func main() {
 	switch flag.NArg() {
 	case 1:
 		pkgname, infile, run = "main", flag.Arg(0), true
-	case 3:
+	case 2:
 		pkgname, infile = flag.Arg(0), flag.Arg(1)
 	default:
 		usage()

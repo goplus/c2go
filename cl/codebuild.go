@@ -29,16 +29,17 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 	cb.UnaryOp(token.AND).Call(1).Call(1)
 }
 
-func valOfAddr(cb *gox.CodeBuilder, addr types.Object) *gox.CodeBuilder {
+func valOfAddr(cb *gox.CodeBuilder, addr types.Object) (elemSize int) {
 	typ := addr.Type()
 	if t, ok := typ.(*types.Pointer); ok {
 		typ = t.Elem()
-		if _, ok := typ.(*types.Pointer); ok { // **type
-			return cb.Typ(tyUintptrPtr).Typ(types.Typ[types.UnsafePointer]).
-				Val(addr).Call(1).Call(1)
+		if t, ok = typ.(*types.Pointer); ok { // **type
+			cb.Typ(tyUintptrPtr).Typ(types.Typ[types.UnsafePointer]).Val(addr).Call(1).Call(1)
+			return sizeof(t.Elem())
 		}
 	}
-	return cb.Val(addr)
+	cb.Val(addr)
+	return 1
 }
 
 var (
