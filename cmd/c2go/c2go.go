@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/goplus/c2go/cl"
@@ -12,40 +14,64 @@ import (
 	"github.com/goplus/gox/packages"
 )
 
+var (
+	verbose = flag.Bool("v", false, "print verbose information")
+)
+
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: c2go pkgname source.c\n")
+	fmt.Fprintf(os.Stderr, "Usage: c2go [-v] [pkgname] source.c\n")
 }
 
 func main() {
-	if len(os.Args) < 3 {
+	flag.Parse()
+	var pkgname, infile string
+	var run bool
+	switch flag.NArg() {
+	case 1:
+		pkgname, infile, run = "main", flag.Arg(0), true
+	case 3:
+		pkgname, infile = flag.Arg(0), flag.Arg(1)
+	default:
 		usage()
 		return
 	}
-	cl.SetDebug(cl.DbgFlagAll)
-	gox.SetDebug(gox.DbgFlagInstruction) // | gox.DbgFlagMatch)
 
-	pkgname, infile := os.Args[1], os.Args[2]
+	if *verbose {
+		cl.SetDebug(cl.DbgFlagAll)
+		gox.SetDebug(gox.DbgFlagInstruction)
+	}
+
 	outfile := infile
 	if filepath.Ext(infile) != ".i" {
 		outfile = infile + ".i"
 		err := preprocessor.Do(infile, outfile, nil)
-		checkerr(err)
+		check(err)
 	}
 
 	doc, _, err := parser.ParseFile(outfile, 0)
-	checkerr(err)
+	check(err)
 
 	imp, _, _ := packages.NewImporter(nil, "fmt", "strings", "strconv")
 	confCl := &cl.Config{Importer: imp}
 	pkg, err := cl.NewPackage("", pkgname, doc, confCl)
-	checkerr(err)
+	check(err)
 
 	gofile := infile + ".go"
 	err = gox.WriteFile(gofile, pkg, false)
-	checkerr(err)
+	check(err)
+
+	if run {
+		files, err := filepath.Glob("*.go")
+		check(err)
+
+		cmd := exec.Command("go", append([]string{"run"}, files...)...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		check(cmd.Run())
+	}
 }
 
-func checkerr(err error) {
+func check(err error) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
