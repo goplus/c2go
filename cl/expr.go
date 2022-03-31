@@ -13,20 +13,25 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
+const (
+	flagLHS = 1 << iota
+	flagIgnoreResult
+)
+
+func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	switch expr.Kind {
 	case ast.BinaryOperator:
 		compileBinaryExpr(ctx, expr)
 	case ast.UnaryOperator:
-		compileUnaryOperator(ctx, expr, lhs)
+		compileUnaryOperator(ctx, expr, flags)
 	case ast.CallExpr:
 		compileCallExpr(ctx, expr)
 	case ast.ImplicitCastExpr:
 		compileImplicitCastExpr(ctx, expr)
 	case ast.DeclRefExpr:
-		compileDeclRefExpr(ctx, expr, lhs)
+		compileDeclRefExpr(ctx, expr, (flags&flagLHS) != 0)
 	case ast.MemberExpr:
-		compileMemberExpr(ctx, expr, lhs)
+		compileMemberExpr(ctx, expr, (flags&flagLHS) != 0)
 	case ast.IntegerLiteral:
 		compileLiteral(ctx, token.INT, expr)
 	case ast.StringLiteral:
@@ -45,11 +50,11 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 }
 
 func compileExpr(ctx *blockCtx, expr *ast.Node) {
-	compileExprEx(ctx, expr, "compileExpr: unknown kind =", false)
+	compileExprEx(ctx, expr, "compileExpr: unknown kind =", 0)
 }
 
 func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
-	compileExprEx(ctx, expr, "compileExpr: unknown kind =", true)
+	compileExprEx(ctx, expr, "compileExpr: unknown kind =", flagLHS)
 }
 
 func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
@@ -210,6 +215,23 @@ func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
 	cb.Val(addr).Elem().Return(1).End().Call(0)
 }
 
+func compileSimpleIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
+	cb := ctx.cb
+	stk := cb.InternalStack()
+	compileExprLHS(ctx, v.Inner[0])
+	typ, _ := gox.DerefType(stk.Get(-1).Type)
+	if t, ok := typ.(*types.Pointer); ok { // *type
+		cb.UnaryOp(token.AND)
+		castPtrType(cb, tyUintptrPtr, stk.Pop())
+		cb.ElemRef()
+		if elemSize := ctx.sizeof(t.Elem()); elemSize != 1 {
+			cb.Val(elemSize).AssignOp(op + (token.ADD_ASSIGN - token.INC))
+			return
+		}
+	}
+	cb.IncDec(op)
+}
+
 func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 	cb, ret := closureStartInitAddr(ctx, v)
 	n := 0
@@ -254,7 +276,8 @@ func compileStarExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	}
 }
 
-func compileUnaryOperator(ctx *blockCtx, v *ast.Node, lhs bool) {
+func compileUnaryOperator(ctx *blockCtx, v *ast.Node, flags int) {
+	lhs := (flags & flagLHS) != 0
 	if v.OpCode == "*" {
 		compileStarExpr(ctx, v, lhs)
 		return
@@ -270,14 +293,21 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, lhs bool) {
 		ctx.cb.UnaryOp(op)
 		return
 	}
+
+	var tok token.Token
 	switch v.OpCode {
 	case "++":
-		compileIncDec(ctx, token.INC, v)
+		tok = token.INC
 	case "--":
-		compileIncDec(ctx, token.DEC, v)
+		tok = token.DEC
 	default:
 		log.Fatalln("compileUnaryOperator: unknown operator -", v.OpCode)
 	}
+	if (flags & flagIgnoreResult) != 0 {
+		compileSimpleIncDec(ctx, tok, v)
+		return
+	}
+	compileIncDec(ctx, tok, v)
 }
 
 var (

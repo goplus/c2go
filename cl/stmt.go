@@ -20,7 +20,7 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileDeclStmt(ctx, stmt)
 	case ast.NullStmt:
 	default:
-		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", false)
+		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", flagIgnoreResult)
 		ctx.cb.EndStmt()
 	}
 }
