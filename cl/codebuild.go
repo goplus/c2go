@@ -2,9 +2,11 @@ package cl
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"log"
+	"strconv"
 
 	"github.com/goplus/gox"
 
@@ -90,15 +92,39 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
-func typeCastCall(cb *gox.CodeBuilder, typ types.Type) {
+func negConst2Uint(ctx *blockCtx, v *gox.Element, typ types.Type) {
+	if v.CVal == nil {
+		return
+	}
+	if val, ok := constant.Val(v.CVal).(int64); ok && val < 0 {
+		nval := (uint64(1) << (8 * ctx.sizeof(typ))) + uint64(val)
+		v.Val = &ast.BasicLit{Kind: token.INT, Value: strconv.FormatUint(nval, 10)}
+		v.CVal = constant.MakeUint64(nval)
+	}
+}
+
+func typeCastCall(ctx *blockCtx, typ types.Type) {
+	cb := ctx.cb
 	stk := cb.InternalStack()
 	v := stk.Get(-1)
-	if _, ok := v.Type.(*types.Pointer); ok {
+	switch v.Type.(type) {
+	case *types.Pointer:
 		stk.Pop()
-		if _, ok = typ.(*types.Pointer); ok || typ == tyUintptr {
+		if _, ok := typ.(*types.Pointer); ok || typ == tyUintptr { // ptr => ptr|uintptr
 			cb.Typ(ctypes.UnsafePointer).Val(v).Call(1)
-		} else {
+		} else { // ptr => int
 			castPtrType(cb, tyUintptr, v)
+		}
+	case *types.Basic:
+		switch tt := typ.(type) {
+		case *types.Pointer: // int => ptr
+			stk.Pop()
+			negConst2Uint(ctx, v, tyUintptr)
+			cb.Typ(ctypes.UnsafePointer).Typ(tyUintptr).Val(v).Call(1).Call(1)
+		case *types.Basic: // int => int
+			if (tt.Info() & types.IsUnsigned) != 0 {
+				negConst2Uint(ctx, v, typ)
+			}
 		}
 	}
 	cb.Call(1)
