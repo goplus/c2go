@@ -1,13 +1,53 @@
 package cl
 
 import (
+	"go/ast"
 	"go/token"
 	"go/types"
+	"log"
 
 	"github.com/goplus/gox"
 )
 
 // -----------------------------------------------------------------------------
+
+func binaryOp(ctx *blockCtx, op token.Token, src ast.Node) {
+	switch op {
+	case token.SUB, token.ADD: // ptr-ptr, ptr-n, ptr+n
+		cb := ctx.cb
+		stk := cb.InternalStack()
+		args := stk.GetArgs(2)
+		if t, ok := args[0].Type.(*types.Pointer); ok {
+			stk.PopN(2)
+			elemSize := ctx.sizeof(t.Elem())
+			t2 := args[1].Type
+			if isInteger(t2) {
+				castPtrType(cb, tyUintptr, args[0])
+				if t2 != tyUintptr {
+					castPtrType(cb, tyUintptr, args[1])
+				} else {
+					stk.Push(args[1])
+				}
+				if elemSize != 1 {
+					cb.Val(elemSize).BinaryOp(token.MUL)
+				}
+				cb.BinaryOp(op, src)
+				castPtrType(cb, t, stk.Pop())
+				return
+			} else if op == token.SUB && types.Identical(t, t2) {
+				castPtrType(cb, tyUintptr, args[0])
+				castPtrType(cb, tyUintptr, args[1])
+				cb.BinaryOp(token.SUB, src)
+				if elemSize != 1 {
+					cb.Val(elemSize).BinaryOp(token.MUL)
+				}
+				return
+			}
+			log.Fatalln("binaryOp token.SUB - TODO: unexpected")
+		}
+	}
+	ctx.cb.BinaryOp(op, src)
+}
 
 func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
 	n := len(s)
@@ -24,9 +64,8 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 	arr := cb.InternalStack().Pop()
 	t, _ := gox.DerefType(arr.Type)
 	elem := t.(*types.Array).Elem()
-	cb.Typ(types.NewPointer(elem)).Typ(types.Typ[types.UnsafePointer])
-	cb.InternalStack().Push(arr)
-	cb.UnaryOp(token.AND).Call(1).Call(1)
+	cb.Typ(types.NewPointer(elem)).Typ(types.Typ[types.UnsafePointer]).
+		Val(arr).UnaryOp(token.AND).Call(1).Call(1)
 }
 
 func castToBoolExpr(cb *gox.CodeBuilder) {
@@ -41,7 +80,7 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	if t, ok := typ.(*types.Pointer); ok {
 		typ = t.Elem()
 		if t, ok = typ.(*types.Pointer); ok { // **type
-			cb.Typ(tyUintptrPtr).Typ(types.Typ[types.UnsafePointer]).Val(addr).Call(1).Call(1)
+			castPtrType(cb, tyUintptrPtr, addr)
 			return ctx.sizeof(t.Elem())
 		}
 	}
@@ -49,8 +88,13 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
+func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {
+	cb.Typ(typ).Typ(types.Typ[types.UnsafePointer]).Val(v).Call(1).Call(1)
+}
+
 var (
-	tyUintptrPtr = types.NewPointer(types.Typ[types.Uintptr])
+	tyUintptr    = types.Typ[types.Uintptr]
+	tyUintptrPtr = types.NewPointer(tyUintptr)
 )
 
 // -----------------------------------------------------------------------------
