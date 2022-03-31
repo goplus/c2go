@@ -37,6 +37,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, lhs bool) {
 		compileExpr(ctx, expr.Inner[0])
 	case ast.CStyleCastExpr:
 		compileTypeCast(ctx, expr, goNode(expr))
+	case ast.UnaryExprOrTypeTraitExpr:
+		compileUnaryExprOrTypeTraitExpr(ctx, expr)
 	default:
 		log.Fatalln(prompt, expr.Kind)
 	}
@@ -64,6 +66,26 @@ func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
 		log.Fatalln("compileStringLiteral:", err)
 	}
 	stringLit(ctx.cb, s, nil)
+}
+
+// -----------------------------------------------------------------------------
+
+func compileSizeof(ctx *blockCtx, v *ast.Node) {
+	if v.Type != nil {
+		t := toType(ctx, v.Type, 0)
+		ctx.cb.Val(ctx.sizeof(t))
+		return
+	}
+	log.Fatalln("compileSizeof: TODO")
+}
+
+func compileUnaryExprOrTypeTraitExpr(ctx *blockCtx, v *ast.Node) {
+	switch v.Name {
+	case "sizeof":
+		compileSizeof(ctx, v)
+	default:
+		log.Fatalln("unaryExprOrTypeTraitExpr unknown:", v.Name)
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -242,6 +264,9 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, lhs bool) {
 	}
 	if op, ok := unaryOps[v.OpCode]; ok {
 		compileExpr(ctx, v.Inner[0])
+		if op == token.NOT {
+			castToBoolExpr(ctx.cb)
+		}
 		ctx.cb.UnaryOp(op)
 		return
 	}

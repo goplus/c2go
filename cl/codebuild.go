@@ -29,6 +29,13 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 	cb.UnaryOp(token.AND).Call(1).Call(1)
 }
 
+func castToBoolExpr(cb *gox.CodeBuilder) {
+	elem := cb.InternalStack().Get(-1)
+	if isInteger(elem.Type) {
+		cb.Val(0).BinaryOp(token.NEQ)
+	}
+}
+
 func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize int) {
 	typ := addr.Type()
 	if t, ok := typ.(*types.Pointer); ok {

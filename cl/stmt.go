@@ -43,8 +43,12 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 	if initStmt := stmt.Inner[0]; initStmt.Kind != "" {
 		compileStmt(ctx, initStmt)
 	}
+	if stmt := stmt.Inner[1]; stmt.Kind != "" {
+		log.Fatalln("compileForStmt: unexpected -", stmt.Kind)
+	}
 	if cond := stmt.Inner[2]; cond.Kind != "" {
 		compileExpr(ctx, cond)
+		castToBoolExpr(cb)
 	} else {
 		cb.None()
 	}
@@ -61,6 +65,7 @@ func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb := ctx.cb
 	cb.If()
 	compileExpr(ctx, stmt.Inner[0])
+	castToBoolExpr(cb)
 	cb.Then()
 	compileStmt(ctx, stmt.Inner[1])
 	if stmt.HasElse {
