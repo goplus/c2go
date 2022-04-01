@@ -179,10 +179,14 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	}
 }
 
+const (
+	valistName = "__cgo_args"
+)
+
 func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
 	name := ""
 	if hasName {
-		name = "__cgo_args"
+		name = valistName
 	}
 	return types.NewParam(token.NoPos, ctx.pkg.Types, name, types.NewSlice(gox.TyEmptyInterface))
 }
@@ -195,12 +199,16 @@ func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 func checkVariadic(ctx *blockCtx, params []*types.Var, hasName bool) bool {
 	n := len(params)
 	if n > 0 {
-		if last := params[n-1]; types.Identical(last.Type(), ctx.tyValist) {
+		if last := params[n-1]; isValistType(ctx, last.Type()) {
 			params[n-1] = newVariadicParam(ctx, hasName)
 			return true
 		}
 	}
 	return false
+}
+
+func isValistType(ctx *blockCtx, t types.Type) bool {
+	return types.Identical(t, ctx.tyValist)
 }
 
 // -----------------------------------------------------------------------------

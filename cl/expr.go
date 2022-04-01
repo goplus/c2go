@@ -136,11 +136,41 @@ func compileDeclRefExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 	if n := len(v.Inner); n > 0 {
-		for _, arg := range v.Inner {
-			compileExpr(ctx, arg)
+		if fn := v.Inner[0]; isBuiltinFn(fn) {
+			item := fn.Inner[0]
+			switch name := item.ReferencedDecl.Name; name {
+			case "__builtin_va_start", "__builtin_va_end":
+				return
+			default:
+				log.Fatalln("compileCallExpr - unknown builtin func:", name)
+			}
 		}
-		ctx.cb.CallWith(n-1, false, goNode(v))
+		cb := ctx.cb
+		ellipsis := n > 2 && isValist(ctx, v.Inner[n-1])
+		log.Println("==> compileCallExpr:",
+			v.Inner[0].Inner[0].ReferencedDecl.Name, n, ellipsis)
+		if ellipsis {
+			n--
+		}
+		for i := 0; i < n; i++ {
+			compileExpr(ctx, v.Inner[i])
+		}
+		if ellipsis {
+			_, o := cb.Scope().LookupParent(valistName, token.NoPos)
+			cb.Val(o)
+		} else {
+			n--
+		}
+		cb.CallWith(n, ellipsis, goNode(v))
 	}
+}
+
+func isBuiltinFn(fn *ast.Node) bool {
+	return fn.CastKind == ast.BuiltinFnToFnPtr
+}
+
+func isValist(ctx *blockCtx, v *ast.Node) bool {
+	return v.CastKind == ast.ArrayToPointerDecay && isValistType(ctx, toType(ctx, v.Type, 0))
 }
 
 // -----------------------------------------------------------------------------

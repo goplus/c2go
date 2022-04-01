@@ -199,21 +199,25 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			if t == nil {
 				return nil, false, p.newError("pointer to nil")
 			}
+			var n int64
 			p.next()
-			if p.tok != token.INT {
+			switch p.tok {
+			case token.RBRACK: // ]
+				n = -1
+			case token.INT:
+				if n, err = strconv.ParseInt(p.lit, 10, 64); err != nil {
+					return nil, false, p.newError(err.Error())
+				}
+				if err = p.expect(token.RBRACK); err != nil { // ]
+					return
+				}
+			default:
 				return nil, false, p.newError("array length not an integer")
-			}
-			n, e := strconv.Atoi(p.lit)
-			if e != nil {
-				return nil, false, p.newError(e.Error())
-			}
-			if err = p.expect(token.RBRACK); err != nil { // ]
-				return
 			}
 			if isParam(inFlags) {
 				t = p.newPointer(t)
 			} else {
-				t = types.NewArray(t, int64(n))
+				t = types.NewArray(t, n)
 			}
 		case token.LPAREN: // (
 			if t == nil {

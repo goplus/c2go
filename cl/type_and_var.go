@@ -110,14 +110,17 @@ func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
 	if debugCompileDecl {
 		log.Println("var", decl.Name, "global:", global, "-", decl.Loc.PresumedLine)
 	}
-	if decl.StorageClass != ast.Extern {
-		var scope *types.Scope
-		if global {
-			scope = ctx.pkg.Types.Scope()
-		} else {
-			scope = ctx.cb.Scope()
-		}
-		typ, isConst := toTypeEx(ctx, decl.Type, 0)
+	var scope *types.Scope
+	if global {
+		scope = ctx.pkg.Types.Scope()
+	} else {
+		scope = ctx.cb.Scope()
+	}
+	typ, isConst := toTypeEx(ctx, decl.Type, 0)
+	switch decl.StorageClass {
+	case ast.Extern:
+		scope.Insert(types.NewVar(goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
+	default:
 		if isConst && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
 			return
 		}
