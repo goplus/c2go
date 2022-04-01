@@ -107,8 +107,11 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	v := stk.Get(-1)
-	switch v.Type.(type) {
+	switch vt := v.Type.(type) {
 	case *types.Pointer:
+		if typ == ctypes.UnsafePointer { // ptr => voidptr
+			break
+		}
 		stk.Pop()
 		if _, ok := typ.(*types.Pointer); ok || typ == tyUintptr { // ptr => ptr|uintptr
 			cb.Typ(ctypes.UnsafePointer).Val(v).Call(1)
@@ -117,9 +120,13 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 		}
 	case *types.Basic:
 		switch tt := typ.(type) {
-		case *types.Pointer: // int => ptr
+		case *types.Pointer:
+			if vt == ctypes.UnsafePointer { // voidptr => ptr
+				break
+			}
 			stk.Pop()
 			negConst2Uint(ctx, v, tyUintptr)
+			// int => ptr
 			cb.Typ(ctypes.UnsafePointer).Typ(tyUintptr).Val(v).Call(1).Call(1)
 		case *types.Basic: // int => int
 			if (tt.Info() & types.IsUnsigned) != 0 {
