@@ -21,7 +21,7 @@ const (
 func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	switch expr.Kind {
 	case ast.BinaryOperator:
-		compileBinaryExpr(ctx, expr)
+		compileBinaryExpr(ctx, expr, flags)
 	case ast.UnaryOperator:
 		compileUnaryOperator(ctx, expr, flags)
 	case ast.CallExpr:
@@ -187,7 +187,7 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 // -----------------------------------------------------------------------------
 
-func compileBinaryExpr(ctx *blockCtx, v *ast.Node) {
+func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	if op, ok := binaryOps[v.OpCode]; ok {
 		compileExpr(ctx, v.Inner[0])
 		compileExpr(ctx, v.Inner[1])
@@ -196,10 +196,14 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node) {
 	}
 	switch v.OpCode {
 	case "=":
-		compileAssignExpr(ctx, v)
 	default:
 		log.Fatalln("compileBinaryExpr unknown operator:", v.OpCode)
 	}
+	if (flags & flagIgnoreResult) != 0 {
+		compileSimpleAssignExpr(ctx, v)
+		return
+	}
+	compileAssignExpr(ctx, v)
 }
 
 var (
@@ -233,6 +237,12 @@ var (
 const (
 	addrVarName = "_cgo_addr"
 )
+
+func compileSimpleAssignExpr(ctx *blockCtx, v *ast.Node) {
+	compileExprLHS(ctx, v.Inner[0])
+	compileExpr(ctx, v.Inner[1])
+	ctx.cb.AssignWith(1, 1, goNode(v.Inner[1]))
+}
 
 func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
 	cb, _ := closureStartInitAddr(ctx, v)
