@@ -124,6 +124,9 @@ func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
 		if isConst && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
 			return
 		}
+		if isValistType(ctx, typ) { // skip valist variable
+			return
+		}
 		varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
 		if len(decl.Inner) > 0 {
 			cb := varDecl.InitStart(ctx.pkg)
