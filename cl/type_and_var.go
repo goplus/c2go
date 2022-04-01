@@ -70,6 +70,10 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		item := decl.Inner[0]
 		if item.Kind == "ElaboratedType" {
 			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
+				if owned.Kind == ast.EnumDecl {
+					ctx.cb.AliasType(name, tyInt, goNodePos(decl))
+					return
+				}
 				id := owned.ID
 				if detail, ok := ctx.unnameds[id]; ok {
 					compileStructOrUnion(ctx, name, detail)
@@ -124,7 +128,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDecl, v *ast.Node, iotav in
 		cb.Val(iotav)
 		return 1
 	}
-	cdecl.New(fn, iotav, goNodePos(v), types.Typ[types.Int], v.Name)
+	cdecl.New(fn, iotav, goNodePos(v), tyInt, v.Name)
 	return iotav + 1
 }
 
