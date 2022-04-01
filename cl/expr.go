@@ -147,8 +147,6 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 		}
 		cb := ctx.cb
 		ellipsis := n > 2 && isValist(ctx, v.Inner[n-1])
-		log.Println("==> compileCallExpr:",
-			v.Inner[0].Inner[0].ReferencedDecl.Name, n, ellipsis)
 		if ellipsis {
 			n--
 		}
