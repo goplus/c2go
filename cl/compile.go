@@ -95,7 +95,9 @@ func loadFile(p *gox.Package, file *ast.Node) (err error) {
 		case ast.RecordDecl:
 			compileStructOrUnion(ctx, decl.Name, decl)
 		case ast.VarDecl:
-			compileVar(ctx, decl, true)
+			compileVar(ctx, decl)
+		case ast.EnumDecl:
+			compileEnum(ctx, decl)
 		default:
 			log.Fatalln("loadFile: unknown kind =", decl.Kind)
 		}

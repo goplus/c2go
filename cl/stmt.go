@@ -29,7 +29,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node) {
 	for _, decl := range node.Inner {
 		switch decl.Kind {
 		case ast.VarDecl:
-			compileVar(ctx, decl, false)
+			compileVar(ctx, decl)
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		default:

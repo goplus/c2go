@@ -8,6 +8,7 @@ import (
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
+	"github.com/goplus/gox"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 )
@@ -106,16 +107,32 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) {
 	t.InitType(pkg, inner)
 }
 
-func compileVar(ctx *blockCtx, decl *ast.Node, global bool) {
+func compileEnum(ctx *blockCtx, decl *ast.Node) {
+	scope := ctx.cb.Scope()
+	cdecl := ctx.pkg.NewConstDecl(scope)
+	iotav := 0
+	for _, item := range decl.Inner {
+		iotav = compileEnumConst(ctx, cdecl, item, iotav)
+	}
+}
+
+func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDecl, v *ast.Node, iotav int) int {
+	fn := func(cb *gox.CodeBuilder) int {
+		if v.Value != nil {
+			log.Fatalln("compileEnumConst: TODO -", v.Name)
+		}
+		cb.Val(iotav)
+		return 1
+	}
+	cdecl.New(fn, iotav, goNodePos(v), types.Typ[types.Int], v.Name)
+	return iotav + 1
+}
+
+func compileVar(ctx *blockCtx, decl *ast.Node) {
 	if debugCompileDecl {
-		log.Println("var", decl.Name, "global:", global, "-", decl.Loc.PresumedLine)
+		log.Println("var", decl.Name, "-", decl.Loc.PresumedLine)
 	}
-	var scope *types.Scope
-	if global {
-		scope = ctx.pkg.Types.Scope()
-	} else {
-		scope = ctx.cb.Scope()
-	}
+	scope := ctx.cb.Scope()
 	typ, isConst := toTypeEx(ctx, decl.Type, 0)
 	switch decl.StorageClass {
 	case ast.Extern:
