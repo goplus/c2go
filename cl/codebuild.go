@@ -17,6 +17,23 @@ import (
 
 // -----------------------------------------------------------------------------
 
+func decl_builtin_bswap(ctx *blockCtx, name string) {
+	pkg := ctx.pkg
+	if pkg.Types.Scope().Lookup(name) != nil {
+		return
+	}
+	typ := types.Typ[types.Uint]
+	if name == "__builtin_bswap64" {
+		typ = types.Typ[types.Uint64]
+	}
+	paramUInt := types.NewVar(token.NoPos, pkg.Types, "", typ)
+	params := types.NewTuple(paramUInt)
+	sig := types.NewSignature(nil, params, params, false)
+	pkg.NewFuncDecl(token.NoPos, name, sig)
+}
+
+// -----------------------------------------------------------------------------
+
 type structBuilder struct {
 	fields      []*types.Var
 	bitFields   []*gox.BitField

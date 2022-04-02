@@ -97,7 +97,7 @@ func compileUnaryExprOrTypeTraitExpr(ctx *blockCtx, v *ast.Node) {
 
 func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	switch v.CastKind {
-	case ast.LValueToRValue, ast.FunctionToPointerDecay, ast.NoOp:
+	case ast.LValueToRValue, ast.FunctionToPointerDecay, ast.BuiltinFnToFnPtr, ast.NoOp:
 		compileExpr(ctx, v.Inner[0])
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
@@ -141,6 +141,8 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 			switch name := item.ReferencedDecl.Name; name {
 			case "__builtin_va_start", "__builtin_va_end":
 				return
+			case "__builtin_bswap32", "__builtin_bswap64":
+				decl_builtin_bswap(ctx, name)
 			default:
 				log.Fatalln("compileCallExpr - unknown builtin func:", name)
 			}
