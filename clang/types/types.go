@@ -20,6 +20,8 @@ var (
 	Ulong   = types.Typ[types.Uint64]
 	NotImpl = UnsafePointer
 
+	LongDouble = NotImpl
+
 	Int128  = NotImpl
 	Uint128 = NotImpl
 )

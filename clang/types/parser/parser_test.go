@@ -105,6 +105,7 @@ var cases = []testCase{
 	{qualType: "unsigned __int128", typ: ctypes.Uint128},
 	{qualType: "unsigned long", typ: ctypes.Ulong},
 	{qualType: "unsigned long long", typ: tyUint64},
+	{qualType: "long double", typ: ctypes.LongDouble},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},

@@ -112,6 +112,11 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 			case flagSigned:
 				return types.Typ[types.Int8], nil
 			}
+		case "double":
+			switch flags {
+			case flagLong:
+				return ctypes.LongDouble, nil
+			}
 		case "__int128":
 			switch flags {
 			case flagUnsigned:
