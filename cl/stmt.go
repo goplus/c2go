@@ -29,12 +29,23 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileDeclStmt(ctx *blockCtx, node *ast.Node) {
-	for _, decl := range node.Inner {
+	n := len(node.Inner)
+	for i := 0; i < n; i++ {
+		decl := node.Inner[i]
 		switch decl.Kind {
 		case ast.VarDecl:
 			compileVar(ctx, decl)
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
+		case ast.RecordDecl:
+			name := ctx.getAsuName(decl)
+			typ := compileStructOrUnion(ctx, name, decl)
+			if i+1 < n {
+				if next := node.Inner[i+1]; next.Kind == ast.VarDecl {
+					compileVarWith(ctx, typ, next)
+					i++
+				}
+			}
 		default:
 			log.Fatalln("compileDeclStmt: unknown kind =", decl.Kind)
 		}

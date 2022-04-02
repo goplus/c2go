@@ -91,13 +91,13 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 	ctx.cb.AliasType(name, typ, goNodePos(decl))
 }
 
-func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) {
+func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Named {
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
 	if name == "" {
 		ctx.unnameds[decl.ID] = decl
-		return
+		return nil
 	}
 	var inner types.Type
 	var pkg = ctx.pkg
@@ -108,7 +108,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) {
 	default:
 		inner = toUnionType(ctx, decl)
 	}
-	t.InitType(pkg, inner)
+	return t.InitType(pkg, inner)
 }
 
 func compileEnum(ctx *blockCtx, decl *ast.Node) {
@@ -148,15 +148,24 @@ func compileVar(ctx *blockCtx, decl *ast.Node) {
 		if isValistType(ctx, typ) { // skip valist variable
 			return
 		}
-		varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
-		if len(decl.Inner) > 0 {
-			cb := varDecl.InitStart(ctx.pkg)
-			initExpr := decl.Inner[0]
-			if !initWithStringLiteral(ctx, typ, initExpr) {
-				compileExpr(ctx, initExpr)
-			}
-			cb.EndInit(1)
+		newVarAndInit(ctx, scope, typ, decl)
+	}
+}
+
+func compileVarWith(ctx *blockCtx, typ types.Type, decl *ast.Node) {
+	scope := ctx.cb.Scope()
+	newVarAndInit(ctx, scope, typ, decl)
+}
+
+func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.Node) {
+	varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
+	if len(decl.Inner) > 0 {
+		cb := varDecl.InitStart(ctx.pkg)
+		initExpr := decl.Inner[0]
+		if !initWithStringLiteral(ctx, typ, initExpr) {
+			compileExpr(ctx, initExpr)
 		}
+		cb.EndInit(1)
 	}
 }
 

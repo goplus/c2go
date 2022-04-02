@@ -3,6 +3,7 @@ package cl
 import (
 	"go/token"
 	"go/types"
+	"strconv"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
@@ -18,6 +19,7 @@ type blockCtx struct {
 	fset     *token.FileSet
 	tyValist types.Type
 	unnameds map[ast.ID]*ast.Node
+	asuBase  int
 }
 
 func (p *blockCtx) Pkg() *types.Package {
@@ -34,6 +36,14 @@ func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
 
 func (p *blockCtx) sizeof(typ types.Type) int {
 	return int(p.pkg.Sizeof(typ))
+}
+
+func (p *blockCtx) getAsuName(v *ast.Node) string {
+	if name := v.Name; name != "" {
+		return name
+	}
+	p.asuBase++
+	return "Gopasu_" + strconv.Itoa(p.asuBase)
 }
 
 func (p *blockCtx) initCTypes() {

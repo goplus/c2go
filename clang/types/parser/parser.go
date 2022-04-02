@@ -132,9 +132,9 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 			}
 		case "__int128":
 			switch flags {
-			case flagUnsigned:
-				return ctypes.Int128, nil
 			case flagSigned:
+				return ctypes.Int128, nil
+			case flagUnsigned:
 				return ctypes.Uint128, nil
 			}
 		}
