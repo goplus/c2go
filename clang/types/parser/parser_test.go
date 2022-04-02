@@ -75,6 +75,13 @@ func newFn(in, out *types.Tuple) types.Type {
 	return types.NewSignature(nil, in, out, false)
 }
 
+var (
+	tyFnHandle    = newFn(typesInt, nil)
+	paramFnHandle = types.NewParam(token.NoPos, pkg, "", tyFnHandle)
+	typesIF       = types.NewTuple(paramInt, paramFnHandle)
+	typesF        = types.NewTuple(paramFnHandle)
+)
+
 // -----------------------------------------------------------------------------
 
 type testCase struct {
@@ -108,6 +115,8 @@ var cases = []testCase{
 	{qualType: "void", typ: ctypes.Void},
 	{qualType: "void *", typ: ctypes.UnsafePointer},
 	{qualType: "int (*)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
+	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
+	{qualType: "void (*(int, void (*)(int)))(int)", flags: FlagGetRetType, typ: tyFnHandle},
 }
 
 func TestCases(t *testing.T) {

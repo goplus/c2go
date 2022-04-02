@@ -43,6 +43,7 @@ func getRetType(flags int) bool {
 //   int (*)(void *, int, char **, char **)
 //   int (*)(const char *, ...)
 //   int (*)(void)
+//   void (*(int, void (*)(int)))(int)
 //   const char *restrict
 //   const char [7]
 //   char *
@@ -197,7 +198,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			t = p.newPointer(t)
 		case token.LBRACK: // [
 			if t == nil {
-				return nil, false, p.newError("pointer to nil")
+				return nil, false, p.newError("array to nil")
 			}
 			var n int64
 			p.next()
@@ -230,10 +231,21 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				}
 				return
 			}
+			var pkg, isRetFn = p.ts.Pkg(), false
+			var args []*types.Var
 		nextTok:
 			p.next()
 			switch p.tok {
 			case token.RPAREN: // )
+			case token.LPAREN: // (
+				if !isRetFn {
+					if args, err = p.parseArgs(pkg); err != nil {
+						return
+					}
+					isRetFn = true
+					goto nextTok
+				}
+				return nil, false, p.newError("expect )")
 			case token.IDENT:
 				if p.lit == "_Nullable" {
 					goto nextTok
@@ -245,26 +257,23 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			if err = p.expect(token.LPAREN); err != nil { // (
 				return
 			}
-			var args []*types.Var
 			var results *types.Tuple
-			var pkg = p.ts.Pkg()
-			for {
-				arg, _, e := p.parse(FlagIsParam)
+			if ctypes.NotVoid(t) {
+				results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
+			}
+			if isRetFn {
+				retArgs, e := p.parseArgs(pkg)
 				if e != nil {
 					return nil, false, e
 				}
-				if ctypes.NotVoid(arg) {
-					args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
+				t = types.NewSignature(nil, types.NewTuple(retArgs...), results, false)
+				if getRetType(inFlags) {
+					p.tok = token.EOF
+					return
 				}
-				if p.tok != token.COMMA {
-					break
-				}
-			}
-			if p.tok != token.RPAREN { // )
-				return nil, false, p.newError("expect )")
-			}
-			if ctypes.NotVoid(t) {
 				results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
+			} else if args, err = p.parseArgs(pkg); err != nil {
+				return
 			}
 			t = types.NewSignature(nil, types.NewTuple(args...), results, false)
 		case token.RPAREN:
@@ -281,6 +290,26 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			log.Fatalln("c.types.ParseType: unknown -", p.tok, p.lit)
 		}
 	}
+}
+
+func (p *parser) parseArgs(pkg *types.Package) ([]*types.Var, error) {
+	var args []*types.Var
+	for {
+		arg, _, e := p.parse(FlagIsParam)
+		if e != nil {
+			return nil, e
+		}
+		if ctypes.NotVoid(arg) {
+			args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
+		}
+		if p.tok != token.COMMA {
+			break
+		}
+	}
+	if p.tok != token.RPAREN { // )
+		return nil, p.newError("expect )")
+	}
+	return args, nil
 }
 
 func (p *parser) newPointer(t types.Type) types.Type {
