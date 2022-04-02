@@ -109,6 +109,7 @@ var cases = []testCase{
 	{qualType: "long double", typ: ctypes.LongDouble},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
 	{qualType: "void (*)(void *)", typ: newFn(typesVoidPtr, nil)},
+	{qualType: "void (^ _Nonnull)(void)", typ: newFn(nil, nil)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},

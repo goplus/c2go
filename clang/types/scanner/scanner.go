@@ -295,6 +295,8 @@ func (s *Scanner) Scan() (pos token.Pos, tok token.Token, lit string) {
 			tok = token.RBRACK
 		case '*':
 			tok = token.MUL
+		case '^':
+			tok = token.XOR
 		default:
 			// next reports unexpected BOMs - don't repeat
 			if ch != bom {
