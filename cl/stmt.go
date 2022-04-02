@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"go/token"
 	"log"
 
 	"github.com/goplus/c2go/clang/ast"
@@ -14,6 +15,8 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileIfStmt(ctx, stmt)
 	case ast.ForStmt:
 		compileForStmt(ctx, stmt)
+	case ast.DoStmt:
+		compileDoStmt(ctx, stmt)
 	case ast.ReturnStmt:
 		compileReturnStmt(ctx, stmt)
 	case ast.DeclStmt:
@@ -35,6 +38,20 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node) {
 		default:
 			log.Fatalln("compileDeclStmt: unknown kind =", decl.Kind)
 		}
+	}
+}
+
+func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
+	cb := ctx.cb.For().None().Then()
+	{
+		compileStmt(ctx, stmt.Inner[0])
+		cb.If()
+		compileExpr(ctx, stmt.Inner[1])
+		castToBoolExpr(cb)
+		cb.UnaryOp(token.NOT).Then().
+			Break(nil).
+			End().
+			End()
 	}
 }
 
