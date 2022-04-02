@@ -2,6 +2,7 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"go/token"
 	"go/types"
 	"io"
@@ -78,6 +79,10 @@ func (p *parser) next() {
 	p.pos, p.tok, p.lit = p.s.Scan()
 }
 
+func (p *parser) newErrorf(format string, args ...interface{}) *ParseTypeError {
+	return p.newError(fmt.Sprintf(format, args...))
+}
+
 func (p *parser) newError(errMsg string) *ParseTypeError {
 	return &ParseTypeError{QualType: p.s.Source(), Pos: p.pos, ErrMsg: errMsg}
 }
@@ -85,15 +90,15 @@ func (p *parser) newError(errMsg string) *ParseTypeError {
 func (p *parser) expect(tokExp token.Token) error {
 	p.next()
 	if p.tok != tokExp {
-		return p.newError("expect " + tokExp.String())
+		return p.newErrorf("expect %v, got %v", tokExp, p.tok)
 	}
 	return nil
 }
 
 func (p *parser) expect2(tokExp, tokExp2 token.Token) error {
 	p.next()
-	if p.tok != tokExp || p.tok != tokExp2 {
-		return p.newError("expect " + tokExp.String())
+	if p.tok != tokExp && p.tok != tokExp2 {
+		return p.newErrorf("expect %v, got %v", tokExp, p.tok)
 	}
 	return nil
 }

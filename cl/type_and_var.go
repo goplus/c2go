@@ -27,7 +27,7 @@ func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 func toTypeEx(ctx *blockCtx, typ *ast.Type, flags int) (t types.Type, isConst bool) {
 	t, isConst, err := parser.ParseType(ctx, ctx.fset, typ.QualType, flags)
 	if err != nil {
-		log.Fatalln("toType:", err)
+		log.Fatalln("toType:", err, "-", typ.QualType)
 	}
 	return
 }

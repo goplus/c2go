@@ -67,8 +67,9 @@ var (
 )
 
 var (
-	typesInt  = types.NewTuple(paramInt)
-	typesPICC = types.NewTuple(paramVoidPtr, paramInt, paramCharPtrPtr, paramCharPtrPtr)
+	typesInt     = types.NewTuple(paramInt)
+	typesVoidPtr = types.NewTuple(paramVoidPtr)
+	typesPICC    = types.NewTuple(paramVoidPtr, paramInt, paramCharPtrPtr, paramCharPtrPtr)
 )
 
 func newFn(in, out *types.Tuple) types.Type {
@@ -107,6 +108,7 @@ var cases = []testCase{
 	{qualType: "unsigned long long", typ: tyUint64},
 	{qualType: "long double", typ: ctypes.LongDouble},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
+	{qualType: "void (*)(void *)", typ: newFn(typesVoidPtr, nil)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},
