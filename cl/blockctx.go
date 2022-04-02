@@ -42,6 +42,8 @@ func (p *blockCtx) initCTypes() {
 	p.tyValist = initValist(scope, pkg)
 	aliasType(scope, pkg, "char", types.Typ[types.Int8])
 	aliasType(scope, pkg, "void", ctypes.Void)
+	aliasType(scope, pkg, "float", types.Typ[types.Float32])
+	aliasType(scope, pkg, "double", types.Typ[types.Float64])
 	aliasType(scope, pkg, "__int128", ctypes.Int128)
 }
 

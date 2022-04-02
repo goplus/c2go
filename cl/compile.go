@@ -133,6 +133,10 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		case ast.ColdAttr:
 		case ast.DeprecatedAttr:
 		case ast.AlwaysInlineAttr:
+		case ast.WarnUnusedResultAttr:
+		case ast.NoThrowAttr:
+		case ast.AllocSizeAttr:
+		case ast.ConstAttr:
 		default:
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}

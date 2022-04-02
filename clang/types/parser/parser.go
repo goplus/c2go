@@ -161,7 +161,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				flags |= flagSigned
 			case "const":
 				isConst = true
-			case "volatile", "restrict", "_Nullable":
+			case "volatile", "restrict", "_Nullable", "_Nonnull":
 			case "struct", "union":
 				p.next()
 				if p.tok != token.IDENT {
@@ -247,7 +247,8 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				}
 				return nil, false, p.newError("expect )")
 			case token.IDENT:
-				if p.lit == "_Nullable" {
+				switch p.lit {
+				case "_Nullable", "_Nonnull":
 					goto nextTok
 				}
 				fallthrough
