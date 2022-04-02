@@ -6,12 +6,94 @@ import (
 	"go/token"
 	"go/types"
 	"log"
+	"math/big"
 	"strconv"
 
 	"github.com/goplus/gox"
 
+	cast "github.com/goplus/c2go/clang/ast"
 	ctypes "github.com/goplus/c2go/clang/types"
 )
+
+// -----------------------------------------------------------------------------
+
+type structBuilder struct {
+	fields      []*types.Var
+	bitFields   []*gox.BitField
+	lastFldName string
+	lastTy      types.Type
+	totalBits   int
+	leftBits    int
+	idx         int
+}
+
+func newStructBuilder() *structBuilder {
+	return &structBuilder{leftBits: -1}
+}
+
+func (p *structBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
+	struc := types.NewStruct(p.fields, nil)
+	if len(p.bitFields) > 0 {
+		ctx.pkg.SetVFields(t, gox.NewBitFields(p.bitFields))
+	}
+	return struc
+}
+
+func (p *structBuilder) BitField(ctx *blockCtx, typ types.Type, name string, bits int) {
+	if p.leftBits >= bits && types.Identical(typ, p.lastTy) {
+		if name != "" {
+			p.bitFields = append(p.bitFields, &gox.BitField{
+				Name:    name,
+				FldName: p.lastFldName,
+				Off:     p.totalBits - p.leftBits,
+				Bits:    bits,
+			})
+		}
+		p.leftBits -= bits
+	} else if p.totalBits = ctx.sizeof(typ) << 3; p.totalBits >= bits {
+		fldName := "Xbf_" + strconv.Itoa(p.idx)
+		p.Field(ctx, token.NoPos, typ, fldName)
+		p.idx++
+		p.lastFldName = fldName
+		p.lastTy = typ
+		p.leftBits = p.totalBits - bits
+		if name != "" {
+			p.bitFields = append(p.bitFields, &gox.BitField{
+				Name:    name,
+				FldName: p.lastFldName,
+				Bits:    bits,
+			})
+		}
+	} else {
+		p.leftBits = -1
+		log.Fatalln("BitField - too large bits:", bits)
+	}
+}
+
+func (p *structBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name string) {
+	fld := types.NewField(pos, ctx.pkg.Types, name, typ, false)
+	p.fields = append(p.fields, fld)
+	p.leftBits = -1
+}
+
+// -----------------------------------------------------------------------------
+
+func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
+	cb := ctx.pkg.ConstStart()
+	compileExpr(ctx, v)
+	tv := cb.EndConst()
+	if val := tv.CVal; val != nil {
+		if val.Kind() == constant.Float {
+			if v, ok := constant.Val(val).(*big.Rat); ok && v.IsInt() {
+				return v.Num().Int64()
+			}
+		} else if v, ok := constant.Int64Val(val); ok {
+			return v
+		}
+	}
+	log.Fatalln(emsg)
+	return -1
+}
 
 // -----------------------------------------------------------------------------
 

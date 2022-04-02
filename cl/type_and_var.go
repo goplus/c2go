@@ -32,31 +32,31 @@ func toTypeEx(ctx *blockCtx, typ *ast.Type, flags int) (t types.Type, isConst bo
 	return
 }
 
-func toStructType(ctx *blockCtx, decl *ast.Node) *types.Struct {
-	fields := make([]*types.Var, 0, len(decl.Inner))
-	for _, item := range decl.Inner {
+func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct {
+	b := newStructBuilder()
+	for _, item := range struc.Inner {
 		switch item.Kind {
 		case ast.FieldDecl:
 			if debugCompileDecl {
 				log.Println("  => field", item.Name, "-", item.Type.QualType)
 			}
-			fld := newField(ctx, item)
-			fields = append(fields, fld)
+			typ := toType(ctx, item.Type, 0)
+			if len(item.Inner) > 0 {
+				bits := toInt64(ctx, item.Inner[0], "non-constant bit field")
+				b.BitField(ctx, typ, item.Name, int(bits))
+			} else {
+				b.Field(ctx, goNodePos(item), typ, item.Name)
+			}
 		default:
 			log.Fatalln("toStructType: unknown field kind =", item.Kind)
 		}
 	}
-	return types.NewStruct(fields, nil)
+	return b.Type(ctx, t)
 }
 
 func toUnionType(ctx *blockCtx, decl *ast.Node) types.Type {
 	// TODO: union
 	return ctypes.NotImpl
-}
-
-func newField(ctx *blockCtx, decl *ast.Node) *types.Var {
-	typ := toType(ctx, decl.Type, 0)
-	return types.NewField(goNodePos(decl), ctx.pkg.Types, decl.Name, typ, false)
 }
 
 // -----------------------------------------------------------------------------
@@ -104,7 +104,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) {
 	var t = pkg.NewType(name, goNodePos(decl))
 	switch decl.TagUsed {
 	case "struct":
-		inner = toStructType(ctx, decl)
+		inner = toStructType(ctx, t.Type(), decl)
 	default:
 		inner = toUnionType(ctx, decl)
 	}

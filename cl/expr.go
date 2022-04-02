@@ -38,7 +38,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileStringLiteral(ctx, expr)
 	case ast.CharacterLiteral:
 		compileCharacterLiteral(ctx, expr)
-	case ast.ParenExpr:
+	case ast.ParenExpr, ast.ConstantExpr:
 		compileExpr(ctx, expr.Inner[0])
 	case ast.CStyleCastExpr:
 		compileTypeCast(ctx, expr, goNode(expr))
