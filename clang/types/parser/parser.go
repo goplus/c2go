@@ -90,6 +90,14 @@ func (p *parser) expect(tokExp token.Token) error {
 	return nil
 }
 
+func (p *parser) expect2(tokExp, tokExp2 token.Token) error {
+	p.next()
+	if p.tok != tokExp || p.tok != tokExp2 {
+		return p.newError("expect " + tokExp.String())
+	}
+	return nil
+}
+
 const (
 	flagShort = 1 << iota
 	flagLong
@@ -229,7 +237,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			if t == nil {
 				return nil, false, p.newError("no function return type")
 			}
-			if err = p.expect(token.MUL); err != nil { // *
+			if err = p.expect2(token.MUL, token.XOR); err != nil { // * or ^
 				if getRetType(inFlags) {
 					err = nil
 					p.tok = token.EOF
