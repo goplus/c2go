@@ -1,11 +1,17 @@
 #include <stdio.h>
 
 typedef union {
-    long a;
+    int a;
     unsigned short b;
     struct bar {
         unsigned short low, high;
     } c;
+    struct {
+        unsigned short low;
+        struct {
+            unsigned short high;
+        };
+    };
 } foo;
 
 int main() {
@@ -16,5 +22,16 @@ int main() {
     printf(
         "foo.a = %d, foo.b = %d, foo.c.low = %d, foo.c.high = %d\n",
         foo.a, foo.b, foo.c.low, foo.c.high);
+    printf(
+        "foo.low = %d, foo.high = %d\n",
+        foo.low, foo.high);
+    foo.low = 5;
+    foo.high = 6;
+    printf(
+        "foo.a = %d, foo.b = %d, foo.c.low = %d, foo.c.high = %d\n",
+        foo.a, foo.b, foo.c.low, foo.c.high);
+    printf(
+        "foo.low = %d, foo.high = %d\n",
+        foo.low, foo.high);
     return 0;
 }

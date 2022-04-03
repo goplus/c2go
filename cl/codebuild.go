@@ -42,18 +42,42 @@ func newUnionBuilder() *unionBuilder {
 	return &unionBuilder{}
 }
 
+func unionEmbeddedField(ctx *blockCtx, fields []*gox.UnionField, t *types.Named, off int) []*gox.UnionField {
+	o := t.Underlying().(*types.Struct)
+	for i, n := 0, o.NumFields(); i < n; i++ {
+		fld := o.Field(i)
+		fldType := fld.Type()
+		if fld.Embedded() {
+			fields = unionEmbeddedField(ctx, fields, fldType.(*types.Named), off)
+		} else {
+			fields = append(fields, &gox.UnionField{
+				Name: fld.Name(),
+				Off:  off,
+				Type: fldType,
+			})
+		}
+		off += ctx.sizeof(fldType)
+	}
+	return fields
+}
+
 func (p *unionBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
 	var fldLargest *gox.UnionField
-	var lenLargest int
-	for _, fld := range p.fields {
+	var fields = p.fields
+	var lenLargest, n = 0, len(fields)
+	for i := 0; i < n; i++ {
+		fld := fields[i]
 		if len := ctx.sizeof(fld.Type); len > lenLargest {
 			fldLargest, lenLargest = fld, len
+		}
+		if fld.Name == "" { // embedded
+			fields = unionEmbeddedField(ctx, fields, fld.Type.(*types.Named), 0)
 		}
 	}
 	flds := make([]*types.Var, 0, 1)
 	if fldLargest != nil {
 		pkg := ctx.pkg
-		pkg.SetVFields(t, gox.NewUnionFields(p.fields))
+		pkg.SetVFields(t, gox.NewUnionFields(fields))
 		fld := types.NewField(fldLargest.Pos, pkg.Types, fldLargest.Name, fldLargest.Type, false)
 		flds = append(flds, fld)
 	}
@@ -61,16 +85,15 @@ func (p *unionBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
 }
 
 func (p *unionBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name string, embedded bool) {
+	if embedded {
+		name = ""
+	}
 	fld := &gox.UnionField{
 		Name: name,
-		Off:  0, // TODO
 		Type: typ,
 		Pos:  pos,
 	}
 	p.fields = append(p.fields, fld)
-	if name == "" {
-		log.Fatalln("unionBuilder.Field TODO: embedded")
-	}
 }
 
 // -----------------------------------------------------------------------------

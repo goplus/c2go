@@ -114,6 +114,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 				}
 				break
 			}
+		case ast.IndirectFieldDecl:
 		default:
 			log.Fatalln("toUnionType: unknown field kind =", decl.Kind)
 		}
