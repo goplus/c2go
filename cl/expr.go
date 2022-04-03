@@ -176,12 +176,16 @@ func isValist(ctx *blockCtx, v *ast.Node) bool {
 // -----------------------------------------------------------------------------
 
 func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
+	name := v.Name
 	compileExpr(ctx, v.Inner[0])
+	if name == "" { // anonymous
+		return
+	}
 	src := goNode(v)
 	if lhs {
-		ctx.cb.MemberRef(v.Name, src)
+		ctx.cb.MemberRef(name, src)
 	} else {
-		ctx.cb.MemberVal(v.Name, src)
+		ctx.cb.MemberVal(name, src)
 	}
 }
 

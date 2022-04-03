@@ -34,6 +34,47 @@ func decl_builtin_bswap(ctx *blockCtx, name string) {
 
 // -----------------------------------------------------------------------------
 
+type unionBuilder struct {
+	fields []*gox.UnionField
+}
+
+func newUnionBuilder() *unionBuilder {
+	return &unionBuilder{}
+}
+
+func (p *unionBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
+	var fldLargest *gox.UnionField
+	var lenLargest int
+	for _, fld := range p.fields {
+		if len := ctx.sizeof(fld.Type); len > lenLargest {
+			fldLargest, lenLargest = fld, len
+		}
+	}
+	flds := make([]*types.Var, 0, 1)
+	if fldLargest != nil {
+		pkg := ctx.pkg
+		pkg.SetVFields(t, gox.NewUnionFields(p.fields))
+		fld := types.NewField(fldLargest.Pos, pkg.Types, fldLargest.Name, fldLargest.Type, false)
+		flds = append(flds, fld)
+	}
+	return types.NewStruct(flds, nil)
+}
+
+func (p *unionBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name string) {
+	fld := &gox.UnionField{
+		Name: name,
+		Off:  0, // TODO
+		Type: typ,
+		Pos:  pos,
+	}
+	p.fields = append(p.fields, fld)
+	if name == "" {
+		log.Fatalln("unionBuilder.Field TODO: embedded")
+	}
+}
+
+// -----------------------------------------------------------------------------
+
 type structBuilder struct {
 	fields      []*types.Var
 	bitFields   []*gox.BitField
@@ -69,7 +110,7 @@ func (p *structBuilder) BitField(ctx *blockCtx, typ types.Type, name string, bit
 		p.leftBits -= bits
 	} else if p.totalBits = ctx.sizeof(typ) << 3; p.totalBits >= bits {
 		fldName := "Xbf_" + strconv.Itoa(p.idx)
-		p.Field(ctx, token.NoPos, typ, fldName)
+		p.Field(ctx, token.NoPos, typ, fldName, false)
 		p.idx++
 		p.lastFldName = fldName
 		p.lastTy = typ
@@ -87,8 +128,8 @@ func (p *structBuilder) BitField(ctx *blockCtx, typ types.Type, name string, bit
 	}
 }
 
-func (p *structBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name string) {
-	fld := types.NewField(pos, ctx.pkg.Types, name, typ, false)
+func (p *structBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name string, embedded bool) {
+	fld := types.NewField(pos, ctx.pkg.Types, name, typ, embedded)
 	p.fields = append(p.fields, fld)
 	p.leftBits = -1
 }

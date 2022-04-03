@@ -19,7 +19,7 @@ type blockCtx struct {
 	fset     *token.FileSet
 	tyValist types.Type
 	unnameds map[ast.ID]*ast.Node
-	asuBase  int
+	asuBase  int // anonymous struct/union
 }
 
 func (p *blockCtx) Pkg() *types.Package {
@@ -38,12 +38,15 @@ func (p *blockCtx) sizeof(typ types.Type) int {
 	return int(p.pkg.Sizeof(typ))
 }
 
-func (p *blockCtx) getAsuName(v *ast.Node) string {
+func (p *blockCtx) getAsuName(v *ast.Node, ns string) (string, bool) {
 	if name := v.Name; name != "" {
-		return name
+		if ns != "" {
+			name = ns + "_" + name // TODO: use sth to replace _
+		}
+		return name, false
 	}
 	p.asuBase++
-	return "Gopasu_" + strconv.Itoa(p.asuBase)
+	return "_cgoa_" + strconv.Itoa(p.asuBase), true
 }
 
 func (p *blockCtx) initCTypes() {

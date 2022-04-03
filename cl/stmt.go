@@ -38,7 +38,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node) {
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		case ast.RecordDecl:
-			name := ctx.getAsuName(decl)
+			name, _ := ctx.getAsuName(decl, "")
 			typ := compileStructOrUnion(ctx, name, decl)
 			if i+1 < n {
 				if next := node.Inner[i+1]; next.Kind == ast.VarDecl {

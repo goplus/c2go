@@ -9,8 +9,6 @@ import (
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
-
-	ctypes "github.com/goplus/c2go/clang/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -32,31 +30,60 @@ func toTypeEx(ctx *blockCtx, typ *ast.Type, flags int) (t types.Type, isConst bo
 	return
 }
 
-func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct {
+func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *types.Struct {
 	b := newStructBuilder()
-	for _, item := range struc.Inner {
-		switch item.Kind {
+	n := len(struc.Inner)
+	for i := 0; i < n; i++ {
+		decl := struc.Inner[i]
+		switch decl.Kind {
 		case ast.FieldDecl:
 			if debugCompileDecl {
-				log.Println("  => field", item.Name, "-", item.Type.QualType)
+				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
-			typ := toType(ctx, item.Type, 0)
-			if len(item.Inner) > 0 {
-				bits := toInt64(ctx, item.Inner[0], "non-constant bit field")
-				b.BitField(ctx, typ, item.Name, int(bits))
+			typ := toType(ctx, decl.Type, 0)
+			if len(decl.Inner) > 0 {
+				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
+				b.BitField(ctx, typ, decl.Name, int(bits))
 			} else {
-				b.Field(ctx, goNodePos(item), typ, item.Name)
+				b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 			}
+		case ast.RecordDecl:
+			name, _ := ctx.getAsuName(decl, ns)
+			typ := compileStructOrUnion(ctx, name, decl)
+			for i+1 < n {
+				next := struc.Inner[i+1]
+				if next.IsImplicit {
+					b.Field(ctx, goNodePos(decl), typ, name, true)
+					i++
+				}
+				break
+			}
+		case ast.IndirectFieldDecl:
 		default:
-			log.Fatalln("toStructType: unknown field kind =", item.Kind)
+			log.Fatalln("toStructType: unknown field kind =", decl.Kind)
 		}
 	}
 	return b.Type(ctx, t)
 }
 
-func toUnionType(ctx *blockCtx, decl *ast.Node) types.Type {
-	// TODO: union
-	return ctypes.NotImpl
+func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types.Type {
+	b := newUnionBuilder()
+	for _, decl := range unio.Inner {
+		switch decl.Kind {
+		case ast.FieldDecl:
+			if debugCompileDecl {
+				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
+			}
+			typ := toType(ctx, decl.Type, 0)
+			b.Field(ctx, goNodePos(decl), typ, decl.Name)
+		case ast.RecordDecl:
+			name, _ := ctx.getAsuName(decl, ns)
+			compileStructOrUnion(ctx, name, decl)
+		default:
+			log.Fatalln("toUnionType: unknown field kind =", decl.Kind)
+		}
+	}
+	return b.Type(ctx, t)
 }
 
 // -----------------------------------------------------------------------------
@@ -100,15 +127,14 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 		return nil
 	}
 	var inner types.Type
-	var pkg = ctx.pkg
-	var t = pkg.NewType(name, goNodePos(decl))
+	var t = ctx.cb.NewType(name, goNodePos(decl))
 	switch decl.TagUsed {
 	case "struct":
-		inner = toStructType(ctx, t.Type(), decl)
+		inner = toStructType(ctx, t.Type(), decl, name)
 	default:
-		inner = toUnionType(ctx, decl)
+		inner = toUnionType(ctx, t.Type(), decl, name)
 	}
-	return t.InitType(pkg, inner)
+	return t.InitType(ctx.pkg, inner)
 }
 
 func compileEnum(ctx *blockCtx, decl *ast.Node) {
