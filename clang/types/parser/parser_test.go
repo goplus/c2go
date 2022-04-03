@@ -10,34 +10,24 @@ import (
 
 // -----------------------------------------------------------------------------
 
-type clangTypeSys struct {
-}
-
-func (p *clangTypeSys) Pkg() *types.Package {
-	return pkg
-}
-
-func (p *clangTypeSys) LookupType(typ string) (t types.Type, err error) {
-	switch typ {
-	case "int":
-		return types.Typ[types.Int], nil
-	case "char":
-		return types.Typ[types.Int8], nil
-	case "void":
-		return ctypes.Void, nil
-	case "__int128":
-		return ctypes.Int128, nil
-	case "string":
-		return tyString, nil
-	case "ConstantString":
-		return tyConstantString, nil
-	}
-	return nil, ctypes.ErrNotFound
-}
-
 var (
-	pkg = types.NewPackage("", "foo")
+	pkg   = types.NewPackage("", "foo")
+	scope = pkg.Scope()
 )
+
+func init() {
+	aliasType(scope, pkg, "char", types.Typ[types.Int8])
+	aliasType(scope, pkg, "void", ctypes.Void)
+	aliasType(scope, pkg, "float", types.Typ[types.Float32])
+	aliasType(scope, pkg, "double", types.Typ[types.Float64])
+	aliasType(scope, pkg, "__int128", ctypes.Int128)
+	aliasType(scope, pkg, "ConstantString", tyConstantString)
+}
+
+func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
+	o := types.NewTypeName(token.NoPos, pkg, name, typ)
+	scope.Insert(o)
+}
 
 var (
 	tnameConstantString = types.NewTypeName(token.NoPos, pkg, "ConstantString", nil)
@@ -124,11 +114,10 @@ var cases = []testCase{
 }
 
 func TestCases(t *testing.T) {
-	ts := new(clangTypeSys)
 	fset := token.NewFileSet()
 	for _, c := range cases {
 		t.Run(c.qualType, func(t *testing.T) {
-			typ, _, err := ParseType(ts, fset, c.qualType, c.flags)
+			typ, _, err := ParseType(fset, pkg, scope, c.qualType, c.flags)
 			if err != nil {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, ", expected:", c.err)

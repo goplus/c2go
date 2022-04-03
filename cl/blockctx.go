@@ -22,18 +22,6 @@ type blockCtx struct {
 	asuBase  int // anonymous struct/union
 }
 
-func (p *blockCtx) Pkg() *types.Package {
-	return p.pkg.Types
-}
-
-func (p *blockCtx) LookupType(typ string) (t types.Type, err error) {
-	_, o := p.cb.Scope().LookupParent(typ, token.NoPos)
-	if o != nil {
-		return o.Type(), nil
-	}
-	return nil, ctypes.ErrNotFound
-}
-
 func (p *blockCtx) sizeof(typ types.Type) int {
 	return int(p.pkg.Sizeof(typ))
 }

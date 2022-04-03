@@ -14,15 +14,11 @@ import (
 )
 
 var (
+	ErrNotFound    = errors.New("type not found")
 	ErrInvalidType = errors.New("invalid type")
 )
 
 // -----------------------------------------------------------------------------
-
-type TypeSystem interface {
-	Pkg() *types.Package
-	LookupType(typ string) (t types.Type, err error)
-}
 
 const (
 	FlagIsParam = 1 << iota
@@ -50,8 +46,8 @@ func getRetType(flags int) bool {
 //   char *
 //   void
 //   ...
-func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, flags int) (t types.Type, isConst bool, err error) {
-	p := &parser{ts: ts}
+func ParseType(fset *token.FileSet, pkg *types.Package, scope *types.Scope, qualType string, flags int) (t types.Type, isConst bool, err error) {
+	p := &parser{pkg: pkg, scope: scope}
 	file := fset.AddFile("", fset.Base(), len(qualType))
 	p.s.Init(file, qualType, nil)
 
@@ -67,8 +63,9 @@ func ParseType(ts TypeSystem, fset *token.FileSet, qualType string, flags int) (
 // -----------------------------------------------------------------------------
 
 type parser struct {
-	s  scanner.Scanner
-	ts TypeSystem
+	s     scanner.Scanner
+	pkg   *types.Package
+	scope *types.Scope
 
 	pos token.Pos
 	tok token.Token
@@ -141,7 +138,11 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 		log.Fatalln("lookupType: TODO - invalid type")
 		return nil, ErrInvalidType
 	}
-	return p.ts.LookupType(lit)
+	_, o := p.scope.LookupParent(lit, token.NoPos)
+	if o != nil {
+		return o.Type(), nil
+	}
+	return nil, ErrNotFound
 }
 
 var intTypes = [...]types.Type{
@@ -249,7 +250,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				}
 				return
 			}
-			var pkg, isRetFn = p.ts.Pkg(), false
+			var pkg, isRetFn = p.pkg, false
 			var args []*types.Var
 		nextTok:
 			p.next()

@@ -18,12 +18,12 @@ func isVariadicFn(typ *ast.Type) bool {
 }
 
 func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
-	t, _ := toTypeEx(ctx, typ, flags)
+	t, _ := toTypeEx(ctx, ctx.cb.Scope(), typ, flags)
 	return t
 }
 
-func toTypeEx(ctx *blockCtx, typ *ast.Type, flags int) (t types.Type, isConst bool) {
-	t, isConst, err := parser.ParseType(ctx, ctx.fset, typ.QualType, flags)
+func toTypeEx(ctx *blockCtx, scope *types.Scope, typ *ast.Type, flags int) (t types.Type, isConst bool) {
+	t, isConst, err := parser.ParseType(ctx.fset, ctx.pkg.Types, scope, typ.QualType, flags)
 	if err != nil {
 		log.Fatalln("toType:", err, "-", typ.QualType)
 	}
@@ -177,7 +177,7 @@ func compileVar(ctx *blockCtx, decl *ast.Node) {
 		log.Println("var", decl.Name, "-", decl.Loc.PresumedLine)
 	}
 	scope := ctx.cb.Scope()
-	typ, isConst := toTypeEx(ctx, decl.Type, 0)
+	typ, isConst := toTypeEx(ctx, scope, decl.Type, 0)
 	switch decl.StorageClass {
 	case ast.Extern:
 		scope.Insert(types.NewVar(goNodePos(decl), ctx.pkg.Types, decl.Name, typ))

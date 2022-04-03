@@ -1,13 +1,8 @@
 package types
 
 import (
-	"errors"
 	"go/types"
 	"unsafe"
-)
-
-var (
-	ErrNotFound = errors.New("type not found")
 )
 
 // -----------------------------------------------------------------------------
