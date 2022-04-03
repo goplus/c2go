@@ -38,13 +38,19 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node) {
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		case ast.RecordDecl:
-			name, _ := ctx.getAsuName(decl, "")
+			name, anonymous := ctx.getAsuName(decl, "")
 			typ := compileStructOrUnion(ctx, name, decl)
-			if i+1 < n {
-				if next := node.Inner[i+1]; next.Kind == ast.VarDecl {
+			if !anonymous {
+				break
+			}
+			for i+1 < n {
+				next := node.Inner[i+1]
+				if next.Kind == ast.VarDecl && isAnonymousType(next) {
 					compileVarWith(ctx, typ, next)
 					i++
+					continue
 				}
+				break
 			}
 		default:
 			log.Fatalln("compileDeclStmt: unknown kind =", decl.Kind)
