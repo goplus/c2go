@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"go/token"
 	"go/types"
 	"log"
 	"strconv"
@@ -32,6 +33,7 @@ func toTypeEx(ctx *blockCtx, scope *types.Scope, typ *ast.Type, flags int) (t ty
 
 func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *types.Struct {
 	b := newStructBuilder()
+	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	n := len(struc.Inner)
 	for i := 0; i < n; i++ {
 		decl := struc.Inner[i]
@@ -40,7 +42,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 			if debugCompileDecl {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
-			typ := toType(ctx, decl.Type, 0)
+			typ, _ := toTypeEx(ctx, scope, decl.Type, 0)
 			if len(decl.Inner) > 0 {
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
 				b.BitField(ctx, typ, decl.Name, int(bits))
@@ -51,6 +53,8 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 			name, anonymous := ctx.getAsuName(decl, ns)
 			typ := compileStructOrUnion(ctx, name, decl)
 			if !anonymous {
+				alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, decl.Name, typ)
+				scope.Insert(alias)
 				break
 			}
 			for i+1 < n {
