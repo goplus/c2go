@@ -60,7 +60,7 @@ func (p *unionBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
 	return types.NewStruct(flds, nil)
 }
 
-func (p *unionBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name string) {
+func (p *unionBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name string, embedded bool) {
 	fld := &gox.UnionField{
 		Name: name,
 		Off:  0, // TODO

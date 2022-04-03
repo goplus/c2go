@@ -81,17 +81,39 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 
 func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types.Type {
 	b := newUnionBuilder()
-	for _, decl := range unio.Inner {
+	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
+	n := len(unio.Inner)
+	for i := 0; i < n; i++ {
+		decl := unio.Inner[i]
 		switch decl.Kind {
 		case ast.FieldDecl:
 			if debugCompileDecl {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
-			typ := toType(ctx, decl.Type, 0)
-			b.Field(ctx, goNodePos(decl), typ, decl.Name)
+			typ, _ := toTypeEx(ctx, scope, decl.Type, 0)
+			b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 		case ast.RecordDecl:
-			name, _ := ctx.getAsuName(decl, ns)
-			compileStructOrUnion(ctx, name, decl)
+			name, anonymous := ctx.getAsuName(decl, ns)
+			typ := compileStructOrUnion(ctx, name, decl)
+			if !anonymous {
+				alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, decl.Name, typ)
+				scope.Insert(alias)
+				break
+			}
+			for i+1 < n {
+				next := unio.Inner[i+1]
+				if next.Kind == ast.FieldDecl {
+					if next.IsImplicit {
+						b.Field(ctx, goNodePos(decl), typ, name, true)
+						i++
+					} else if isAnonymousType(next) {
+						b.Field(ctx, goNodePos(next), typ, next.Name, false)
+						i++
+						continue
+					}
+				}
+				break
+			}
 		default:
 			log.Fatalln("toUnionType: unknown field kind =", decl.Kind)
 		}
