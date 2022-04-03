@@ -48,13 +48,22 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 				b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 			}
 		case ast.RecordDecl:
-			name, _ := ctx.getAsuName(decl, ns)
+			name, anonymous := ctx.getAsuName(decl, ns)
 			typ := compileStructOrUnion(ctx, name, decl)
+			if !anonymous {
+				break
+			}
 			for i+1 < n {
 				next := struc.Inner[i+1]
-				if next.IsImplicit {
-					b.Field(ctx, goNodePos(decl), typ, name, true)
-					i++
+				if next.Kind == ast.FieldDecl {
+					if next.IsImplicit {
+						b.Field(ctx, goNodePos(decl), typ, name, true)
+						i++
+					} else if isAnonymousType(next) {
+						b.Field(ctx, goNodePos(next), typ, next.Name, false)
+						i++
+						continue
+					}
 				}
 				break
 			}
@@ -84,6 +93,11 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 		}
 	}
 	return b.Type(ctx, t)
+}
+
+func isAnonymousType(v *ast.Node) bool {
+	qualType := v.Type.QualType
+	return strings.HasPrefix(qualType, "struct (anonymous")
 }
 
 // -----------------------------------------------------------------------------
