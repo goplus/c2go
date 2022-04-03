@@ -3,6 +3,6 @@ module github.com/goplus/c2go
 go 1.16
 
 require (
-	github.com/goplus/gox v1.9.10
+	github.com/goplus/gox v1.9.11
 	github.com/json-iterator/go v1.1.12
 )
