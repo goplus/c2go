@@ -300,6 +300,32 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 	cb.Call(1)
 }
 
+func typeCastIndex(ctx *blockCtx, lhs bool) {
+	cb := ctx.cb
+	stk := cb.InternalStack()
+	v := stk.Get(-2)
+	switch t := v.Type.(type) {
+	case *types.Pointer: // *T => *[N]T
+		arrt := arrayPtrOf(t.Elem())
+		idx := stk.Get(-1)
+		stk.PopN(2)
+		castPtrType(cb, arrt, v)
+		stk.Push(idx)
+	}
+	if lhs {
+		cb.IndexRef(1)
+	} else {
+		cb.Index(1, false)
+	}
+}
+
+func arrayPtrOf(elem types.Type) types.Type {
+	const (
+		arrayLen = 1 << 20 // TODO:
+	)
+	return types.NewPointer(types.NewArray(elem, arrayLen))
+}
+
 func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {
 	cb.Typ(typ).Typ(ctypes.UnsafePointer).Val(v).Call(1).Call(1)
 }

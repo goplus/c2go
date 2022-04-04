@@ -182,7 +182,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	if body != nil {
 		fnName, isMain := fn.Name, false
 		if fnName == "main" && (results != nil || params != nil) {
-			fnName, isMain = "_cmain", true
+			fnName, isMain = "_cgo_main", true
 		}
 		f, err := pkg.NewFuncWith(goNodePos(fn), fnName, sig, nil)
 		if err != nil {
