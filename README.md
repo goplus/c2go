@@ -30,6 +30,7 @@
 - [x] Comparison: a<b, a<=b, a>b, a>=b, a==b, a!=b
 - [x] Logical: a&&b, a||b, !a
 - [x] Bitwise: a|b, a&b, a^b, ~a, a<<n, a>>n
+- [x] Pointer: p+n, p-n, p-q, p++, p--
 - [x] Assignment: `=`
 - [ ] Operator Assignment: a`<op>=`b
 - [x] Pointer: *a, &a
