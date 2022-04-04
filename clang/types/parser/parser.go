@@ -157,6 +157,59 @@ var intTypes = [...]types.Type{
 	flagShort | flagLong | flagLongLong | flagUnsigned: nil,
 }
 
+func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
+	if t == nil {
+		return nil, p.newError("array to nil")
+	}
+	var n int64
+	var err error
+	p.next()
+	switch p.tok {
+	case token.RBRACK: // ]
+		n = -1
+	case token.INT:
+		if n, err = strconv.ParseInt(p.lit, 10, 64); err != nil {
+			return nil, p.newError(err.Error())
+		}
+		if err = p.expect(token.RBRACK); err != nil { // ]
+			return nil, err
+		}
+	default:
+		return nil, p.newError("array length not an integer")
+	}
+	if isParam(inFlags) {
+		t = p.newPointer(t)
+	} else {
+		t = types.NewArray(t, n)
+	}
+	return t, nil
+}
+
+func (p *parser) parseArrays(t types.Type, inFlags int) (ret types.Type, err error) {
+	for {
+		if ret, err = p.parseArray(t, inFlags); err != nil {
+			return
+		}
+		p.next()
+		if p.tok == token.EOF {
+			return
+		}
+		t = ret
+	}
+}
+
+func (p *parser) parseFunc(pkg *types.Package, t types.Type, inFlags int) (ret types.Type, err error) {
+	var results *types.Tuple
+	if ctypes.NotVoid(t) {
+		results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
+	}
+	args, err := p.parseArgs(pkg)
+	if err != nil {
+		return
+	}
+	return types.NewSignature(nil, types.NewTuple(args...), results, false), nil
+}
+
 func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 	flags := 0
 	for {
@@ -216,28 +269,8 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			}
 			t = p.newPointer(t)
 		case token.LBRACK: // [
-			if t == nil {
-				return nil, false, p.newError("array to nil")
-			}
-			var n int64
-			p.next()
-			switch p.tok {
-			case token.RBRACK: // ]
-				n = -1
-			case token.INT:
-				if n, err = strconv.ParseInt(p.lit, 10, 64); err != nil {
-					return nil, false, p.newError(err.Error())
-				}
-				if err = p.expect(token.RBRACK); err != nil { // ]
-					return
-				}
-			default:
-				return nil, false, p.newError("array length not an integer")
-			}
-			if isParam(inFlags) {
-				t = p.newPointer(t)
-			} else {
-				t = types.NewArray(t, n)
+			if t, err = p.parseArrays(t, inFlags); err != nil {
+				return
 			}
 		case token.LPAREN: // (
 			if t == nil {
@@ -274,28 +307,29 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			default:
 				return nil, false, p.newError("expect )")
 			}
-			if err = p.expect(token.LPAREN); err != nil { // (
-				return
-			}
-			var results *types.Tuple
-			if ctypes.NotVoid(t) {
-				results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
+			p.next()
+			switch p.tok {
+			case token.LPAREN: // (
+				if t, err = p.parseFunc(pkg, t, inFlags); err != nil {
+					return
+				}
+			case token.LBRACK: // [
+				if t, err = p.parseArrays(t, 0); err != nil {
+					return
+				}
+			default:
+				return nil, false, p.newError("unexpected " + p.tok.String())
 			}
 			if isRetFn {
-				retArgs, e := p.parseArgs(pkg)
-				if e != nil {
-					return nil, false, e
-				}
-				t = types.NewSignature(nil, types.NewTuple(retArgs...), results, false)
 				if getRetType(inFlags) {
 					p.tok = token.EOF
 					return
 				}
-				results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
-			} else if args, err = p.parseArgs(pkg); err != nil {
-				return
+				results := types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
+				t = types.NewSignature(nil, types.NewTuple(args...), results, false)
+			} else if _, ok := t.(*types.Signature); !ok {
+				t = types.NewPointer(t)
 			}
-			t = types.NewSignature(nil, types.NewTuple(args...), results, false)
 		case token.RPAREN:
 			if t == nil {
 				t = ctypes.Void

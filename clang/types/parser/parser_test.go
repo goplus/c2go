@@ -43,6 +43,10 @@ var (
 	tyInt64          = types.Typ[types.Int64]
 	tyUint64         = types.Typ[types.Uint64]
 	tyInt            = types.Typ[types.Int]
+	tyInt100         = types.NewArray(tyInt, 100)
+	tyInt100_3       = types.NewArray(tyInt100, 3)
+	tyPInt100        = types.NewPointer(tyInt100)
+	tyPInt100_3      = types.NewPointer(tyInt100_3)
 	tyUint           = types.Typ[types.Uint]
 	tyString         = types.Typ[types.String]
 	tyCharPtr        = types.NewPointer(tyChar)
@@ -105,6 +109,8 @@ var cases = []testCase{
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
 	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
+	{qualType: "int (*)[100]", typ: tyPInt100},
+	{qualType: "int (*)[100][3]", typ: tyPInt100_3},
 	{qualType: "char *", typ: tyCharPtr},
 	{qualType: "void", typ: ctypes.Void},
 	{qualType: "void *", typ: ctypes.UnsafePointer},
