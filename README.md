@@ -34,7 +34,7 @@
 - [x] Assignment: `=`
 - [ ] Operator Assignment: a`<op>=`b
 - [x] Pointer: *a, &a
-- [x] Member: a.b
+- [x] Struct/Union/BitField Member: a.b
 - [ ] Pointer Member: a->b
 - [ ] Array Member: a[n]
 - [ ] Comma: a,b
