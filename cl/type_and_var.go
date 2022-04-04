@@ -224,8 +224,8 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
-		if isUnion(ctx, typ) {
-			initUnion(ctx, initExpr)
+		if ufs, ok := checkUnion(ctx, typ); ok {
+			initUnion(ctx, decl.Name, ufs, initExpr)
 			return
 		}
 		cb := varDecl.InitStart(ctx.pkg)
@@ -243,18 +243,31 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	}
 }
 
-func isUnion(ctx *blockCtx, typ types.Type) bool {
+func checkUnion(ctx *blockCtx, typ types.Type) (ufs *gox.UnionFields, is bool) {
 	if t, ok := typ.(*types.Named); ok {
 		if vft, ok := ctx.pkg.VFields(t); ok {
-			_, ok = vft.(*gox.UnionFields)
-			return ok
+			ufs, is = vft.(*gox.UnionFields)
+			return
 		}
 	}
-	return false
+	return nil, false
 }
 
-func initUnion(ctx *blockCtx, decl *ast.Node) {
-	log.Fatalln("initUnion: TODO")
+func initUnion(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node) {
+	initExpr := decl.Inner[0]
+	t := toType(ctx, initExpr.Type, 0)
+	for i, n := 0, ufs.Len(); i < n; i++ {
+		fld := ufs.At(i)
+		if types.Identical(fld.Type, t) {
+			cb := ctx.cb
+			obj := cb.Scope().Lookup(name)
+			cb.Val(obj).MemberRef(fld.Name)
+			compileExpr(ctx, initExpr)
+			cb.Assign(1)
+			return
+		}
+	}
+	log.Fatalln("initUnion: init with unexpect type -", t)
 }
 
 func isInteger(typ types.Type) bool {
