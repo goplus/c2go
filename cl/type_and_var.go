@@ -143,8 +143,8 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 					return
 				}
 				id := owned.ID
-				if detail, ok := ctx.unnameds[id]; ok {
-					compileStructOrUnion(ctx, name, detail)
+				if typ, ok := ctx.unnameds[id]; ok {
+					aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 					return
 				}
 				log.Fatalln("compileTypedef: unknown id =", id)
@@ -162,10 +162,6 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Named {
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
-	}
-	if name == "" {
-		ctx.unnameds[decl.ID] = decl
-		return nil
 	}
 	var inner types.Type
 	var t = ctx.cb.NewType(name, goNodePos(decl))
@@ -199,7 +195,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDecl, v *ast.Node, iotav in
 	return iotav + 1
 }
 
-func compileVar(ctx *blockCtx, decl *ast.Node) {
+func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 	if debugCompileDecl {
 		log.Println("var", decl.Name, "-", decl.Loc.PresumedLine)
 	}
@@ -231,13 +227,13 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 		cb := varDecl.InitStart(ctx.pkg)
 		switch typ.(type) {
 		case *types.Array:
-			log.Fatalln("newVarAndInit Array: TODO")
+			if !initWithStringLiteral(ctx, typ, initExpr) {
+				log.Fatalln("newVarAndInit Array: TODO")
+			}
 		case *types.Struct:
 			log.Fatalln("newVarAndInit Struct/Union: TODO")
 		default:
-			if !initWithStringLiteral(ctx, typ, initExpr) {
-				compileExpr(ctx, initExpr)
-			}
+			compileExpr(ctx, initExpr)
 		}
 		cb.EndInit(1)
 	}

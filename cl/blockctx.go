@@ -18,7 +18,7 @@ type blockCtx struct {
 	cb       *gox.CodeBuilder
 	fset     *token.FileSet
 	tyValist types.Type
-	unnameds map[ast.ID]*ast.Node
+	unnameds map[ast.ID]*types.Named
 	asuBase  int // anonymous struct/union
 }
 

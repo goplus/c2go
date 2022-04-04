@@ -75,34 +75,61 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, file *ast.Node) (err error) {
+func loadFile(p *gox.Package, file *ast.Node) error {
 	if file.Kind != ast.TranslationUnitDecl {
 		return syscall.EINVAL
 	}
 	ctx := &blockCtx{
-		pkg: p, cb: p.CB(), fset: p.Fset, unnameds: make(map[ast.ID]*ast.Node)}
+		pkg: p, cb: p.CB(), fset: p.Fset, unnameds: make(map[ast.ID]*types.Named)}
 	ctx.initCTypes()
-	for _, decl := range file.Inner {
-		logFile(decl)
-		if decl.IsImplicit {
-			continue
+	compileDeclStmt(ctx, file, true)
+	return nil
+}
+
+func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
+	n := len(node.Inner)
+	for i := 0; i < n; i++ {
+		decl := node.Inner[i]
+		if global {
+			logFile(decl)
+			if decl.IsImplicit {
+				continue
+			}
 		}
 		switch decl.Kind {
-		case ast.FunctionDecl:
-			compileFunc(ctx, decl)
+		case ast.VarDecl:
+			compileVarDecl(ctx, decl)
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		case ast.RecordDecl:
-			compileStructOrUnion(ctx, decl.Name, decl)
-		case ast.VarDecl:
-			compileVar(ctx, decl)
+			name, anonymous := ctx.getAsuName(decl, "")
+			typ := compileStructOrUnion(ctx, name, decl)
+			if !anonymous {
+				break
+			} else {
+				ctx.unnameds[decl.ID] = typ
+			}
+			for i+1 < n {
+				next := node.Inner[i+1]
+				if next.Kind == ast.VarDecl && isAnonymousType(next) {
+					compileVarWith(ctx, typ, next)
+					i++
+					continue
+				}
+				break
+			}
 		case ast.EnumDecl:
 			compileEnum(ctx, decl)
+		case ast.FunctionDecl:
+			if global {
+				compileFunc(ctx, decl)
+				continue
+			}
+			fallthrough
 		default:
-			log.Fatalln("loadFile: unknown kind =", decl.Kind)
+			log.Fatalln("compileDeclStmt: unknown kind =", decl.Kind)
 		}
 	}
-	return
 }
 
 func compileFunc(ctx *blockCtx, fn *ast.Node) {

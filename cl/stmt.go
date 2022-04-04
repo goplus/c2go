@@ -20,41 +20,11 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 	case ast.ReturnStmt:
 		compileReturnStmt(ctx, stmt)
 	case ast.DeclStmt:
-		compileDeclStmt(ctx, stmt)
+		compileDeclStmt(ctx, stmt, false)
 	case ast.NullStmt:
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", flagIgnoreResult)
 		ctx.cb.EndStmt()
-	}
-}
-
-func compileDeclStmt(ctx *blockCtx, node *ast.Node) {
-	n := len(node.Inner)
-	for i := 0; i < n; i++ {
-		decl := node.Inner[i]
-		switch decl.Kind {
-		case ast.VarDecl:
-			compileVar(ctx, decl)
-		case ast.TypedefDecl:
-			compileTypedef(ctx, decl)
-		case ast.RecordDecl:
-			name, anonymous := ctx.getAsuName(decl, "")
-			typ := compileStructOrUnion(ctx, name, decl)
-			if !anonymous {
-				break
-			}
-			for i+1 < n {
-				next := node.Inner[i+1]
-				if next.Kind == ast.VarDecl && isAnonymousType(next) {
-					compileVarWith(ctx, typ, next)
-					i++
-					continue
-				}
-				break
-			}
-		default:
-			log.Fatalln("compileDeclStmt: unknown kind =", decl.Kind)
-		}
 	}
 }
 

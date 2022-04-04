@@ -67,8 +67,7 @@
 - [ ] While: `while (cond) stmt`
 - [x] Do While: `do stmt while (cond)`
 - [ ] Goto: `goto label`
-- [ ] Break: `break`
-- [ ] Continue: `continue`
+- [ ] Break/Continue: `break`, `continue`
 
 ### Functions
 
