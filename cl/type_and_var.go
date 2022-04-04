@@ -224,19 +224,37 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
+		if isUnion(ctx, typ) {
+			initUnion(ctx, initExpr)
+			return
+		}
 		cb := varDecl.InitStart(ctx.pkg)
 		switch typ.(type) {
 		case *types.Array:
 			if !initWithStringLiteral(ctx, typ, initExpr) {
 				log.Fatalln("newVarAndInit Array: TODO")
 			}
-		case *types.Struct:
-			log.Fatalln("newVarAndInit Struct/Union: TODO")
+		case *types.Named:
+			log.Fatalln("newVarAndInit Struct: TODO")
 		default:
 			compileExpr(ctx, initExpr)
 		}
 		cb.EndInit(1)
 	}
+}
+
+func isUnion(ctx *blockCtx, typ types.Type) bool {
+	if t, ok := typ.(*types.Named); ok {
+		if vft, ok := ctx.pkg.VFields(t); ok {
+			_, ok = vft.(*gox.UnionFields)
+			return ok
+		}
+	}
+	return false
+}
+
+func initUnion(ctx *blockCtx, decl *ast.Node) {
+	log.Fatalln("initUnion: TODO")
 }
 
 func isInteger(typ types.Type) bool {
