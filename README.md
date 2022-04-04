@@ -8,12 +8,12 @@
 
 - [x] Void: void
 - [x] Boolean: bool
-- [x] Integer: [signed/unsigned] char, [signed/unsigned] [short/long/long long] int
+- [x] Integer: [signed/unsigned] char, [signed/unsigned] [short/long/`long long`] int
 - [x] Enum: enum
 - [x] Float: float, double
 - [ ] Wide Character: wchar_t
-- [ ] Large Integer/Float: [signed/unsigned] __int128, long double
-- [ ] Complex: [float/double/long double] complex
+- [ ] Large Integer/Float: [signed/unsigned] __int128, `long double`
+- [ ] Complex: _Complex float/double/`long double`
 - [x] Typedef: typedef
 - [x] Pointer: *T, T[]
 - [x] Array: T[N], T[]
