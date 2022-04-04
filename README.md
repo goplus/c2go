@@ -46,18 +46,33 @@
 
 - [x] Boolean, Integer, Float, String
 - [ ] Character
-- [ ] Array: (T[]){ expr1, expr2, ... }
-- [ ] Array Pointer: &(T[]){ expr1, expr2, ... }
-- [ ] Struct: struct T{ expr1, expr2, ... }
+- [ ] Array: `(T[]){ expr1, expr2, ... }`
+- [ ] Array Pointer: `&(T[]){ expr1, expr2, ... }`
+- [ ] Struct: `struct T{ expr1, expr2, ... }`
 
 ### Initialization
 
-- [x] Basic: T a = expr
-- [ ] Array: T[] a = { expr1, expr2, ... }, T[N] a = { expr1, expr2, ... }
-- [ ] Struct: struct T a = { expr1, expr2, ... }, struct T a = { .a = expr1, .b = expr2, ... }
-- [ ] Union: union T a = { expr }, union T a = { .a = expr }
-- [ ] Array in Struct: struct { T[N] a; ... } = { { expr1, expr2, ... }, ... }, struct { T[N] a; ... } = { { [0].a = expr1, [1].a = expr2, ... }, ... }
+- [x] Basic: `T a = expr`
+- [ ] Array: `T[] a = { expr1, expr2, ... }`, `T[N] a = { expr1, expr2, ... }`
+- [ ] Struct: `struct T a = { expr1, expr2, ... }`, `struct T a = { .a = expr1, .b = expr2, ... }`
+- [ ] Union: `union T a = { expr }, union T a = { .a = expr }`
+- [ ] Array in Struct: `struct { T[N] a; ... } = { { expr1, expr2, ... }, ... }`, `struct { T[N] a; ... } = { { [0].a = expr1, [1].a = expr2, ... }, ... }`
 
 ### Control structures
 
-TODO
+- [x] If: `if (cond) stmt1 [else stmt2]`
+- [ ] Switch: `switch (tag) { case expr1: stmt1 case expr2: stmt2 default: stmtN }`
+- [x] For: `for (init; cond; post) stmt`
+- [x] While: `while (cond) stmt`
+- [x] Do While: `do stmt while (cond)`
+- [ ] Goto: `goto label`
+- [ ] Break: `break`
+- [ ] Continue: `continue`
+
+### Functions
+
+- [x] Parameters
+- [x] Variadic Parameters
+- [ ] Variadic Parameter Access
+- [x] Return
+
