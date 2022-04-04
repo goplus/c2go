@@ -17,7 +17,7 @@
 - [x] Typedef: `typedef`
 - [x] Pointer: *T, T[]
 - [x] Array: T[N], T[]
-- [ ] Array Pointer: T(*)[N]
+- [x] Array Pointer: T(*)[N]
 - [x] Function Pointer: T (*)(T1, T2, ...)
 - [x] Struct: `struct`
 - [x] Union: `union`
