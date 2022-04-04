@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/goplus/c2go/clang/ast"
+	"github.com/goplus/gox"
 )
 
 // -----------------------------------------------------------------------------
@@ -15,6 +16,8 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileIfStmt(ctx, stmt)
 	case ast.ForStmt:
 		compileForStmt(ctx, stmt)
+	case ast.SwitchStmt:
+		compileSwitchStmt(ctx, stmt)
 	case ast.DoStmt:
 		compileDoStmt(ctx, stmt)
 	case ast.ReturnStmt:
@@ -63,6 +66,45 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileStmt(ctx, postStmt)
 	}
 	cb.End()
+}
+
+func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
+	cb := ctx.cb
+	cb.Switch()
+	compileExpr(ctx, switchStmt.Inner[0])
+	cb.Then()
+	switchBody := switchStmt.Inner[1]
+	for _, caseStmt := range switchBody.Inner {
+		switch caseStmt.Kind {
+		case ast.CaseStmt, ast.DefaultStmt:
+			caseBody := compileCaseCond(ctx, cb, caseStmt)
+			for _, stmt := range caseBody {
+				compileStmt(ctx, stmt)
+			}
+			cb.End()
+		case ast.BreakStmt:
+		default:
+			log.Fatalln("compileSwitchStmt: unknown case kind =", caseStmt.Kind)
+		}
+	}
+	cb.End() // switch
+}
+
+func compileCaseCond(ctx *blockCtx, cb *gox.CodeBuilder, caseStmt *ast.Node) (body []*ast.Node) {
+	if caseStmt.Kind == ast.CaseStmt {
+		compileExpr(ctx, caseStmt.Inner[0])
+		cb.Case(1)
+	} else {
+		cb.Case(0)
+	}
+	if len(caseStmt.Inner) > 1 {
+		switch caseStmt.Inner[1].Kind {
+		case ast.CaseStmt, ast.DefaultStmt:
+			cb.Fallthrough().End()
+			return compileCaseCond(ctx, cb, caseStmt.Inner[1])
+		}
+	}
+	return caseStmt.Inner[1:]
 }
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
