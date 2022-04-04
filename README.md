@@ -29,4 +29,20 @@ Composite data types:
 
 ### Operators
 
-TODO
+- [x] Arithmetic: a+b, a-b, a*b, a/b, a%b, -a, +a
+- [x] Increment/Decrement: a++, a--, ++a, --a
+- [x] Comparison: a<b, a<=b, a>b, a>=b, a==b, a!=b
+- [x] Logical: a&&b, a||b, !a
+- [x] Bitwise: a|b, a&b, a^b, ~a, a<<n, a>>n
+- [x] Assignment: `=`
+- [ ] Operator Assignment: a`<op>=`b
+- [x] Pointer: *a, &a
+- [x] Member: a.b
+- [ ] Pointer Member: a->b
+- [ ] Array Member: a[n]
+- [ ] Comma: a,b
+- [ ] Ternary Conditional: cond?a:b
+- [x] Function Call: f(a1, a2, ...)
+- [x] Conversion: (T)a
+- [ ] Sizeof: sizeof(T), sizeof(a)
+
