@@ -6,8 +6,6 @@
 
 ### Data structures
 
-Primitive data types:
-
 - [x] Void: void
 - [x] Boolean: bool
 - [x] Integer: [signed/unsigned] char, [signed/unsigned] [short/long/long long] int
@@ -15,9 +13,6 @@ Primitive data types:
 - [x] Float: float, double
 - [ ] Large Integer/Float: [signed/unsigned] __int128, long double
 - [ ] Complex: [float/double/long double] complex
-
-Composite data types:
-
 - [x] Typedef: typedef
 - [x] Pointer: *T, T[]
 - [x] Array: T[N], T[]
