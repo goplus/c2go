@@ -62,12 +62,12 @@
 ### Control structures
 
 - [x] If: `if (cond) stmt1 [else stmt2]`
-- [ ] Switch: `switch (tag) { case expr1: stmt1 case expr2: stmt2 default: stmtN }`
+- [x] Switch: `switch (tag) { case expr1: stmt1 case expr2: stmt2 default: stmtN }`
 - [x] For: `for (init; cond; post) stmt`
-- [ ] While: `while (cond) stmt`
+- [x] While: `while (cond) stmt`
 - [x] Do While: `do stmt while (cond)`
+- [x] Break/Continue: `break`, `continue`
 - [ ] Goto: `goto label`
-- [ ] Break/Continue: `break`, `continue`
 
 ### Functions
 
@@ -75,4 +75,3 @@
 - [x] Variadic Parameters
 - [ ] Variadic Parameter Access
 - [x] Return
-

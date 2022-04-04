@@ -14,5 +14,16 @@ int main() {
     default:
         printf("sizeof(int) == unknown\n");
     }
+    while (a) {
+        a--;
+        if (a == 5) {
+            printf("a = 5, continue\n");
+            continue;
+        }
+        if (a == 3) {
+            break;
+        }
+    }
+    printf("a = %d\n", a);
     return 0;
 }

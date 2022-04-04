@@ -18,12 +18,20 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileForStmt(ctx, stmt)
 	case ast.SwitchStmt:
 		compileSwitchStmt(ctx, stmt)
+	case ast.WhileStmt:
+		compileWhileStmt(ctx, stmt)
 	case ast.DoStmt:
 		compileDoStmt(ctx, stmt)
 	case ast.ReturnStmt:
 		compileReturnStmt(ctx, stmt)
+	case ast.ContinueStmt:
+		ctx.cb.Continue(nil)
+	case ast.BreakStmt:
+		ctx.cb.Break(nil)
 	case ast.DeclStmt:
 		compileDeclStmt(ctx, stmt, false)
+	case ast.CompoundStmt:
+		compileCompoundStmt(ctx, stmt)
 	case ast.NullStmt:
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", flagIgnoreResult)
@@ -43,6 +51,15 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 			End().
 			End()
 	}
+}
+
+func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
+	cb := ctx.cb.For()
+	compileExpr(ctx, stmt.Inner[0])
+	castToBoolExpr(cb)
+	cb.Then()
+	compileStmt(ctx, stmt.Inner[1])
+	cb.End()
 }
 
 func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
@@ -69,8 +86,7 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
-	cb := ctx.cb
-	cb.Switch()
+	cb := ctx.cb.Switch()
 	compileExpr(ctx, switchStmt.Inner[0])
 	cb.Then()
 	switchBody := switchStmt.Inner[1]
