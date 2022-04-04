@@ -124,7 +124,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 
 func isAnonymousType(v *ast.Node) bool {
 	qualType := v.Type.QualType
-	return strings.HasPrefix(qualType, "struct (anonymous")
+	return strings.HasPrefix(qualType, "struct (anonymous") || strings.HasPrefix(qualType, "union (anonymous")
 }
 
 // -----------------------------------------------------------------------------
@@ -227,10 +227,15 @@ func compileVarWith(ctx *blockCtx, typ types.Type, decl *ast.Node) {
 func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.Node) {
 	varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
 	if len(decl.Inner) > 0 {
-		cb := varDecl.InitStart(ctx.pkg)
 		initExpr := decl.Inner[0]
-		if !initWithStringLiteral(ctx, typ, initExpr) {
-			compileExpr(ctx, initExpr)
+		cb := varDecl.InitStart(ctx.pkg)
+		switch initExpr.Kind {
+		case ast.InitListExpr:
+			fallthrough
+		default:
+			if !initWithStringLiteral(ctx, typ, initExpr) {
+				compileExpr(ctx, initExpr)
+			}
 		}
 		cb.EndInit(1)
 	}
