@@ -11,6 +11,7 @@
 - [x] Integer: [signed/unsigned] char, [signed/unsigned] [short/long/long long] int
 - [x] Enum: enum
 - [x] Float: float, double
+- [ ] Wide Character: wchar_t
 - [ ] Large Integer/Float: [signed/unsigned] __int128, long double
 - [ ] Complex: [float/double/long double] complex
 - [x] Typedef: typedef
@@ -41,3 +42,22 @@
 - [x] Conversion: (T)a
 - [ ] Sizeof: sizeof(T), sizeof(a)
 
+### Literals
+
+- [x] Boolean, Integer, Float, String
+- [ ] Character
+- [ ] Array: (T[]){ expr1, expr2, ... }
+- [ ] Array Pointer: &(T[]){ expr1, expr2, ... }
+- [ ] Struct: struct T{ expr1, expr2, ... }
+
+### Initialization
+
+- [x] Basic: T a = expr
+- [ ] Array: T[] a = { expr1, expr2, ... }, T[N] a = { expr1, expr2, ... }
+- [ ] Struct: struct T a = { expr1, expr2, ... }, struct T a = { .a = expr1, .b = expr2, ... }
+- [ ] Union: union T a = { expr }, union T a = { .a = expr }
+- [ ] Array in Struct: struct { T[N] a; ... } = { { expr1, expr2, ... }, ... }, struct { T[N] a; ... } = { { [0].a = expr1, [1].a = expr2, ... }, ... }
+
+### Control structures
+
+TODO
