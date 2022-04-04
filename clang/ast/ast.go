@@ -93,6 +93,7 @@ const (
 	DeclRefExpr              Kind = "DeclRefExpr"
 	MemberExpr               Kind = "MemberExpr"
 	ImplicitCastExpr         Kind = "ImplicitCastExpr"
+	ImplicitValueInitExpr    Kind = "ImplicitValueInitExpr"
 	UnaryExprOrTypeTraitExpr Kind = "UnaryExprOrTypeTraitExpr"
 	BinaryOperator           Kind = "BinaryOperator"
 	UnaryOperator            Kind = "UnaryOperator"

@@ -44,6 +44,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileTypeCast(ctx, expr, goNode(expr))
 	case ast.UnaryExprOrTypeTraitExpr:
 		compileUnaryExprOrTypeTraitExpr(ctx, expr)
+	case ast.ImplicitValueInitExpr:
+		compileImplicitValueInitExpr(ctx, expr)
 	default:
 		log.Fatalln(prompt, expr.Kind)
 	}
@@ -91,6 +93,11 @@ func compileUnaryExprOrTypeTraitExpr(ctx *blockCtx, v *ast.Node) {
 	default:
 		log.Fatalln("unaryExprOrTypeTraitExpr unknown:", v.Name)
 	}
+}
+
+func compileImplicitValueInitExpr(ctx *blockCtx, v *ast.Node) {
+	t := toType(ctx, v.Type, 0)
+	ctx.cb.ZeroLit(t)
 }
 
 // -----------------------------------------------------------------------------

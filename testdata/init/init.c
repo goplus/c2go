@@ -29,7 +29,7 @@ int main() {
     printf("g_bar.a = %d, g_bar.b = %s\n", g_bar.a, g_bar.b);
 
     printf("x.a = %d, x.b = %d\n", x.a, x.b);
-    printf("y.a = %d, y.b = %s\n", y.a, y.b);
+    printf("y.a = %d, y.c = %s\n", y.a, y.c);
 
     printf("g_x.a = %d, g_x.b = %d\n", g_x.a, g_x.b);
     printf("g_y.a = %d, g_y.b = %s\n", g_y.a, g_y.b);

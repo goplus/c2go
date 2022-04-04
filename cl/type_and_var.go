@@ -229,18 +229,34 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			return
 		}
 		cb := varDecl.InitStart(ctx.pkg)
-		switch typ.(type) {
+		switch t := typ.(type) {
 		case *types.Array:
-			if !initWithStringLiteral(ctx, typ, initExpr) {
-				log.Fatalln("newVarAndInit Array: TODO")
+			if !initWithStringLiteral(ctx, t, initExpr) {
+				initArray(ctx, t, initExpr)
 			}
 		case *types.Named:
-			log.Fatalln("newVarAndInit Struct: TODO")
+			initStruct(ctx, typ, initExpr)
 		default:
 			compileExpr(ctx, initExpr)
 		}
 		cb.EndInit(1)
 	}
+}
+
+func initArray(ctx *blockCtx, t *types.Array, decl *ast.Node) {
+	elem := t.Elem()
+	for _, initExpr := range decl.Inner {
+		compileInitExpr(ctx, elem, initExpr)
+	}
+	ctx.cb.ArrayLit(t, len(decl.Inner))
+}
+
+func initStruct(ctx *blockCtx, typ types.Type, decl *ast.Node) {
+	for _, initExpr := range decl.Inner {
+		t := toType(ctx, initExpr.Type, 0)
+		compileInitExpr(ctx, t, initExpr)
+	}
+	ctx.cb.StructLit(typ, len(decl.Inner), false)
 }
 
 func checkUnion(ctx *blockCtx, typ types.Type) (ufs *gox.UnionFields, is bool) {
@@ -262,14 +278,18 @@ func initUnion(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node)
 			cb := ctx.cb
 			obj := cb.Scope().Lookup(name)
 			cb.Val(obj).MemberRef(fld.Name)
-			if !initWithStringLiteral(ctx, t, initExpr) {
-				compileExpr(ctx, initExpr)
-			}
+			compileInitExpr(ctx, t, initExpr)
 			cb.Assign(1)
 			return
 		}
 	}
 	log.Fatalln("initUnion: init with unexpect type -", t)
+}
+
+func compileInitExpr(ctx *blockCtx, t types.Type, initExpr *ast.Node) {
+	if !initWithStringLiteral(ctx, t, initExpr) {
+		compileExpr(ctx, initExpr)
+	}
 }
 
 func isInteger(typ types.Type) bool {

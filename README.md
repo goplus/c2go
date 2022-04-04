@@ -41,7 +41,7 @@
 - [ ] Ternary Conditional: cond?a:b
 - [x] Function Call: f(a1, a2, ...)
 - [x] Conversion: (T)a
-- [ ] Sizeof: sizeof(T), sizeof(a)
+- [x] Sizeof: sizeof(T), sizeof(a)
 
 ### Literals
 
@@ -54,9 +54,9 @@
 ### Initialization
 
 - [x] Basic: `T a = expr`
-- [ ] Array: `T[] a = { expr1, expr2, ... }`, `T[N] a = { expr1, expr2, ... }`
-- [ ] Struct: `struct T a = { expr1, expr2, ... }`, `struct T a = { .a = expr1, .b = expr2, ... }`
-- [ ] Union: `union T a = { expr }, union T a = { .a = expr }`
+- [x] Array: `T[] a = { expr1, expr2, ... }`, `T[N] a = { expr1, expr2, ... }`
+- [x] Struct: `struct T a = { expr1, expr2, ... }`, `struct T a = { .a = expr1, .b = expr2, ... }`
+- [x] Union: `union T a = { expr }, union T a = { .a = expr }`
 - [ ] Array in Struct: `struct { T[N] a; ... } v = { { expr1, expr2, ... }, ... }`, `struct { T[N] a; ... } v = { { [0].a = expr1, [1].a = expr2, ... }, ... }`
 
 ### Control structures
