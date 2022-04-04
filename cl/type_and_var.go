@@ -229,9 +229,11 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
 		cb := varDecl.InitStart(ctx.pkg)
-		switch initExpr.Kind {
-		case ast.InitListExpr:
-			fallthrough
+		switch typ.(type) {
+		case *types.Array:
+			log.Fatalln("newVarAndInit Array: TODO")
+		case *types.Struct:
+			log.Fatalln("newVarAndInit Struct/Union: TODO")
 		default:
 			if !initWithStringLiteral(ctx, typ, initExpr) {
 				compileExpr(ctx, initExpr)

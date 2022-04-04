@@ -9,7 +9,7 @@ union { int a; unsigned short b; } g_foo = { 1 };
 union { short a; char b[10]; } g_bar = { .b = "Hello" };
 
 struct { int a; unsigned short b; } g_x = { 2, 3 };
-struct { short a; char b[10]; } g_y = { .a = 11, .b = "Hello" };
+struct { short a; char b[10]; int c; } g_y = { .b = "Hi", .a = 11 };
 
 int main() {
     int a = 100;
@@ -18,7 +18,7 @@ int main() {
     union { short a; char b[10]; } bar = { .b = "Hello" };
 
     struct { int a; unsigned short b; } x = { 2, 3 };
-    struct { short a; char b[10]; } y = { .a = 11, .b = "Hello" };
+    struct { short a; int b; char c[10]; } y = { .c = "Hi", .a = 11 };
 
     printf("a = %d, g_a = %d\n", a, g_a);
 
