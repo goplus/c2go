@@ -262,7 +262,9 @@ func initUnion(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node)
 			cb := ctx.cb
 			obj := cb.Scope().Lookup(name)
 			cb.Val(obj).MemberRef(fld.Name)
-			compileExpr(ctx, initExpr)
+			if !initWithStringLiteral(ctx, t, initExpr) {
+				compileExpr(ctx, initExpr)
+			}
 			cb.Assign(1)
 			return
 		}
