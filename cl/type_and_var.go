@@ -275,11 +275,19 @@ func initUnion(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node)
 	for i, n := 0, ufs.Len(); i < n; i++ {
 		fld := ufs.At(i)
 		if types.Identical(fld.Type, t) {
-			cb := ctx.cb
-			obj := cb.Scope().Lookup(name)
+			pkg, cb := ctx.pkg, ctx.cb
+			scope := cb.Scope()
+			obj := scope.Lookup(name)
+			global := scope == pkg.Types.Scope()
+			if global {
+				pkg.NewFunc(nil, "init", nil, nil, false).BodyStart(pkg)
+			}
 			cb.Val(obj).MemberRef(fld.Name)
 			compileInitExpr(ctx, t, initExpr)
 			cb.Assign(1)
+			if global {
+				cb.End()
+			}
 			return
 		}
 	}
