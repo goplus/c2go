@@ -8,9 +8,10 @@
 
 - [x] Void: `void`
 - [x] Boolean: `bool`
-- [x] Integer: [`signed`/`unsigned`] `char`, [`signed`/`unsigned`] [`short`/`long`/`long long`] `int`
+- [x] Integer: [`signed`/`unsigned`] [`short`/`long`/`long long`] `int`
 - [x] Enum: `enum`
 - [x] Float: `float`, `double`
+- [x] Character: [`signed`/`unsigned`] `char`
 - [ ] Wide Character: `wchar_t`
 - [ ] Large Integer/Float: [`signed`/`unsigned`] `__int128`, `long double`
 - [ ] Complex: `_Complex` `float`/`double`/`long double`
@@ -45,8 +46,7 @@
 
 ### Literals
 
-- [x] Boolean, Integer, Float, String
-- [ ] Character
+- [x] Boolean, Character, Integer, Float, String
 - [ ] Array: `(T[]){ expr1, expr2, ... }`
 - [ ] Array Pointer: `&(T[]){ expr1, expr2, ... }`
 - [ ] Struct: `struct T{ expr1, expr2, ... }`

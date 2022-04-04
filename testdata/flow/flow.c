@@ -5,7 +5,7 @@ int main() {
     switch (a) {
     case 4:
         printf("sizeof(int) == 4\n");
-        break;    
+        break;
     case 8:
         printf("sizeof(int) == 8\n");
         break;

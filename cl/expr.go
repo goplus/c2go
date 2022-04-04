@@ -42,6 +42,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileExpr(ctx, expr.Inner[0])
 	case ast.CStyleCastExpr:
 		compileTypeCast(ctx, expr, goNode(expr))
+	case ast.ArraySubscriptExpr:
+		compileArraySubscriptExpr(ctx, expr)
 	case ast.UnaryExprOrTypeTraitExpr:
 		compileUnaryExprOrTypeTraitExpr(ctx, expr)
 	case ast.ImplicitValueInitExpr:
@@ -98,6 +100,10 @@ func compileUnaryExprOrTypeTraitExpr(ctx *blockCtx, v *ast.Node) {
 func compileImplicitValueInitExpr(ctx *blockCtx, v *ast.Node) {
 	t := toType(ctx, v.Type, 0)
 	ctx.cb.ZeroLit(t)
+}
+
+func compileArraySubscriptExpr(ctx *blockCtx, v *ast.Node) {
+	log.Fatalln("compileArraySubscriptExpr: TODO")
 }
 
 // -----------------------------------------------------------------------------
