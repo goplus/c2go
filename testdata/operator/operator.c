@@ -4,6 +4,17 @@ typedef struct {
     char msg[10];
 } foo_t;
 
+static inline int a_clz_64(unsigned long long x) {
+	unsigned int y;
+	int r;
+	if (x>>32) y=x>>32, r=0; else y=x, r=32;
+	if (y>>16) y>>=16; else r |= 16;
+	if (y>>8) y>>=8; else r |= 8;
+	if (y>>4) y>>=4; else r |= 4;
+	if (y>>2) y>>=2; else r |= 2;
+	return r | !(y>>1);
+}
+
 int main() {
     foo_t foo = {"Hi, c2go!"};
     foo_t *pfoo = &foo;

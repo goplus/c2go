@@ -178,32 +178,33 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 
 // -----------------------------------------------------------------------------
 
-func binaryOp(ctx *blockCtx, op token.Token, src ast.Node) {
+func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
+	src := goNode(v)
+	cb := ctx.cb
+	stk := cb.InternalStack()
+	arg1 := stk.Get(-2)
+	arg2 := stk.Get(-1)
 	switch op {
 	case token.SUB, token.ADD: // ptr-ptr, ptr-n, ptr+n
-		cb := ctx.cb
-		stk := cb.InternalStack()
-		arg0 := stk.Get(-2)
-		if t, ok := arg0.Type.(*types.Pointer); ok {
-			elemSize := ctx.sizeof(t.Elem())
-			arg1 := stk.Get(-1)
+		if t1, ok := arg1.Type.(*types.Pointer); ok {
+			elemSize := ctx.sizeof(t1.Elem())
 			stk.PopN(2)
-			if t2 := arg1.Type; isInteger(t2) {
-				castPtrType(cb, tyUintptr, arg0)
+			if t2 := arg2.Type; isInteger(t2) {
+				castPtrType(cb, tyUintptr, arg1)
 				if t2 != tyUintptr {
-					castPtrType(cb, tyUintptr, arg1)
+					castPtrType(cb, tyUintptr, arg2)
 				} else {
-					stk.Push(arg1)
+					stk.Push(arg2)
 				}
 				if elemSize != 1 {
 					cb.Val(elemSize).BinaryOp(token.MUL)
 				}
 				cb.BinaryOp(op, src)
-				castPtrType(cb, t, stk.Pop())
+				castPtrType(cb, t1, stk.Pop())
 				return
-			} else if op == token.SUB && types.Identical(t, t2) {
-				castPtrType(cb, tyUintptr, arg0)
+			} else if op == token.SUB && types.Identical(t1, t2) {
 				castPtrType(cb, tyUintptr, arg1)
+				castPtrType(cb, tyUintptr, arg2)
 				cb.BinaryOp(token.SUB, src)
 				if elemSize != 1 {
 					cb.Val(elemSize).BinaryOp(token.MUL)

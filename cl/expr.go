@@ -230,7 +230,7 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	if op, ok := binaryOps[v.OpCode]; ok {
 		compileExpr(ctx, v.Inner[0])
 		compileExpr(ctx, v.Inner[1])
-		binaryOp(ctx, op, goNode(v))
+		binaryOp(ctx, op, v)
 		return
 	}
 	switch v.OpCode {
