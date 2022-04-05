@@ -215,6 +215,11 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	}
 	switch v.OpCode {
 	case "=":
+	case ",":
+		compileExpr(ctx, v.Inner[0])
+		ctx.cb.EndStmt()
+		compileExpr(ctx, v.Inner[1])
+		return
 	default:
 		log.Fatalln("compileBinaryExpr unknown operator:", v.OpCode)
 	}
