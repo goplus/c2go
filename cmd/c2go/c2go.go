@@ -22,6 +22,13 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "Usage: c2go [-v] [pkgname] source.c\n")
 }
 
+func isDir(name string) bool {
+	if fi, err := os.Lstat(name); err == nil {
+		return fi.IsDir()
+	}
+	return false
+}
+
 func main() {
 	flag.Parse()
 	var pkgname, infile string
@@ -42,10 +49,30 @@ func main() {
 	}
 
 	outfile := infile
-	if filepath.Ext(infile) != ".i" {
+	switch filepath.Ext(infile) {
+	case ".i":
+	case ".c":
 		outfile = infile + ".i"
 		err := preprocessor.Do(infile, outfile, nil)
 		check(err)
+	default:
+		if isDir(infile) {
+			files, err := filepath.Glob("*.c")
+			check(err)
+			switch len(files) {
+			case 1:
+				infile = files[0]
+				outfile = infile + ".i"
+				err := preprocessor.Do(infile, outfile, nil)
+				check(err)
+			case 0:
+				fatalf("no *.c files in this directory.\n")
+			default:
+				fatalf("multiple .c files found (currently only support one .c file).\n")
+			}
+		} else {
+			fatalf("%s is not a .c file.\n", infile)
+		}
 	}
 
 	doc, _, err := parser.ParseFile(outfile, 0)
@@ -76,4 +103,9 @@ func check(err error) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func fatalf(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, args...)
+	os.Exit(1)
 }
