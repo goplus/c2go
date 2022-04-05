@@ -22,7 +22,7 @@ func decl_builtin_bswap(ctx *blockCtx, name string) {
 	if pkg.Types.Scope().Lookup(name) != nil {
 		return
 	}
-	typ := types.Typ[types.Uint]
+	typ := types.Typ[types.Uint32]
 	if name == "__builtin_bswap64" {
 		typ = types.Typ[types.Uint64]
 	}
