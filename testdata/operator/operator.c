@@ -15,6 +15,13 @@ static inline int a_clz_64(unsigned long long x) {
 	return r | !(y>>1);
 }
 
+size_t cycle(size_t width, unsigned char* ar[], int n) {
+	unsigned char tmp[256];
+    tmp[0] = '\0';
+	size_t l = sizeof(tmp) < width ? sizeof(tmp) : width;
+    return l;
+}
+
 int main() {
     foo_t foo = {"Hi, c2go!"};
     foo_t *pfoo = &foo;

@@ -388,10 +388,17 @@ func closureStart(ctx *blockCtx, retName string) (*gox.CodeBuilder, *types.Var) 
 	return ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg), ret
 }
 
+func closureStartT(ctx *blockCtx, t types.Type) (*gox.CodeBuilder, *types.Var) {
+	pkg := ctx.pkg
+	ret := pkg.NewParam(token.NoPos, "", t)
+	return ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg), ret
+}
+
 // -----------------------------------------------------------------------------
 
 func compileConditionalOperator(ctx *blockCtx, v *ast.Node) {
-	cb, _ := closureStart(ctx, "")
+	t := toType(ctx, v.Type, 0)
+	cb, _ := closureStartT(ctx, t)
 	cb.If()
 	compileExpr(ctx, v.Inner[0])
 	castToBoolExpr(cb)
