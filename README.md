@@ -22,7 +22,7 @@
 - [x] Function Pointer: T (*)(T1, T2, ...)
 - [x] Struct: `struct`
 - [x] Union: `union`
-- [x] Bit Fields
+- [x] BitField: `intType :N`
 
 ### Operators
 
@@ -33,7 +33,9 @@
 - [x] Bitwise: a|b, a&b, a^b, ~a, a<<n, a>>n
 - [x] Pointer: p+n, p-n, p-q, p++, p--
 - [x] Assignment: `=`
-- [ ] Operator Assignment: a`<op>=`b
+- [x] Operator Assignment: a`<op>=`b
+- [x] BitField Assignment: `=`
+- [ ] BitField Operator Assignment: a`<op>=`b
 - [x] Pointer: *a, &a
 - [x] Struct/Union/BitField Member: a.b
 - [x] Pointer Member: a->b

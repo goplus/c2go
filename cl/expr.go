@@ -28,14 +28,16 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileBinaryExpr(ctx, expr, flags)
 	case ast.UnaryOperator:
 		compileUnaryOperator(ctx, expr, flags)
-	case ast.CallExpr:
-		compileCallExpr(ctx, expr)
-	case ast.ImplicitCastExpr:
-		compileImplicitCastExpr(ctx, expr)
 	case ast.DeclRefExpr:
 		compileDeclRefExpr(ctx, expr, (flags&flagLHS) != 0)
 	case ast.MemberExpr:
 		compileMemberExpr(ctx, expr, (flags&flagLHS) != 0)
+	case ast.CallExpr:
+		compileCallExpr(ctx, expr)
+	case ast.CompoundAssignOperator:
+		compileCompoundAssignOperator(ctx, expr)
+	case ast.ImplicitCastExpr:
+		compileImplicitCastExpr(ctx, expr)
 	case ast.IntegerLiteral:
 		compileLiteral(ctx, token.INT, expr)
 	case ast.StringLiteral:
@@ -259,6 +261,34 @@ var (
 
 		"||": token.LOR,
 		"&&": token.LAND,
+	}
+)
+
+// -----------------------------------------------------------------------------
+
+func compileCompoundAssignOperator(ctx *blockCtx, v *ast.Node) {
+	if op, ok := assignOps[v.OpCode]; ok {
+		compileExprLHS(ctx, v.Inner[0])
+		compileExpr(ctx, v.Inner[1])
+		ctx.cb.AssignOp(op, goNode(v))
+		return
+	}
+	log.Fatalln("compileCompoundAssignOperator unknown operator:", v.OpCode)
+}
+
+var (
+	assignOps = map[ast.OpCode]token.Token{
+		"+=": token.ADD_ASSIGN,
+		"-=": token.SUB_ASSIGN,
+		"*=": token.MUL_ASSIGN,
+		"/=": token.QUO_ASSIGN,
+		"%=": token.REM_ASSIGN,
+
+		"&=":  token.AND_ASSIGN,
+		"|=":  token.OR_ASSIGN,
+		"^=":  token.XOR_ASSIGN,
+		"<<=": token.SHL_ASSIGN,
+		">>=": token.SHR_ASSIGN,
 	}
 )
 
