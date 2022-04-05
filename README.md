@@ -9,6 +9,13 @@
 - Go `testdata/xxx` directory, and run `c2go .`
 
 
+## What's our plan?
+
+- First, Support most of the syntax of the C programming language. Stage: `Finished Almost`, see [Supported C Syntax](#supported-c-syntax).
+- Second, Support most of C standard libaries, and can import them by Go+. Stage: `Doing`.
+- Last, Support all custom libraries, especially those well-known open source libraries. Stage: `Planning`.
+
+
 ## Supported C Syntax
 
 ### Data structures
