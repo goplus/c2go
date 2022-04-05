@@ -17,41 +17,45 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func decl_builtin(pkg *gox.Package) {
+func decl_builtin(pkg *types.Package) {
 	decl_builtin_bswap(pkg, "__builtin_bswap32")
 	decl_builtin_bswap(pkg, "__builtin_bswap64")
 	decl_builtin_memcpy_chk(pkg)
 	decl_builtin_object_size(pkg)
 }
 
-func decl_builtin_bswap(pkg *gox.Package, name string) {
+func decl_builtin_bswap(pkg *types.Package, name string) {
 	typ := types.Typ[types.Uint32]
 	if name == "__builtin_bswap64" {
 		typ = types.Typ[types.Uint64]
 	}
-	paramUInt := types.NewParam(token.NoPos, pkg.Types, "", typ)
+	paramUInt := types.NewParam(token.NoPos, pkg, "", typ)
 	params := types.NewTuple(paramUInt)
 	sig := types.NewSignature(nil, params, params, false)
-	pkg.NewFuncDecl(token.NoPos, name, sig)
+	newFuncDecl(pkg, token.NoPos, name, sig)
 }
 
-func decl_builtin_memcpy_chk(pkg *gox.Package) {
-	paramVoidPtr := types.NewParam(token.NoPos, pkg.Types, "", types.Typ[types.UnsafePointer])
-	paramUlong := types.NewParam(token.NoPos, pkg.Types, "", ctypes.Ulong)
+func decl_builtin_memcpy_chk(pkg *types.Package) {
+	paramVoidPtr := types.NewParam(token.NoPos, pkg, "", types.Typ[types.UnsafePointer])
+	paramUlong := types.NewParam(token.NoPos, pkg, "", ctypes.Ulong)
 	params := types.NewTuple(paramVoidPtr, paramVoidPtr, paramUlong, paramUlong)
 	results := types.NewTuple(paramVoidPtr)
 	sig := types.NewSignature(nil, params, results, false)
-	pkg.NewFuncDecl(token.NoPos, "__builtin___memcpy_chk", sig)
+	newFuncDecl(pkg, token.NoPos, "__builtin___memcpy_chk", sig)
 }
 
-func decl_builtin_object_size(pkg *gox.Package) {
-	paramVoidPtr := types.NewParam(token.NoPos, pkg.Types, "", types.Typ[types.UnsafePointer])
-	paramUlong := types.NewParam(token.NoPos, pkg.Types, "", ctypes.Ulong)
-	paramInt := types.NewParam(token.NoPos, pkg.Types, "", ctypes.Int)
+func decl_builtin_object_size(pkg *types.Package) {
+	paramVoidPtr := types.NewParam(token.NoPos, pkg, "", types.Typ[types.UnsafePointer])
+	paramUlong := types.NewParam(token.NoPos, pkg, "", ctypes.Ulong)
+	paramInt := types.NewParam(token.NoPos, pkg, "", ctypes.Int)
 	params := types.NewTuple(paramVoidPtr, paramInt)
 	results := types.NewTuple(paramUlong)
 	sig := types.NewSignature(nil, params, results, false)
-	pkg.NewFuncDecl(token.NoPos, "__builtin_object_size", sig)
+	newFuncDecl(pkg, token.NoPos, "__builtin_object_size", sig)
+}
+
+func newFuncDecl(pkg *types.Package, pos token.Pos, name string, sig *types.Signature) {
+	pkg.Scope().Insert(types.NewFunc(pos, pkg, name, sig))
 }
 
 // -----------------------------------------------------------------------------
