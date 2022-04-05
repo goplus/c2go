@@ -38,13 +38,17 @@ func printf(format *int8, args ...interface{}) int32 {
 	return 0
 }
 
+func sliceOf(v unsafe.Pointer, bytes uint) []byte {
+	return (*[1 << 20]byte)(v)[:bytes]
+}
+
 func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n uint, elem uint) unsafe.Pointer {
-	log.Fatalln("__builtin___memcpy_chk: notimpl")
+	copy(sliceOf(dst, n), sliceOf(src, n))
 	return dst
 }
 
 func __builtin_object_size(unsafe.Pointer, int32) uint {
-	return 0
+	return 1
 }
 
 func __builtin_bswap32(v uint32) uint32 {
