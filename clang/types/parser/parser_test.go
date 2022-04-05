@@ -42,12 +42,12 @@ var (
 	tyUint32         = types.Typ[types.Uint32]
 	tyInt64          = types.Typ[types.Int64]
 	tyUint64         = types.Typ[types.Uint64]
-	tyInt            = types.Typ[types.Int32]
+	tyInt            = ctypes.Int
 	tyInt100         = types.NewArray(tyInt, 100)
 	tyInt100_3       = types.NewArray(tyInt100, 3)
 	tyPInt100        = types.NewPointer(tyInt100)
 	tyPInt100_3      = types.NewPointer(tyInt100_3)
-	tyUint           = types.Typ[types.Uint32]
+	tyUint           = ctypes.Uint
 	tyString         = types.Typ[types.String]
 	tyCharPtr        = types.NewPointer(tyChar)
 	tyCharPtrPtr     = types.NewPointer(tyCharPtr)

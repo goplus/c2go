@@ -17,19 +17,41 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func decl_builtin_bswap(ctx *blockCtx, name string) {
-	pkg := ctx.pkg
-	if pkg.Types.Scope().Lookup(name) != nil {
-		return
-	}
+func decl_builtin(pkg *gox.Package) {
+	decl_builtin_bswap(pkg, "__builtin_bswap32")
+	decl_builtin_bswap(pkg, "__builtin_bswap64")
+	decl_builtin_memcpy_chk(pkg)
+	decl_builtin_object_size(pkg)
+}
+
+func decl_builtin_bswap(pkg *gox.Package, name string) {
 	typ := types.Typ[types.Uint32]
 	if name == "__builtin_bswap64" {
 		typ = types.Typ[types.Uint64]
 	}
-	paramUInt := types.NewVar(token.NoPos, pkg.Types, "", typ)
+	paramUInt := types.NewParam(token.NoPos, pkg.Types, "", typ)
 	params := types.NewTuple(paramUInt)
 	sig := types.NewSignature(nil, params, params, false)
 	pkg.NewFuncDecl(token.NoPos, name, sig)
+}
+
+func decl_builtin_memcpy_chk(pkg *gox.Package) {
+	paramVoidPtr := types.NewParam(token.NoPos, pkg.Types, "", types.Typ[types.UnsafePointer])
+	paramUlong := types.NewParam(token.NoPos, pkg.Types, "", ctypes.Ulong)
+	params := types.NewTuple(paramVoidPtr, paramVoidPtr, paramUlong, paramUlong)
+	results := types.NewTuple(paramVoidPtr)
+	sig := types.NewSignature(nil, params, results, false)
+	pkg.NewFuncDecl(token.NoPos, "__builtin___memcpy_chk", sig)
+}
+
+func decl_builtin_object_size(pkg *gox.Package) {
+	paramVoidPtr := types.NewParam(token.NoPos, pkg.Types, "", types.Typ[types.UnsafePointer])
+	paramUlong := types.NewParam(token.NoPos, pkg.Types, "", ctypes.Ulong)
+	paramInt := types.NewParam(token.NoPos, pkg.Types, "", ctypes.Int)
+	params := types.NewTuple(paramVoidPtr, paramInt)
+	results := types.NewTuple(paramUlong)
+	sig := types.NewSignature(nil, params, results, false)
+	pkg.NewFuncDecl(token.NoPos, "__builtin_object_size", sig)
 }
 
 // -----------------------------------------------------------------------------

@@ -159,11 +159,11 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 }
 
 var intTypes = [...]types.Type{
-	0:                                      types.Typ[types.Int32],
+	0:                                      ctypes.Int,
 	flagShort:                              types.Typ[types.Int16],
 	flagLong:                               ctypes.Long,
 	flagLong | flagLongLong:                types.Typ[types.Int64],
-	flagUnsigned:                           types.Typ[types.Uint32],
+	flagUnsigned:                           ctypes.Uint,
 	flagShort | flagUnsigned:               types.Typ[types.Uint16],
 	flagLong | flagUnsigned:                ctypes.Ulong,
 	flagLong | flagLongLong | flagUnsigned: types.Typ[types.Uint64],
