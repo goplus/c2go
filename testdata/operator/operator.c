@@ -10,7 +10,7 @@ int main() {
     char msg[] = {'a', 'b', '\0'};
     char *pmsg = msg;
     printf("%c\n", msg[1]);
-    pmsg[1] = '!', printf("%s\n", pmsg),
+    pmsg[1] = (msg[0]>='a'?'!':'?'), printf("%s\n", pmsg),
     pfoo->msg[2] = '!', printf("%s\n", foo.msg);
     return 0;
 }

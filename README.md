@@ -39,7 +39,7 @@
 - [x] Pointer Member: a->b
 - [x] Array Member: a[n]
 - [x] Comma: `a,b`
-- [ ] Ternary Conditional: cond?a:b
+- [x] Ternary Conditional: cond?a:b
 - [x] Function Call: f(a1, a2, ...)
 - [x] Conversion: (T)a
 - [x] Sizeof: sizeof(T), sizeof(a)

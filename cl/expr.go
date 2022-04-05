@@ -48,6 +48,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileUnaryExprOrTypeTraitExpr(ctx, expr)
 	case ast.ImplicitValueInitExpr:
 		compileImplicitValueInitExpr(ctx, expr)
+	case ast.ConditionalOperator:
+		compileConditionalOperator(ctx, expr)
 	default:
 		log.Fatalln(prompt, expr.Kind)
 	}
@@ -318,14 +320,32 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 }
 
 func closureStartInitAddr(ctx *blockCtx, v *ast.Node) (*gox.CodeBuilder, *types.Var) {
-	pkg := ctx.pkg
-	ret := pkg.NewAutoParam("_cgo_ret")
-	cb := ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg)
-
+	cb, ret := closureStart(ctx, "_cgo_ret")
 	cb.DefineVarStart(token.NoPos, addrVarName)
 	compileExprLHS(ctx, v.Inner[0])
 	cb.UnaryOp(token.AND).EndInit(1)
 	return cb, ret
+}
+
+func closureStart(ctx *blockCtx, retName string) (*gox.CodeBuilder, *types.Var) {
+	pkg := ctx.pkg
+	ret := pkg.NewAutoParam(retName)
+	return ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg), ret
+}
+
+// -----------------------------------------------------------------------------
+
+func compileConditionalOperator(ctx *blockCtx, v *ast.Node) {
+	cb, _ := closureStart(ctx, "")
+	cb.If()
+	compileExpr(ctx, v.Inner[0])
+	castToBoolExpr(cb)
+	cb.Then()
+	compileExpr(ctx, v.Inner[1])
+	cb.Return(1).Else()
+	compileExpr(ctx, v.Inner[2])
+	cb.Return(1).End().
+		End().Call(0) // end func
 }
 
 // -----------------------------------------------------------------------------
