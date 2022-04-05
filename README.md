@@ -2,6 +2,13 @@
 
 ![Screen Shot1](https://user-images.githubusercontent.com/396972/160951673-30ec62ae-2981-4cdf-a1ab-bc7fcb6f7475.png)
 
+
+## How to run examples?
+
+- Build c2go tools: `go install -v ./...`
+- Go `testdata/xxx` directory, and run `c2go .`
+
+
 ## Supported C Syntax
 
 ### Data structures
