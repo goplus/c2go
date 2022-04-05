@@ -1,9 +1,18 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct {
-    char msg[10];
-} foo_t;
+/* shl() need n > 0 */
+static inline void shl(size_t p[2], int n)
+{
+	if(n >= 8 * sizeof(size_t)) {
+		n -= 8 * sizeof(size_t);
+		p[1] = p[0];
+		p[0] = 0;
+	}
+	p[1] <<= n;
+	p[1] |= p[0] >> (sizeof(size_t) * 8 - n);
+	p[0] <<= n;
+}
 
 static inline int a_clz_64(unsigned long long x) {
 	unsigned int y;
@@ -37,6 +46,10 @@ static void cycle(size_t width, unsigned char* ar[], int n)
 		width -= l;
 	}
 }
+
+typedef struct {
+    char msg[10];
+} foo_t;
 
 int main() {
     foo_t foo = {"Hi, c2go!"};

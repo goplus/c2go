@@ -208,10 +208,10 @@ func assignOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	src := goNode(v)
 	cb := ctx.cb
 	stk := cb.InternalStack()
+	arg1 := stk.Get(-2)
+	arg1Type, _ := gox.DerefType(arg1.Type)
 	switch op {
 	case token.ADD_ASSIGN, token.SUB_ASSIGN: // ptr+=n, ptr-=n
-		arg1 := stk.Get(-2)
-		arg1Type, _ := gox.DerefType(arg1.Type)
 		if t1, ok := arg1Type.(*types.Pointer); ok {
 			elemSize := ctx.sizeof(t1.Elem())
 			arg2 := stk.Pop()
@@ -229,8 +229,19 @@ func assignOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			if elemSize != 1 {
 				cb.Val(elemSize).BinaryOp(token.MUL)
 			}
+			goto done
 		}
+		fallthrough
+	default:
+		arg2 := stk.Get(-1)
+		if !types.Identical(arg1Type, arg2.Type) {
+			stk.PopN(1)
+			cb.Typ(arg1Type).Val(arg2).Call(1)
+		}
+	case token.SHL_ASSIGN, token.SHR_ASSIGN:
+		// noop
 	}
+done:
 	cb.AssignOp(op, src)
 }
 
