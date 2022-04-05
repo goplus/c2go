@@ -194,7 +194,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		if isMain {
 			pkg.NewFunc(nil, "main", nil, nil, false).BodyStart(pkg)
 			if results != nil {
-				cb.Val(pkg.Import("os").Ref("Exit"))
+				cb.Val(pkg.Import("os").Ref("Exit")).Typ(types.Typ[types.Int])
 			}
 			cb.Val(f.Func)
 			if params != nil {
@@ -202,7 +202,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			}
 			cb.Call(len(params))
 			if results != nil {
-				cb.Call(1)
+				cb.Call(1).Call(1)
 			}
 			cb.EndStmt().End()
 		}

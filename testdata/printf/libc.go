@@ -21,7 +21,7 @@ func gostring(s *int8) string {
 	return string(arr[:n])
 }
 
-func vfprintf(fp *FILE, format *int8, args ...interface{}) int {
+func vfprintf(fp *FILE, format *int8, args ...interface{}) int32 {
 	goformat := gostring(format)
 	for i, arg := range args {
 		if v, ok := arg.(*int8); ok {
@@ -32,7 +32,7 @@ func vfprintf(fp *FILE, format *int8, args ...interface{}) int {
 	return 0
 }
 
-func __swbuf(_c int, _p *FILE) int {
+func __swbuf(_c int32, _p *FILE) int32 {
 	return _c
 }
 

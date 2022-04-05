@@ -148,6 +148,9 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 		log.Fatalln("lookupType: TODO - invalid type")
 		return nil, ErrInvalidType
 	}
+	if lit == "int" {
+		return types.Typ[types.Int32], nil
+	}
 	_, o := p.scope.LookupParent(lit, token.NoPos)
 	if o != nil {
 		return o.Type(), nil
@@ -156,11 +159,11 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 }
 
 var intTypes = [...]types.Type{
-	0:                                      types.Typ[types.Int],
+	0:                                      types.Typ[types.Int32],
 	flagShort:                              types.Typ[types.Int16],
 	flagLong:                               ctypes.Long,
 	flagLong | flagLongLong:                types.Typ[types.Int64],
-	flagUnsigned:                           types.Typ[types.Uint],
+	flagUnsigned:                           types.Typ[types.Uint32],
 	flagShort | flagUnsigned:               types.Typ[types.Uint16],
 	flagLong | flagUnsigned:                ctypes.Ulong,
 	flagLong | flagLongLong | flagUnsigned: types.Typ[types.Uint64],
