@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 typedef struct {
     char msg[10];
@@ -15,11 +16,26 @@ static inline int a_clz_64(unsigned long long x) {
 	return r | !(y>>1);
 }
 
-size_t cycle(size_t width, unsigned char* ar[], int n) {
+static void cycle(size_t width, unsigned char* ar[], int n)
+{
 	unsigned char tmp[256];
-    tmp[0] = '\0';
-	size_t l = sizeof(tmp) < width ? sizeof(tmp) : width;
-    return l;
+	size_t l;
+	int i;
+
+	if(n < 2) {
+		return;
+	}
+
+	ar[n] = tmp;
+	while(width) {
+		l = sizeof(tmp) < width ? sizeof(tmp) : width;
+		memcpy(ar[n], ar[0], l);
+		for(i = 0; i < n; i++) {
+			memcpy(ar[i], ar[i + 1], l);
+			ar[i] += l;
+		}
+		width -= l;
+	}
 }
 
 int main() {

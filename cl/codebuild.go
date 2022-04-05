@@ -204,6 +204,36 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 
 // -----------------------------------------------------------------------------
 
+func assignOp(ctx *blockCtx, op token.Token, v *cast.Node) {
+	src := goNode(v)
+	cb := ctx.cb
+	stk := cb.InternalStack()
+	switch op {
+	case token.ADD_ASSIGN, token.SUB_ASSIGN: // ptr+=n, ptr-=n
+		arg1 := stk.Get(-2)
+		arg1Type, _ := gox.DerefType(arg1.Type)
+		if t1, ok := arg1Type.(*types.Pointer); ok {
+			elemSize := ctx.sizeof(t1.Elem())
+			arg2 := stk.Pop()
+
+			cb.UnaryOp(token.AND)
+			arg1 = stk.Pop()
+
+			castPtrType(cb, tyUintptrPtr, arg1)
+			cb.ElemRef()
+			if arg2.Type != tyUintptr {
+				cb.Typ(tyUintptr).Val(arg2).Call(1)
+			} else {
+				stk.Push(arg2)
+			}
+			if elemSize != 1 {
+				cb.Val(elemSize).BinaryOp(token.MUL)
+			}
+		}
+	}
+	cb.AssignOp(op, src)
+}
+
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	src := goNode(v)
 	cb := ctx.cb
@@ -218,7 +248,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			if t2 := arg2.Type; isInteger(t2) {
 				castPtrType(cb, tyUintptr, arg1)
 				if t2 != tyUintptr {
-					castPtrType(cb, tyUintptr, arg2)
+					cb.Typ(tyUintptr).Val(arg2).Call(1)
 				} else {
 					stk.Push(arg2)
 				}

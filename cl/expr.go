@@ -287,7 +287,7 @@ func compileCompoundAssignOperator(ctx *blockCtx, v *ast.Node) {
 	if op, ok := assignOps[v.OpCode]; ok {
 		compileExprLHS(ctx, v.Inner[0])
 		compileExpr(ctx, v.Inner[1])
-		ctx.cb.AssignOp(op, goNode(v))
+		assignOp(ctx, op, v)
 		return
 	}
 	log.Fatalln("compileCompoundAssignOperator unknown operator:", v.OpCode)

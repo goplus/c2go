@@ -31,12 +31,12 @@
 - [x] Comparison: a<b, a<=b, a>b, a>=b, a==b, a!=b
 - [x] Logical: a&&b, a||b, !a
 - [x] Bitwise: a|b, a&b, a^b, ~a, a<<n, a>>n
-- [x] Pointer: p+n, p-n, p-q, p++, p--
+- [x] Pointer Arithmetic: p+n, p-n, p-q, p++, p--
 - [x] Assignment: `=`
 - [x] Operator Assignment: a`<op>=`b
 - [x] BitField Assignment: `=`
 - [ ] BitField Operator Assignment: a`<op>=`b
-- [x] Pointer: *a, &a
+- [x] Pointer Member: *a, &a
 - [x] Struct/Union/BitField Member: a.b
 - [x] Pointer Member: a->b
 - [x] Array Member: a[n]
