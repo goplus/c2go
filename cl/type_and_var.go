@@ -301,8 +301,16 @@ func compileInitExpr(ctx *blockCtx, t types.Type, initExpr *ast.Node) {
 }
 
 func isInteger(typ types.Type) bool {
+	return isKind(typ, types.IsInteger)
+}
+
+func isBool(typ types.Type) bool {
+	return isKind(typ, types.IsBoolean)
+}
+
+func isKind(typ types.Type, mask types.BasicInfo) bool {
 	if t, ok := typ.(*types.Basic); ok {
-		return (t.Info() & types.IsInteger) != 0
+		return (t.Info() & mask) != 0
 	}
 	return false
 }

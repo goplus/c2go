@@ -228,9 +228,18 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	if op, ok := binaryOps[v.OpCode]; ok {
+		isBoolOp := (op == token.LOR || op == token.LAND)
 		compileExpr(ctx, v.Inner[0])
+		if isBoolOp {
+			castToBoolExpr(ctx.cb)
+		}
 		compileExpr(ctx, v.Inner[1])
-		binaryOp(ctx, op, v)
+		if isBoolOp {
+			castToBoolExpr(ctx.cb)
+			ctx.cb.BinaryOp(op, goNode(v))
+		} else {
+			binaryOp(ctx, op, v)
+		}
 		return
 	}
 	switch v.OpCode {
