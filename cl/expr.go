@@ -44,6 +44,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileStringLiteral(ctx, expr)
 	case ast.CharacterLiteral:
 		compileCharacterLiteral(ctx, expr)
+	case ast.FloatingLiteral:
+		compileLiteral(ctx, token.FLOAT, expr)
 	case ast.ParenExpr, ast.ConstantExpr:
 		compileExpr(ctx, expr.Inner[0])
 	case ast.CStyleCastExpr:
@@ -56,6 +58,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileImplicitValueInitExpr(ctx, expr)
 	case ast.ConditionalOperator:
 		compileConditionalOperator(ctx, expr)
+	case ast.ImaginaryLiteral:
+		compileImaginaryLiteral(ctx, expr)
 	default:
 		log.Fatalln(prompt, expr.Kind)
 	}
@@ -83,6 +87,14 @@ func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
 		log.Fatalln("compileStringLiteral:", err)
 	}
 	stringLit(ctx.cb, s, nil)
+}
+
+func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
+	compileExpr(ctx, expr.Inner[0])
+	v := ctx.cb.Get(-1)
+	lit := v.Val.(*goast.BasicLit)
+	lit.Kind = token.IMAG
+	lit.Value += "i"
 }
 
 // -----------------------------------------------------------------------------
@@ -418,6 +430,9 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, flags int) {
 		tok = token.INC
 	case "--":
 		tok = token.DEC
+	case "__extension__":
+		compileExpr(ctx, v.Inner[0])
+		return
 	default:
 		log.Fatalln("compileUnaryOperator: unknown operator -", v.OpCode)
 	}

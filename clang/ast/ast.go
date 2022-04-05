@@ -103,6 +103,8 @@ const (
 	CharacterLiteral         Kind = "CharacterLiteral"
 	IntegerLiteral           Kind = "IntegerLiteral"
 	StringLiteral            Kind = "StringLiteral"
+	FloatingLiteral          Kind = "FloatingLiteral"
+	ImaginaryLiteral         Kind = "ImaginaryLiteral"
 )
 
 type ValueCategory string
