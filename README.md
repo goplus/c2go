@@ -36,10 +36,9 @@
 - [x] Operator Assignment: a`<op>=`b
 - [x] BitField Assignment: `=`
 - [ ] BitField Operator Assignment: a`<op>=`b
-- [x] Pointer Member: *a, &a
 - [x] Struct/Union/BitField Member: a.b
-- [x] Pointer Member: a->b
 - [x] Array Member: a[n]
+- [x] Pointer Member: &a, *p, p[n], p->b
 - [x] Comma: `a,b`
 - [x] Ternary Conditional: cond?a:b
 - [x] Function Call: f(a1, a2, ...)
