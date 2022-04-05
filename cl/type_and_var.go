@@ -315,6 +315,11 @@ func isKind(typ types.Type, mask types.BasicInfo) bool {
 	return false
 }
 
+func isFunc(typ types.Type) bool {
+	_, ok := typ.(*types.Signature)
+	return ok
+}
+
 // char[N], char[], unsigned char[N], unsigned char[]
 func isCharArray(typ types.Type) bool {
 	if t, ok := typ.(*types.Array); ok {

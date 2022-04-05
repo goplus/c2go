@@ -2,8 +2,7 @@
 #include <string.h>
 
 /* shl() need n > 0 */
-static inline void shl(size_t p[2], int n)
-{
+static inline void shl(size_t p[2], int n) {
 	if(n >= 8 * sizeof(size_t)) {
 		n -= 8 * sizeof(size_t);
 		p[1] = p[0];
@@ -25,8 +24,7 @@ static inline int a_clz_64(unsigned long long x) {
 	return r | !(y>>1);
 }
 
-static void cycle(size_t width, unsigned char* ar[], int n)
-{
+static void cycle(size_t width, unsigned char* ar[], int n) {
 	unsigned char tmp[256];
 	size_t l;
 	int i;

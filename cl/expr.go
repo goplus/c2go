@@ -409,12 +409,15 @@ func compileConditionalOperator(ctx *blockCtx, v *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileStarExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
+	cb := ctx.cb
 	compileExpr(ctx, v.Inner[0])
 	src := goNode(v)
 	if lhs {
-		ctx.cb.ElemRef(src)
+		cb.ElemRef(src)
 	} else {
-		ctx.cb.Elem(src)
+		if !isFunc(cb.Get(-1).Type) { // *fn => fn
+			cb.Elem(src)
+		}
 	}
 }
 
