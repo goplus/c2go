@@ -130,8 +130,11 @@ type CastKind string
 const (
 	LValueToRValue         CastKind = "LValueToRValue"
 	BitCast                CastKind = "BitCast"
+	FloatingComplexCast    CastKind = "FloatingComplexCast"
+	FloatingRealToComplex  CastKind = "FloatingRealToComplex"
 	IntegralCast           CastKind = "IntegralCast"
 	IntegralToPointer      CastKind = "IntegralToPointer"
+	IntegralToFloating     CastKind = "IntegralToFloating"
 	PointerToIntegral      CastKind = "PointerToIntegral"
 	FunctionToPointerDecay CastKind = "FunctionToPointerDecay"
 	ArrayToPointerDecay    CastKind = "ArrayToPointerDecay"

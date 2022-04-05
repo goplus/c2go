@@ -125,7 +125,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 		arrayToElemPtr(ctx.cb)
-	case ast.IntegralCast, ast.BitCast:
+	case ast.IntegralCast, ast.BitCast, ast.IntegralToFloating, ast.FloatingComplexCast, ast.FloatingRealToComplex:
 		compileTypeCast(ctx, v, nil)
 	default:
 		log.Fatalln("compileImplicitCastExpr: unknown castKind =", v.CastKind)

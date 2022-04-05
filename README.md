@@ -10,11 +10,11 @@
 - [x] Boolean: `bool`
 - [x] Integer: [`signed`/`unsigned`] [`short`/`long`/`long long`] `int`
 - [x] Enum: `enum`
-- [x] Float: `float`, `double`
+- [x] Float: `float`, `double`, `long double`
 - [x] Character: [`signed`/`unsigned`] `char`
 - [ ] Wide Character: `wchar_t`
-- [ ] Large Integer/Float: [`signed`/`unsigned`] `__int128`, `long double`
-- [ ] Complex: `_Complex` `float`/`double`/`long double`
+- [ ] Large Integer: [`signed`/`unsigned`] `__int128`
+- [x] Complex: `_Complex` `float`/`double`/`long double`
 - [x] Typedef: `typedef`
 - [x] Pointer: *T, T[]
 - [x] Array: T[N], T[]

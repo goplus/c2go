@@ -106,33 +106,43 @@ const (
 	flagLongLong
 	flagUnsigned
 	flagSigned
+	flagComplex
 )
 
 func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 	if flags != 0 {
-		switch lit {
-		case "int":
-			if t = intTypes[flags&^flagSigned]; t != nil {
-				return
+		if (flags & flagComplex) != 0 {
+			switch lit {
+			case "float":
+				return types.Typ[types.Complex64], nil
+			case "double":
+				return types.Typ[types.Complex128], nil
 			}
-		case "char":
-			switch flags {
-			case flagUnsigned:
-				return types.Typ[types.Uint8], nil
-			case flagSigned:
-				return types.Typ[types.Int8], nil
-			}
-		case "double":
-			switch flags {
-			case flagLong:
-				return ctypes.LongDouble, nil
-			}
-		case "__int128":
-			switch flags {
-			case flagSigned:
-				return ctypes.Int128, nil
-			case flagUnsigned:
-				return ctypes.Uint128, nil
+		} else {
+			switch lit {
+			case "int":
+				if t = intTypes[flags&^flagSigned]; t != nil {
+					return
+				}
+			case "char":
+				switch flags {
+				case flagUnsigned:
+					return types.Typ[types.Uint8], nil
+				case flagSigned:
+					return types.Typ[types.Int8], nil
+				}
+			case "double":
+				switch flags {
+				case flagLong:
+					return ctypes.LongDouble, nil
+				}
+			case "__int128":
+				switch flags {
+				case flagSigned:
+					return ctypes.Int128, nil
+				case flagUnsigned:
+					return ctypes.Uint128, nil
+				}
 			}
 		}
 		log.Fatalln("lookupType: TODO - invalid type")
@@ -233,6 +243,8 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				flags |= flagSigned
 			case "const":
 				isConst = true
+			case "_Complex":
+				flags |= flagComplex
 			case "volatile", "restrict", "_Nullable", "_Nonnull":
 			case "struct", "union":
 				p.next()
