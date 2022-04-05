@@ -5,6 +5,14 @@ import (
 	"unsafe"
 )
 
+func creal(v complex128) float64 {
+	return real(v)
+}
+
+func cimag(v complex128) float64 {
+	return imag(v)
+}
+
 func gostring(s *int8) string {
 	n, arr := 0, (*[1 << 20]byte)(unsafe.Pointer(s))
 	for arr[n] != 0 {

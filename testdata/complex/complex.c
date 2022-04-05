@@ -3,6 +3,6 @@
 
 int main() {
     _Complex double a = 3 + 2*I;
-    printf("%f + %fi", creal(a), cimag(a));
+    printf("%f + %fi\n", creal(a), cimag(a));
     return 0;
 }
