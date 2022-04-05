@@ -261,6 +261,10 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	compileAssignExpr(ctx, v)
 }
 
+func isCmpOperator(op token.Token) bool {
+	return op >= token.EQL && op <= token.GEQ
+}
+
 var (
 	binaryOps = map[ast.OpCode]token.Token{
 		"+": token.ADD,

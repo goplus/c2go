@@ -281,6 +281,17 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			log.Fatalln("binaryOp token.SUB - TODO: unexpected")
 		}
 	}
+	if isCmpOperator(op) {
+		arg1 := stk.Get(-2)
+		if isPointer(arg1.Type) { // ptr <cmp> ptr
+			arg2 := stk.Get(-1)
+			stk.PopN(2)
+			castPtrType(cb, tyUintptr, arg1)
+			castPtrType(cb, tyUintptr, arg2)
+			cb.BinaryOp(op, src)
+			return
+		}
+	}
 	t := toType(ctx, v.Type, 0)
 	if isInteger(t) { // bool => int
 		args := stk.GetArgs(2)
@@ -291,7 +302,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			args[1] = castFromBoolExpr(ctx, t, args[1])
 		}
 	}
-	ctx.cb.BinaryOp(op, src)
+	cb.BinaryOp(op, src)
 }
 
 func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {

@@ -315,6 +315,11 @@ func isKind(typ types.Type, mask types.BasicInfo) bool {
 	return false
 }
 
+func isPointer(typ types.Type) bool {
+	_, ok := typ.(*types.Pointer)
+	return ok
+}
+
 func isFunc(typ types.Type) bool {
 	_, ok := typ.(*types.Signature)
 	return ok
