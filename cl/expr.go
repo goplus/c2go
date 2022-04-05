@@ -18,6 +18,10 @@ const (
 	flagIgnoreResult
 )
 
+const (
+	unknownExprPrompt = "compileExpr: unknown kind ="
+)
+
 func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	switch expr.Kind {
 	case ast.BinaryOperator:
@@ -56,11 +60,11 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 }
 
 func compileExpr(ctx *blockCtx, expr *ast.Node) {
-	compileExprEx(ctx, expr, "compileExpr: unknown kind =", 0)
+	compileExprEx(ctx, expr, unknownExprPrompt, 0)
 }
 
 func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
-	compileExprEx(ctx, expr, "compileExpr: unknown kind =", flagLHS)
+	compileExprEx(ctx, expr, unknownExprPrompt, flagLHS)
 }
 
 func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
@@ -218,9 +222,9 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	switch v.OpCode {
 	case "=":
 	case ",":
-		compileExpr(ctx, v.Inner[0])
+		compileExprEx(ctx, v.Inner[0], unknownExprPrompt, flagIgnoreResult)
 		ctx.cb.EndStmt()
-		compileExpr(ctx, v.Inner[1])
+		compileExprEx(ctx, v.Inner[1], unknownExprPrompt, flags&flagIgnoreResult)
 		return
 	default:
 		log.Fatalln("compileBinaryExpr unknown operator:", v.OpCode)
