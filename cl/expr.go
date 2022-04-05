@@ -222,6 +222,14 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 // -----------------------------------------------------------------------------
 
+func compileCommaExpr(ctx *blockCtx, v *ast.Node, flags int) {
+	cb, _ := closureStart(ctx, "")
+	compileExprEx(ctx, v.Inner[0], unknownExprPrompt, flagIgnoreResult)
+	cb.EndStmt()
+	compileExpr(ctx, v.Inner[1])
+	cb.Return(1).End().Call(0)
+}
+
 func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	if op, ok := binaryOps[v.OpCode]; ok {
 		isBoolOp := (op == token.LOR || op == token.LAND)
@@ -241,9 +249,7 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	switch v.OpCode {
 	case "=":
 	case ",":
-		compileExprEx(ctx, v.Inner[0], unknownExprPrompt, flagIgnoreResult)
-		ctx.cb.EndStmt()
-		compileExprEx(ctx, v.Inner[1], unknownExprPrompt, flags&flagIgnoreResult)
+		compileCommaExpr(ctx, v, flags)
 		return
 	default:
 		log.Fatalln("compileBinaryExpr unknown operator:", v.OpCode)
