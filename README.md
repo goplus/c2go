@@ -16,7 +16,7 @@
 - Last, Support all custom libraries, especially those well-known open source libraries. Stage: `Planning`.
 
 
-## Supported C Syntax
+## Supported C syntax
 
 ### Data structures
 
