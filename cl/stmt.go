@@ -107,20 +107,22 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 }
 
 func compileCaseCond(ctx *blockCtx, cb *gox.CodeBuilder, caseStmt *ast.Node) (body []*ast.Node) {
+	var idx int
 	if caseStmt.Kind == ast.CaseStmt {
+		idx = 1
 		compileExpr(ctx, caseStmt.Inner[0])
 		cb.Case(1)
 	} else {
 		cb.Case(0)
 	}
 	if len(caseStmt.Inner) > 1 {
-		switch caseStmt.Inner[1].Kind {
+		switch v := caseStmt.Inner[idx]; v.Kind {
 		case ast.CaseStmt, ast.DefaultStmt:
 			cb.Fallthrough().End()
-			return compileCaseCond(ctx, cb, caseStmt.Inner[1])
+			return compileCaseCond(ctx, cb, v)
 		}
 	}
-	return caseStmt.Inner[1:]
+	return caseStmt.Inner[idx:]
 }
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {

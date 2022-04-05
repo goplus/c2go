@@ -48,9 +48,9 @@
 
 ### Literals
 
-- [x] Boolean, Character, Integer
+- [x] Boolean, Integer
 - [x] Float, Complex Imaginary
-- [x] String
+- [x] Character, String
 - [ ] Array: `(T[]){ expr1, expr2, ... }`
 - [ ] Array Pointer: `&(T[]){ expr1, expr2, ... }`
 - [ ] Struct: `struct T{ expr1, expr2, ... }`
