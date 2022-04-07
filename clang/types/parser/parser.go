@@ -127,6 +127,18 @@ func (p *parser) unget(tok token.Token, lit string) {
 	p.tok, p.lit = tok, lit
 }
 
+func (p *parser) skipUntil(tok token.Token) bool {
+	for {
+		p.next()
+		switch p.tok {
+		case tok:
+			return true
+		case token.EOF:
+			return false
+		}
+	}
+}
+
 func (p *parser) newErrorf(format string, args ...interface{}) *ParseTypeError {
 	return p.newError(fmt.Sprintf(format, args...))
 }
@@ -304,7 +316,17 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			case "volatile", "restrict", "_Nullable", "_Nonnull":
 			case "struct", "union":
 				p.next()
-				if p.tok != token.IDENT {
+				switch p.tok {
+				case token.IDENT:
+				case token.LPAREN:
+					if t == nil && p.anonym != nil {
+						p.skipUntil(token.RPAREN)
+						t = p.anonym
+						kind |= KindFAnonymous
+						continue
+					}
+					fallthrough
+				default:
 					log.Panicln("c.types.ParseType: struct/union - TODO:", p.lit)
 				}
 				flags |= flagStructOrUnion
