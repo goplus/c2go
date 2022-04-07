@@ -12,7 +12,7 @@ struct { int a; unsigned short b; } g_x = { 2, 3 };
 struct { short a; char b[10]; int c; } g_y = { .b = "Hi", .a = 11 };
 
 struct { int a[3], b; } v[] = { [0].a = {1}, [1].a[0] = 2 };
-struct { int a[3], b; } w[] = { {{1000}}, {{2000}} };
+struct { int a[3], b; } w[] = { {{1000, 0, 0}}, {{2000, 0, 0}} };
 
 int main() {
     int a = 100;
