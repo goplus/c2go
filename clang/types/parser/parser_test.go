@@ -121,6 +121,7 @@ var cases = []testCase{
 	{qualType: "void (*(*)(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
 	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
 	{qualType: "void (*(int, void (*)(int)))(int)", flags: FlagGetRetType, typ: tyFnHandle},
+	{qualType: "int (*)(void *, int, const char *, void (**)(void *, int, void **), void **)"},
 }
 
 func TestCases(t *testing.T) {
@@ -131,7 +132,7 @@ func TestCases(t *testing.T) {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, ", expected:", c.err)
 				}
-			} else if !types.Identical(typ, c.typ) {
+			} else if c.typ != nil && !types.Identical(typ, c.typ) {
 				t.Fatal("ParseType:", typ, ", expected:", c.typ)
 			}
 		})

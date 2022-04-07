@@ -346,6 +346,11 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				}
 				return
 			}
+			var nstar int
+			for p.peek() == token.MUL { // pointer to pointer
+				p.next()
+				nstar++
+			}
 			var pkg, isRetFn = p.pkg, false
 			var args []*types.Var
 		nextTok:
@@ -397,6 +402,10 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				t = types.NewSignature(nil, types.NewTuple(args...), results, false)
 			} else if _, ok := t.(*types.Signature); !ok {
 				t = types.NewPointer(t)
+			}
+			for nstar > 0 {
+				t = types.NewPointer(t)
+				nstar--
 			}
 		case token.RPAREN:
 			if t == nil {
