@@ -20,18 +20,16 @@ type ErrorHandler func(pos token.Position, msg string)
 //
 type Scanner struct {
 	// immutable state
-	file *token.File  // source file handle
-	src  string       // source
-	err  ErrorHandler // error reporting; or nil
+	src string
 
 	// scanning state
-	ch         rune // current character
-	offset     int  // character offset
-	rdOffset   int  // reading offset (position after current character)
-	lineOffset int  // current line offset
+	ch       rune // current character
+	offset   int  // character offset
+	rdOffset int  // reading offset (position after current character)
 
 	// public state - ok to modify
 	ErrorCount int // number of errors encountered
+	OnErr      func(msg string)
 }
 
 const (
@@ -47,31 +45,23 @@ const (
 func (s *Scanner) next() {
 	if s.rdOffset < len(s.src) {
 		s.offset = s.rdOffset
-		if s.ch == '\n' {
-			s.lineOffset = s.offset
-			s.file.AddLine(s.offset)
-		}
 		r, w := rune(s.src[s.rdOffset]), 1
 		switch {
 		case r == 0:
-			s.error(s.offset, "illegal character NUL")
+			s.error("illegal character NUL")
 		case r >= utf8.RuneSelf:
 			// not ASCII
 			r, w = utf8.DecodeRuneInString(s.src[s.rdOffset:])
 			if r == utf8.RuneError && w == 1 {
-				s.error(s.offset, "illegal UTF-8 encoding")
+				s.error("illegal UTF-8 encoding")
 			} else if r == bom && s.offset > 0 {
-				s.error(s.offset, "illegal byte order mark")
+				s.error("illegal byte order mark")
 			}
 		}
 		s.rdOffset += w
 		s.ch = r
 	} else {
 		s.offset = len(s.src)
-		if s.ch == '\n' {
-			s.lineOffset = s.offset
-			s.file.AddLine(s.offset)
-		}
 		s.ch = eof
 	}
 }
@@ -85,19 +75,11 @@ func (s *Scanner) peek() byte {
 	return 0
 }
 
-func (s *Scanner) Init(file *token.File, src string, err ErrorHandler) {
-	// Explicitly initialize all fields since a scanner may be reused.
-	if file.Size() != len(src) {
-		panic(fmt.Sprintf("file size (%d) does not match src len (%d)", file.Size(), len(src)))
-	}
-	s.file = file
+func (s *Scanner) Init(src string) {
 	s.src = src
-	s.err = err
-
 	s.ch = ' '
 	s.offset = 0
 	s.rdOffset = 0
-	s.lineOffset = 0
 	s.ErrorCount = 0
 
 	s.next()
@@ -110,15 +92,19 @@ func (s *Scanner) Source() string {
 	return s.src
 }
 
-func (s *Scanner) error(offs int, msg string) {
-	if s.err != nil {
-		s.err(s.file.Position(s.file.Pos(offs)), msg)
+func (s *Scanner) Remainder() string {
+	return s.src[s.rdOffset:]
+}
+
+func (s *Scanner) error(msg string) {
+	if s.OnErr != nil {
+		s.OnErr(msg)
 	}
 	s.ErrorCount++
 }
 
-func (s *Scanner) errorf(offs int, format string, args ...interface{}) {
-	s.error(offs, fmt.Sprintf(format, args...))
+func (s *Scanner) errorf(format string, args ...interface{}) {
+	s.error(fmt.Sprintf(format, args...))
 }
 
 func isLetter(ch rune) bool {
@@ -229,12 +215,12 @@ func (s *Scanner) scanNumber() (token.Token, string) {
 	}
 	digsep |= s.digits(base, &invalid)
 	if digsep&1 == 0 {
-		s.error(s.offset, litname(prefix)+" has no digits")
+		s.error(litname(prefix) + " has no digits")
 	}
 
 	lit := string(s.src[offs:s.offset])
 	if invalid >= 0 {
-		s.errorf(invalid, "invalid digit %q in %s", lit[invalid-offs], litname(prefix))
+		s.errorf("invalid digit %q in %s", lit[invalid-offs], litname(prefix))
 	}
 	return token.INT, lit
 }
@@ -259,9 +245,6 @@ func (s *Scanner) skipWhitespace() {
 
 func (s *Scanner) Scan() (pos token.Pos, tok token.Token, lit string) {
 	s.skipWhitespace()
-
-	// current token start
-	pos = s.file.Pos(s.offset)
 
 	// determine token value
 	switch ch := s.ch; {
@@ -300,7 +283,7 @@ func (s *Scanner) Scan() (pos token.Pos, tok token.Token, lit string) {
 		default:
 			// next reports unexpected BOMs - don't repeat
 			if ch != bom {
-				s.errorf(s.file.Offset(pos), "illegal character %#U", ch)
+				s.errorf("illegal character %#U", ch)
 			}
 			tok = token.ILLEGAL
 			lit = string(ch)

@@ -26,6 +26,16 @@ func (p *TypeNotFound) Error() string {
 	return fmt.Sprintf("type %s not found", p.Literal)
 }
 
+type ParseTypeError struct {
+	QualType string
+	Pos      token.Pos
+	ErrMsg   string
+}
+
+func (p *ParseTypeError) Error() string {
+	return p.ErrMsg // TODO
+}
+
 // -----------------------------------------------------------------------------
 
 const (
@@ -54,10 +64,9 @@ func getRetType(flags int) bool {
 //   char *
 //   void
 //   ...
-func ParseType(fset *token.FileSet, pkg *types.Package, scope *types.Scope, qualType string, flags int) (t types.Type, isConst bool, err error) {
+func ParseType(pkg *types.Package, scope *types.Scope, qualType string, flags int) (t types.Type, isConst bool, err error) {
 	p := &parser{pkg: pkg, scope: scope}
-	file := fset.AddFile("", fset.Base(), len(qualType))
-	p.s.Init(file, qualType, nil)
+	p.s.Init(qualType)
 
 	if t, isConst, err = p.parse(flags); err != nil {
 		return
@@ -309,6 +318,13 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				}
 				return
 			}
+			/*
+				inner, outerRight, ok := splitRemainder(p.s.Remainder())
+				if !ok {
+					return nil, false, p.newError("expect )")
+				}
+				p.s.Init()
+			*/
 			var pkg, isRetFn = p.pkg, false
 			var args []*types.Var
 		nextTok:
@@ -401,14 +417,20 @@ func (p *parser) newPointer(t types.Type) types.Type {
 
 // -----------------------------------------------------------------------------
 
-type ParseTypeError struct {
-	QualType string
-	Pos      token.Pos
-	ErrMsg   string
-}
-
-func (p *ParseTypeError) Error() string {
-	return p.ErrMsg // TODO
+func splitRemainder(rem string) (inner, outerRight string, ok bool) {
+	balance := 1
+	for i := 0; i < len(rem); i++ {
+		switch rem[i] {
+		case ')':
+			balance--
+			if balance == 0 {
+				return rem[:i], rem[i+1:], true
+			}
+		case '(':
+			balance++
+		}
+	}
+	return
 }
 
 // -----------------------------------------------------------------------------

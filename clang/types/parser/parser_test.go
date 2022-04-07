@@ -120,13 +120,13 @@ var cases = []testCase{
 	{qualType: "int (*)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
 	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
 	{qualType: "void (*(int, void (*)(int)))(int)", flags: FlagGetRetType, typ: tyFnHandle},
+	// {qualType: "void (*(*)(int *, void *, const char *))(void)", typ: nil},
 }
 
 func TestCases(t *testing.T) {
-	fset := token.NewFileSet()
 	for _, c := range cases {
 		t.Run(c.qualType, func(t *testing.T) {
-			typ, _, err := ParseType(fset, pkg, scope, c.qualType, c.flags)
+			typ, _, err := ParseType(pkg, scope, c.qualType, c.flags)
 			if err != nil {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, ", expected:", c.err)
