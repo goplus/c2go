@@ -24,8 +24,13 @@ func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 }
 
 func toTypeEx(ctx *blockCtx, scope *types.Scope, typ *ast.Type, flags int) (t types.Type, isConst bool) {
+retry:
 	t, isConst, err := parser.ParseType(ctx.fset, ctx.pkg.Types, scope, typ.QualType, flags)
 	if err != nil {
+		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
+			ctx.uncompls[e.Literal] = ctx.cb.NewType(e.Literal)
+			goto retry
+		}
 		log.Fatalln("toType:", err, "-", typ.QualType)
 	}
 	return

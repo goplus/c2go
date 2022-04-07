@@ -14,9 +14,17 @@ import (
 )
 
 var (
-	ErrNotFound    = errors.New("type not found")
 	ErrInvalidType = errors.New("invalid type")
 )
+
+type TypeNotFound struct {
+	Literal       string
+	StructOrUnion bool
+}
+
+func (p *TypeNotFound) Error() string {
+	return fmt.Sprintf("type %s not found", p.Literal)
+}
 
 // -----------------------------------------------------------------------------
 
@@ -107,10 +115,12 @@ const (
 	flagUnsigned
 	flagSigned
 	flagComplex
+	flagStructOrUnion
 )
 
 func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
-	if flags != 0 {
+	structOrUnion := (flags & flagStructOrUnion) != 0
+	if !structOrUnion && flags != 0 {
 		if (flags & flagComplex) != 0 {
 			switch lit {
 			case "float":
@@ -155,7 +165,7 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 	if o != nil {
 		return o.Type(), nil
 	}
-	return nil, ErrNotFound
+	return nil, &TypeNotFound{Literal: lit, StructOrUnion: structOrUnion}
 }
 
 var intTypes = [...]types.Type{
@@ -254,6 +264,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				if p.tok != token.IDENT {
 					log.Fatalln("c.types.ParseType: struct/union - TODO:", p.lit, "@", p.pos)
 				}
+				flags |= flagStructOrUnion
 				fallthrough
 			default:
 				if t != nil {
