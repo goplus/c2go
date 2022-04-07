@@ -68,8 +68,8 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 					if next.IsImplicit {
 						b.Field(ctx, goNodePos(decl), typ, name, true)
 						i++
-					} else if isAnonymousType(next) {
-						b.Field(ctx, goNodePos(next), typ, next.Name, false)
+					} else if ret, ok := checkAnonymous(ctx, scope, typ, next); ok {
+						b.Field(ctx, goNodePos(next), ret, next.Name, false)
 						i++
 						continue
 					}
@@ -111,8 +111,8 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 					if next.IsImplicit {
 						b.Field(ctx, goNodePos(decl), typ, name, true)
 						i++
-					} else if isAnonymousType(next) {
-						b.Field(ctx, goNodePos(next), typ, next.Name, false)
+					} else if ret, ok := checkAnonymous(ctx, scope, typ, next); ok {
+						b.Field(ctx, goNodePos(next), ret, next.Name, false)
 						i++
 						continue
 					}
@@ -127,9 +127,10 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 	return b.Type(ctx, t)
 }
 
-func isAnonymousType(v *ast.Node) bool {
-	qualType := v.Type.QualType
-	return strings.HasPrefix(qualType, "struct (anonymous") || strings.HasPrefix(qualType, "union (anonymous")
+func checkAnonymous(ctx *blockCtx, scope *types.Scope, typ types.Type, v *ast.Node) (ret types.Type, ok bool) {
+	ret, kind := toTypeEx(ctx, scope, typ, v.Type, 0)
+	ok = (kind & parser.KindFAnonymous) != 0
+	return
 }
 
 // -----------------------------------------------------------------------------
@@ -243,36 +244,40 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
 		if ufs, ok := checkUnion(ctx, typ); ok {
-			initUnion(ctx, decl.Name, ufs, initExpr)
+			initUnionVar(ctx, decl.Name, ufs, initExpr)
 			return
 		}
 		cb := varDecl.InitStart(ctx.pkg)
-		switch t := typ.(type) {
-		case *types.Array:
-			if !initWithStringLiteral(ctx, t, initExpr) {
-				initArray(ctx, t, initExpr)
-			}
-		case *types.Named:
-			initStruct(ctx, typ, initExpr)
-		default:
-			compileExpr(ctx, initExpr)
-		}
+		initLit(ctx, typ, initExpr)
 		cb.EndInit(1)
 	}
 }
 
-func initArray(ctx *blockCtx, t *types.Array, decl *ast.Node) {
+func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
+	switch t := typ.(type) {
+	case *types.Array:
+		if !initWithStringLiteral(ctx, t, initExpr) {
+			arrayLit(ctx, t, initExpr)
+		}
+	case *types.Named:
+		structLit(ctx, t, initExpr)
+	default:
+		compileExpr(ctx, initExpr)
+	}
+}
+
+func arrayLit(ctx *blockCtx, t *types.Array, decl *ast.Node) {
 	elem := t.Elem()
 	for _, initExpr := range decl.Inner {
-		compileInitExpr(ctx, elem, initExpr)
+		initLit(ctx, elem, initExpr)
 	}
 	ctx.cb.ArrayLit(t, len(decl.Inner))
 }
 
-func initStruct(ctx *blockCtx, typ types.Type, decl *ast.Node) {
-	for _, initExpr := range decl.Inner {
-		t := toType(ctx, initExpr.Type, 0)
-		compileInitExpr(ctx, t, initExpr)
+func structLit(ctx *blockCtx, typ *types.Named, decl *ast.Node) {
+	t := typ.Underlying().(*types.Struct)
+	for i, initExpr := range decl.Inner {
+		initLit(ctx, t.Field(i).Type(), initExpr)
 	}
 	ctx.cb.StructLit(typ, len(decl.Inner), false)
 }
@@ -287,7 +292,7 @@ func checkUnion(ctx *blockCtx, typ types.Type) (ufs *gox.UnionFields, is bool) {
 	return nil, false
 }
 
-func initUnion(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node) {
+func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node) {
 	initExpr := decl.Inner[0]
 	t := toType(ctx, initExpr.Type, 0)
 	for i, n := 0, ufs.Len(); i < n; i++ {
@@ -301,7 +306,7 @@ func initUnion(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node)
 				pkg.NewFunc(nil, "init", nil, nil, false).BodyStart(pkg)
 			}
 			cb.Val(obj).MemberRef(fld.Name)
-			compileInitExpr(ctx, t, initExpr)
+			initLit(ctx, t, initExpr)
 			cb.Assign(1)
 			if global {
 				cb.End()
@@ -310,12 +315,6 @@ func initUnion(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node)
 		}
 	}
 	log.Fatalln("initUnion: init with unexpect type -", t)
-}
-
-func compileInitExpr(ctx *blockCtx, t types.Type, initExpr *ast.Node) {
-	if !initWithStringLiteral(ctx, t, initExpr) {
-		compileExpr(ctx, initExpr)
-	}
 }
 
 func isInteger(typ types.Type) bool {

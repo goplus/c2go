@@ -68,7 +68,7 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileStmt(ctx, initStmt)
 	}
 	if stmt := stmt.Inner[1]; stmt.Kind != "" {
-		log.Fatalln("compileForStmt: unexpected -", stmt.Kind)
+		log.Panicln("compileForStmt: unexpected -", stmt.Kind)
 	}
 	if cond := stmt.Inner[2]; cond.Kind != "" {
 		compileExpr(ctx, cond)
@@ -100,7 +100,7 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 			cb.End()
 		case ast.BreakStmt:
 		default:
-			log.Fatalln("compileSwitchStmt: unknown case kind =", caseStmt.Kind)
+			log.Panicln("compileSwitchStmt: unknown case kind =", caseStmt.Kind)
 		}
 	}
 	cb.End() // switch

@@ -11,7 +11,8 @@ union { short a; char b[10]; } g_bar = { .b = "Hello" };
 struct { int a; unsigned short b; } g_x = { 2, 3 };
 struct { short a; char b[10]; int c; } g_y = { .b = "Hi", .a = 11 };
 
-struct { int a[3], b; } w[] = { [0].a = {1}, [1].a[0] = 2 };
+struct { int a[3], b; } v[] = { [0].a = {1}, [1].a[0] = 2 };
+struct { int a[3], b; } w[] = { {{1000}}, {{2000}} };
 
 int main() {
     int a = 100;
@@ -35,5 +36,7 @@ int main() {
 
     printf("g_x.a = %d, g_x.b = %d\n", g_x.a, g_x.b);
     printf("g_y.a = %d, g_y.b = %s\n", g_y.a, g_y.b);
+
+    printf("w[0].a[0] = %d, w[1].a[0] = %d\n", w[0].a[0], w[1].a[0]);
     return 0;
 }

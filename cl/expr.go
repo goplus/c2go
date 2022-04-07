@@ -61,7 +61,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.ImaginaryLiteral:
 		compileImaginaryLiteral(ctx, expr)
 	default:
-		log.Fatalln(prompt, expr.Kind)
+		log.Panicln(prompt, expr.Kind)
 	}
 }
 
@@ -84,7 +84,7 @@ func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
 func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
 	s, err := strconv.Unquote(expr.Value.(string))
 	if err != nil {
-		log.Fatalln("compileStringLiteral:", err)
+		log.Panicln("compileStringLiteral:", err)
 	}
 	stringLit(ctx.cb, s, nil)
 }
@@ -105,7 +105,7 @@ func compileSizeof(ctx *blockCtx, v *ast.Node) {
 		ctx.cb.Val(ctx.sizeof(t))
 		return
 	}
-	log.Fatalln("compileSizeof: TODO")
+	log.Panicln("compileSizeof: TODO")
 }
 
 func compileUnaryExprOrTypeTraitExpr(ctx *blockCtx, v *ast.Node) {
@@ -113,7 +113,7 @@ func compileUnaryExprOrTypeTraitExpr(ctx *blockCtx, v *ast.Node) {
 	case "sizeof":
 		compileSizeof(ctx, v)
 	default:
-		log.Fatalln("unaryExprOrTypeTraitExpr unknown:", v.Name)
+		log.Panicln("unaryExprOrTypeTraitExpr unknown:", v.Name)
 	}
 }
 
@@ -140,7 +140,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	case ast.IntegralCast, ast.BitCast, ast.IntegralToFloating, ast.FloatingComplexCast, ast.FloatingRealToComplex:
 		compileTypeCast(ctx, v, nil)
 	default:
-		log.Fatalln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
+		log.Panicln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
 	}
 }
 
@@ -158,7 +158,7 @@ func compileDeclRefExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	name := v.ReferencedDecl.Name
 	_, obj := cb.Scope().LookupParent(name, token.NoPos)
 	if obj == nil {
-		log.Fatalln("compileDeclRefExpr: not found -", name)
+		log.Panicln("compileDeclRefExpr: not found -", name)
 	}
 	if lhs {
 		cb.VarRef(obj)
@@ -252,7 +252,7 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 		compileCommaExpr(ctx, v, flags)
 		return
 	default:
-		log.Fatalln("compileBinaryExpr unknown operator:", v.OpCode)
+		log.Panicln("compileBinaryExpr unknown operator:", v.OpCode)
 	}
 	if (flags & flagIgnoreResult) != 0 {
 		compileSimpleAssignExpr(ctx, v)
@@ -302,7 +302,7 @@ func compileCompoundAssignOperator(ctx *blockCtx, v *ast.Node, flags int) {
 		}
 		return
 	}
-	log.Fatalln("compileCompoundAssignOperator unknown operator:", v.OpCode)
+	log.Panicln("compileCompoundAssignOperator unknown operator:", v.OpCode)
 }
 
 var (
@@ -457,7 +457,7 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, flags int) {
 		return
 	}
 	if lhs {
-		log.Fatalln("compileUnaryOperator: not a lhs expression -", v.OpCode)
+		log.Panicln("compileUnaryOperator: not a lhs expression -", v.OpCode)
 	}
 	if op, ok := unaryOps[v.OpCode]; ok {
 		compileExpr(ctx, v.Inner[0])
@@ -478,7 +478,7 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, flags int) {
 		compileExpr(ctx, v.Inner[0])
 		return
 	default:
-		log.Fatalln("compileUnaryOperator: unknown operator -", v.OpCode)
+		log.Panicln("compileUnaryOperator: unknown operator -", v.OpCode)
 	}
 	if (flags & flagIgnoreResult) != 0 {
 		compileSimpleIncDec(ctx, tok, v)

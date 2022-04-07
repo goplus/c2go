@@ -90,6 +90,7 @@ func loadFile(p *gox.Package, file *ast.Node) error {
 }
 
 func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
+	scope := ctx.cb.Scope()
 	n := len(node.Inner)
 	for i := 0; i < n; i++ {
 		decl := node.Inner[i]
@@ -114,10 +115,12 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			}
 			for i+1 < n {
 				next := node.Inner[i+1]
-				if next.Kind == ast.VarDecl && isAnonymousType(next) {
-					compileVarWith(ctx, typ, next)
-					i++
-					continue
+				if next.Kind == ast.VarDecl {
+					if ret, ok := checkAnonymous(ctx, scope, typ, next); ok {
+						compileVarWith(ctx, ret, next)
+						i++
+						continue
+					}
 				}
 				break
 			}

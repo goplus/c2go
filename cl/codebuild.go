@@ -173,7 +173,7 @@ func (p *structBuilder) BitField(ctx *blockCtx, typ types.Type, name string, bit
 		}
 	} else {
 		p.leftBits = -1
-		log.Fatalln("BitField - too large bits:", bits)
+		log.Panicln("BitField - too large bits:", bits)
 	}
 }
 
@@ -198,7 +198,7 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 			return v
 		}
 	}
-	log.Fatalln(emsg)
+	log.Panicln(emsg)
 	return -1
 }
 
@@ -278,7 +278,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 				}
 				return
 			}
-			log.Fatalln("binaryOp token.SUB - TODO: unexpected")
+			log.Panicln("binaryOp token.SUB - TODO: unexpected")
 		}
 	}
 	if isCmpOperator(op) {
