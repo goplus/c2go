@@ -35,3 +35,5 @@ func printf(format *int8, args ...interface{}) int32 {
 func __swbuf(_c int32, _p *__sFILE) int32 {
 	return _c
 }
+
+type __sFILEX struct{}

@@ -156,22 +156,35 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 		return
 	}
-	ctx.cb.AliasType(name, typ, goNodePos(decl))
+	if typ.String() != name {
+		ctx.cb.AliasType(name, typ, goNodePos(decl))
+	}
 }
 
 func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Named {
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
-	var inner types.Type
-	var t = ctx.cb.NewType(name, goNodePos(decl))
-	switch decl.TagUsed {
-	case "struct":
-		inner = toStructType(ctx, t.Type(), decl, name)
-	default:
-		inner = toUnionType(ctx, t.Type(), decl, name)
+	t, uncompl := ctx.uncompls[name]
+	if !uncompl {
+		t = ctx.cb.NewType(name, goNodePos(decl))
 	}
-	return t.InitType(ctx.pkg, inner)
+	if decl.CompleteDefinition {
+		if uncompl {
+			delete(ctx.uncompls, name)
+		}
+		var inner types.Type
+		switch decl.TagUsed {
+		case "struct":
+			inner = toStructType(ctx, t.Type(), decl, name)
+		default:
+			inner = toUnionType(ctx, t.Type(), decl, name)
+		}
+		return t.InitType(ctx.pkg, inner)
+	} else {
+		ctx.uncompls[name] = t
+	}
+	return t.Type()
 }
 
 func compileEnum(ctx *blockCtx, decl *ast.Node) {

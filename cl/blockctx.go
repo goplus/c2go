@@ -19,6 +19,7 @@ type blockCtx struct {
 	fset     *token.FileSet
 	tyValist types.Type
 	unnameds map[ast.ID]*types.Named
+	uncompls map[string]*gox.TypeDecl
 	asuBase  int // anonymous struct/union
 }
 

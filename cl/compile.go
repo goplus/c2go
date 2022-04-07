@@ -80,7 +80,10 @@ func loadFile(p *gox.Package, file *ast.Node) error {
 		return syscall.EINVAL
 	}
 	ctx := &blockCtx{
-		pkg: p, cb: p.CB(), fset: p.Fset, unnameds: make(map[ast.ID]*types.Named)}
+		pkg: p, cb: p.CB(), fset: p.Fset,
+		unnameds: make(map[ast.ID]*types.Named),
+		uncompls: make(map[string]*gox.TypeDecl),
+	}
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
 	return nil
