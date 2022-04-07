@@ -2,6 +2,7 @@
 
 int main() {
     int a = sizeof(1);
+    int *b = &a;
     switch (a) {
     case 4:
         printf("sizeof(int) == 4\n");
@@ -25,5 +26,8 @@ int main() {
         }
     }
     printf("a = %d\n", a);
+    if (b) {
+        printf("&a\n");
+    }
     return 0;
 }
