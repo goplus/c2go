@@ -118,9 +118,9 @@ var cases = []testCase{
 	{qualType: "void", typ: ctypes.Void},
 	{qualType: "void *", typ: ctypes.UnsafePointer},
 	{qualType: "int (*)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
+	// {qualType: "void (*(*)(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
 	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
 	{qualType: "void (*(int, void (*)(int)))(int)", flags: FlagGetRetType, typ: tyFnHandle},
-	// {qualType: "void (*(*)(int *, void *, const char *))(void)", typ: nil},
 }
 
 func TestCases(t *testing.T) {

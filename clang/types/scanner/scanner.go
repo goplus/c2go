@@ -92,10 +92,6 @@ func (s *Scanner) Source() string {
 	return s.src
 }
 
-func (s *Scanner) Remainder() string {
-	return s.src[s.rdOffset:]
-}
-
 func (s *Scanner) error(msg string) {
 	if s.OnErr != nil {
 		s.OnErr(msg)
@@ -243,7 +239,7 @@ func (s *Scanner) skipWhitespace() {
 	}
 }
 
-func (s *Scanner) Scan() (pos token.Pos, tok token.Token, lit string) {
+func (s *Scanner) Scan() (tok token.Token, lit string) {
 	s.skipWhitespace()
 
 	// determine token value

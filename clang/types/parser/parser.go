@@ -28,7 +28,6 @@ func (p *TypeNotFound) Error() string {
 
 type ParseTypeError struct {
 	QualType string
-	Pos      token.Pos
 	ErrMsg   string
 }
 
@@ -65,9 +64,7 @@ func getRetType(flags int) bool {
 //   void
 //   ...
 func ParseType(pkg *types.Package, scope *types.Scope, qualType string, flags int) (t types.Type, isConst bool, err error) {
-	p := &parser{pkg: pkg, scope: scope}
-	p.s.Init(qualType)
-
+	p := newParser(pkg, scope, qualType)
 	if t, isConst, err = p.parse(flags); err != nil {
 		return
 	}
@@ -84,13 +81,44 @@ type parser struct {
 	pkg   *types.Package
 	scope *types.Scope
 
-	pos token.Pos
 	tok token.Token
 	lit string
+	old struct {
+		tok token.Token
+		lit string
+	}
+}
+
+const (
+	invalidTok token.Token = -1
+)
+
+func newParser(pkg *types.Package, scope *types.Scope, qualType string) *parser {
+	p := &parser{pkg: pkg, scope: scope}
+	p.old.tok = invalidTok
+	p.s.Init(qualType)
+	return p
+}
+
+func (p *parser) peek() token.Token {
+	if p.old.tok == invalidTok {
+		p.old.tok, p.old.lit = p.s.Scan()
+	}
+	return p.old.tok
 }
 
 func (p *parser) next() {
-	p.pos, p.tok, p.lit = p.s.Scan()
+	if p.old.tok != invalidTok { // support unget
+		p.tok, p.lit = p.old.tok, p.old.lit
+		p.old.tok = invalidTok
+		return
+	}
+	p.tok, p.lit = p.s.Scan()
+}
+
+func (p *parser) unget(tok token.Token, lit string) {
+	p.old.tok, p.old.lit = p.tok, p.lit
+	p.tok, p.lit = tok, lit
 }
 
 func (p *parser) newErrorf(format string, args ...interface{}) *ParseTypeError {
@@ -98,7 +126,7 @@ func (p *parser) newErrorf(format string, args ...interface{}) *ParseTypeError {
 }
 
 func (p *parser) newError(errMsg string) *ParseTypeError {
-	return &ParseTypeError{QualType: p.s.Source(), Pos: p.pos, ErrMsg: errMsg}
+	return &ParseTypeError{QualType: p.s.Source(), ErrMsg: errMsg}
 }
 
 func (p *parser) expect(tokExp token.Token) error {
@@ -271,7 +299,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			case "struct", "union":
 				p.next()
 				if p.tok != token.IDENT {
-					log.Fatalln("c.types.ParseType: struct/union - TODO:", p.lit, "@", p.pos)
+					log.Fatalln("c.types.ParseType: struct/union - TODO:", p.lit)
 				}
 				flags |= flagStructOrUnion
 				fallthrough
@@ -318,13 +346,6 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				}
 				return
 			}
-			/*
-				inner, outerRight, ok := splitRemainder(p.s.Remainder())
-				if !ok {
-					return nil, false, p.newError("expect )")
-				}
-				p.s.Init()
-			*/
 			var pkg, isRetFn = p.pkg, false
 			var args []*types.Var
 		nextTok:
@@ -413,24 +434,6 @@ func (p *parser) newPointer(t types.Type) types.Type {
 		return types.NewPointer(t)
 	}
 	return types.Typ[types.UnsafePointer]
-}
-
-// -----------------------------------------------------------------------------
-
-func splitRemainder(rem string) (inner, outerRight string, ok bool) {
-	balance := 1
-	for i := 0; i < len(rem); i++ {
-		switch rem[i] {
-		case ')':
-			balance--
-			if balance == 0 {
-				return rem[:i], rem[i+1:], true
-			}
-		case '(':
-			balance++
-		}
-	}
-	return
 }
 
 // -----------------------------------------------------------------------------
