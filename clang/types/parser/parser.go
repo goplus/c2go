@@ -354,6 +354,11 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			case token.RPAREN: // )
 			case token.LPAREN: // (
 				if !isRetFn {
+					if p.peek() == token.MUL { // *
+						p.next()
+						p.expect(token.RPAREN) // )
+						p.expect(token.LPAREN) // (
+					}
 					if args, err = p.parseArgs(pkg); err != nil {
 						return
 					}
