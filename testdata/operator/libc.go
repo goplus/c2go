@@ -24,10 +24,6 @@ func printf(format *int8, args ...interface{}) int32 {
 	return 0
 }
 
-func __swbuf(_c int32, _p *__sFILE) int32 {
-	return _c
-}
-
 func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n uint, elem uint) unsafe.Pointer {
 	return dst
 }
@@ -35,3 +31,9 @@ func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n uint, elem
 func __builtin_object_size(unsafe.Pointer, int32) uint {
 	return 0
 }
+
+func __swbuf(_c int32, _p *__sFILE) int32 {
+	return _c
+}
+
+type __sFILEX struct{}

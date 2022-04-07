@@ -35,7 +35,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.CallExpr:
 		compileCallExpr(ctx, expr)
 	case ast.CompoundAssignOperator:
-		compileCompoundAssignOperator(ctx, expr)
+		compileCompoundAssignOperator(ctx, expr, flags)
 	case ast.ImplicitCastExpr:
 		compileImplicitCastExpr(ctx, expr)
 	case ast.IntegerLiteral:
@@ -293,11 +293,13 @@ var (
 
 // -----------------------------------------------------------------------------
 
-func compileCompoundAssignOperator(ctx *blockCtx, v *ast.Node) {
+func compileCompoundAssignOperator(ctx *blockCtx, v *ast.Node, flags int) {
 	if op, ok := assignOps[v.OpCode]; ok {
-		compileExprLHS(ctx, v.Inner[0])
-		compileExpr(ctx, v.Inner[1])
-		assignOp(ctx, op, v)
+		if (flags & flagIgnoreResult) != 0 {
+			compileSimpleAssignOpExpr(ctx, op, v)
+		} else {
+			compileAssignOpExpr(ctx, op, v)
+		}
 		return
 	}
 	log.Fatalln("compileCompoundAssignOperator unknown operator:", v.OpCode)
@@ -338,6 +340,23 @@ func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
 	cb.Val(addr).ElemRef()
 	compileExpr(ctx, v.Inner[1])
 	cb.AssignWith(1, 1, goNode(v.Inner[1]))
+
+	cb.Val(addr).Elem().Return(1).End().Call(0)
+}
+
+func compileSimpleAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
+	compileExprLHS(ctx, v.Inner[0])
+	compileExpr(ctx, v.Inner[1])
+	assignOp(ctx, op, v)
+}
+
+func compileAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
+	cb, _ := closureStartInitAddr(ctx, v)
+
+	addr := cb.Scope().Lookup(addrVarName)
+	cb.Val(addr).ElemRef()
+	compileExpr(ctx, v.Inner[1])
+	assignOp(ctx, op, v)
 
 	cb.Val(addr).Elem().Return(1).End().Call(0)
 }
