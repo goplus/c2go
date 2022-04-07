@@ -50,6 +50,11 @@ func getRetType(flags int) bool {
 	return (flags & FlagGetRetType) != 0
 }
 
+const (
+	KindFConst = 1 << iota
+	KindFAnonymous
+)
+
 // qualType can be:
 //   unsigned int
 //   struct ConstantString
@@ -63,9 +68,9 @@ func getRetType(flags int) bool {
 //   char *
 //   void
 //   ...
-func ParseType(pkg *types.Package, scope *types.Scope, qualType string, flags int) (t types.Type, isConst bool, err error) {
-	p := newParser(pkg, scope, qualType)
-	if t, isConst, err = p.parse(flags); err != nil {
+func ParseType(pkg *types.Package, scope *types.Scope, tyAnonym types.Type, qualType string, flags int) (t types.Type, kind int, err error) {
+	p := newParser(pkg, scope, tyAnonym, qualType)
+	if t, kind, err = p.parse(flags); err != nil {
 		return
 	}
 	if p.tok != token.EOF {
@@ -77,9 +82,10 @@ func ParseType(pkg *types.Package, scope *types.Scope, qualType string, flags in
 // -----------------------------------------------------------------------------
 
 type parser struct {
-	s     scanner.Scanner
-	pkg   *types.Package
-	scope *types.Scope
+	s      scanner.Scanner
+	pkg    *types.Package
+	scope  *types.Scope
+	anonym types.Type
 
 	tok token.Token
 	lit string
@@ -93,8 +99,8 @@ const (
 	invalidTok token.Token = -1
 )
 
-func newParser(pkg *types.Package, scope *types.Scope, qualType string) *parser {
-	p := &parser{pkg: pkg, scope: scope}
+func newParser(pkg *types.Package, scope *types.Scope, tyAnonym types.Type, qualType string) *parser {
+	p := &parser{pkg: pkg, scope: scope, anonym: tyAnonym}
 	p.old.tok = invalidTok
 	p.s.Init(qualType)
 	return p
@@ -192,7 +198,7 @@ func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
 				}
 			}
 		}
-		log.Fatalln("lookupType: TODO - invalid type")
+		log.Panicln("lookupType: TODO - invalid type")
 		return nil, ErrInvalidType
 	}
 	if lit == "int" {
@@ -270,7 +276,7 @@ func (p *parser) parseFunc(pkg *types.Package, t types.Type, inFlags int) (ret t
 	return types.NewSignature(nil, types.NewTuple(args...), results, false), nil
 }
 
-func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
+func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 	flags := 0
 	for {
 		p.next()
@@ -292,20 +298,20 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			case "signed":
 				flags |= flagSigned
 			case "const":
-				isConst = true
+				kind |= KindFConst
 			case "_Complex":
 				flags |= flagComplex
 			case "volatile", "restrict", "_Nullable", "_Nonnull":
 			case "struct", "union":
 				p.next()
 				if p.tok != token.IDENT {
-					log.Fatalln("c.types.ParseType: struct/union - TODO:", p.lit)
+					log.Panicln("c.types.ParseType: struct/union - TODO:", p.lit)
 				}
 				flags |= flagStructOrUnion
 				fallthrough
 			default:
 				if t != nil {
-					return nil, false, p.newError("illegal syntax: multiple types?")
+					return nil, 0, p.newError("illegal syntax: multiple types?")
 				}
 				if t, err = p.lookupType(p.lit, flags); err != nil {
 					return
@@ -318,7 +324,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 					goto ident
 				}
 				if t != nil {
-					return nil, false, p.newError("illegal syntax: multiple types?")
+					return nil, 0, p.newError("illegal syntax: multiple types?")
 				}
 				if t, err = p.lookupType("int", flags); err != nil {
 					return
@@ -328,7 +334,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			}
 		case token.MUL: // *
 			if t == nil {
-				return nil, false, p.newError("pointer to nil")
+				return nil, 0, p.newError("pointer to nil")
 			}
 			t = p.newPointer(t)
 		case token.LBRACK: // [
@@ -337,7 +343,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			}
 		case token.LPAREN: // (
 			if t == nil {
-				return nil, false, p.newError("no function return type")
+				return nil, 0, p.newError("no function return type")
 			}
 			if err = p.expect2(token.MUL, token.XOR); err != nil { // * or ^
 				if getRetType(inFlags) {
@@ -370,7 +376,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 					isRetFn = true
 					goto nextTok
 				}
-				return nil, false, p.newError("expect )")
+				return nil, 0, p.newError("expect )")
 			case token.IDENT:
 				switch p.lit {
 				case "_Nullable", "_Nonnull":
@@ -378,7 +384,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 				}
 				fallthrough
 			default:
-				return nil, false, p.newError("expect )")
+				return nil, 0, p.newError("expect )")
 			}
 			p.next()
 			switch p.tok {
@@ -391,7 +397,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 					return
 				}
 			default:
-				return nil, false, p.newError("unexpected " + p.tok.String())
+				return nil, 0, p.newError("unexpected " + p.tok.String())
 			}
 			if isRetFn {
 				if getRetType(inFlags) {
@@ -418,7 +424,7 @@ func (p *parser) parse(inFlags int) (t types.Type, isConst bool, err error) {
 			}
 			return
 		default:
-			log.Fatalln("c.types.ParseType: unknown -", p.tok, p.lit)
+			log.Panicln("c.types.ParseType: unknown -", p.tok, p.lit)
 		}
 	}
 }

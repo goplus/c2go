@@ -82,6 +82,7 @@ var (
 type testCase struct {
 	qualType string
 	flags    int
+	anonym   types.Type
 	typ      types.Type
 	err      string
 }
@@ -127,7 +128,7 @@ var cases = []testCase{
 func TestCases(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.qualType, func(t *testing.T) {
-			typ, _, err := ParseType(pkg, scope, c.qualType, c.flags)
+			typ, _, err := ParseType(pkg, scope, c.anonym, c.qualType, c.flags)
 			if err != nil {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, ", expected:", c.err)

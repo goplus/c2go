@@ -19,13 +19,13 @@ func isVariadicFn(typ *ast.Type) bool {
 }
 
 func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
-	t, _ := toTypeEx(ctx, ctx.cb.Scope(), typ, flags)
+	t, _ := toTypeEx(ctx, ctx.cb.Scope(), nil, typ, flags)
 	return t
 }
 
-func toTypeEx(ctx *blockCtx, scope *types.Scope, typ *ast.Type, flags int) (t types.Type, isConst bool) {
+func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int) {
 retry:
-	t, isConst, err := parser.ParseType(ctx.pkg.Types, scope, typ.QualType, flags)
+	t, kind, err := parser.ParseType(ctx.pkg.Types, scope, tyAnonym, typ.QualType, flags)
 	if err != nil {
 		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
 			ctx.uncompls[e.Literal] = ctx.cb.NewType(e.Literal)
@@ -47,7 +47,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 			if debugCompileDecl {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
-			typ, _ := toTypeEx(ctx, scope, decl.Type, 0)
+			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
 			if len(decl.Inner) > 0 {
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
 				b.BitField(ctx, typ, decl.Name, int(bits))
@@ -95,7 +95,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 			if debugCompileDecl {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
-			typ, _ := toTypeEx(ctx, scope, decl.Type, 0)
+			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
 			b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 		case ast.RecordDecl:
 			name, anonymous := ctx.getAsuName(decl, ns)
@@ -218,12 +218,12 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 		log.Println("var", decl.Name, "-", decl.Loc.PresumedLine)
 	}
 	scope := ctx.cb.Scope()
-	typ, isConst := toTypeEx(ctx, scope, decl.Type, 0)
+	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, 0)
 	switch decl.StorageClass {
 	case ast.Extern:
 		scope.Insert(types.NewVar(goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
 	default:
-		if isConst && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
+		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
 			return
 		}
 		if isValistType(ctx, typ) { // skip valist variable

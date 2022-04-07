@@ -11,6 +11,8 @@ union { short a; char b[10]; } g_bar = { .b = "Hello" };
 struct { int a; unsigned short b; } g_x = { 2, 3 };
 struct { short a; char b[10]; int c; } g_y = { .b = "Hi", .a = 11 };
 
+struct { int a[3], b; } w[] = { [0].a = {1}, [1].a[0] = 2 };
+
 int main() {
     int a = 100;
 
