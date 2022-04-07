@@ -139,12 +139,19 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		arrayToElemPtr(ctx.cb)
 	case ast.IntegralCast, ast.BitCast, ast.IntegralToFloating, ast.FloatingComplexCast, ast.FloatingRealToComplex:
 		compileTypeCast(ctx, v, nil)
+	case ast.NullToPointer:
+		ctx.cb.Val(nil)
 	default:
 		log.Panicln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
 	}
 }
 
 func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
+	toVoid := v.CastKind == ast.ToVoid
+	if toVoid {
+		compileExpr(ctx, v.Inner[0])
+		return
+	}
 	t := toType(ctx, v.Type, 0)
 	ctx.cb.Typ(t, src)
 	compileExpr(ctx, v.Inner[0])

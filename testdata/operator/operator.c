@@ -50,6 +50,7 @@ typedef struct {
 } foo_t;
 
 int main() {
+	(void)0;
     foo_t foo = {"Hi, c2go!"};
     foo_t *pfoo = &foo;
     char msg[] = {'a', 'b', '\0'};

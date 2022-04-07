@@ -63,6 +63,7 @@ const (
 	ConstAttr                Kind = "ConstAttr"
 	PackedAttr               Kind = "PackedAttr"
 	NoThrowAttr              Kind = "NoThrowAttr"
+	NoInlineAttr             Kind = "NoInlineAttr"
 	MayAliasAttr             Kind = "MayAliasAttr"
 	WarnUnusedResultAttr     Kind = "WarnUnusedResultAttr"
 	AllocSizeAttr            Kind = "AllocSizeAttr"
@@ -141,6 +142,8 @@ const (
 	FunctionToPointerDecay CastKind = "FunctionToPointerDecay"
 	ArrayToPointerDecay    CastKind = "ArrayToPointerDecay"
 	BuiltinFnToFnPtr       CastKind = "BuiltinFnToFnPtr"
+	ToVoid                 CastKind = "ToVoid"
+	NullToPointer          CastKind = "NullToPointer"
 	NoOp                   CastKind = "NoOp"
 )
 
