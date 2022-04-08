@@ -90,5 +90,5 @@
 
 - [x] Parameters
 - [x] Variadic Parameters
-- [ ] Variadic Parameter Access
+- [x] Variadic Parameter Access
 - [x] Return
