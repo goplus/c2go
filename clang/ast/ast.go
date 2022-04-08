@@ -136,6 +136,7 @@ const (
 	BitCast                CastKind = "BitCast"
 	FloatingComplexCast    CastKind = "FloatingComplexCast"
 	FloatingRealToComplex  CastKind = "FloatingRealToComplex"
+	FloatingCast           CastKind = "FloatingCast"
 	IntegralCast           CastKind = "IntegralCast"
 	IntegralToPointer      CastKind = "IntegralToPointer"
 	IntegralToFloating     CastKind = "IntegralToFloating"
