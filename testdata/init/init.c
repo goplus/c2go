@@ -14,6 +14,8 @@ struct { short a; char b[10]; int c; } g_y = { .b = "Hi", .a = 11 };
 struct { int a[3], b; } v[] = { [0].a = {1}, [1].a[0] = 2 };
 struct { int a[3], b; } w[] = { {{1000, 0, 0}}, {{2000, 0, 0}} };
 
+struct test_t { int a[3], b; } test = { .b = 1234 };
+
 int main() {
     int a = 100;
 
@@ -22,6 +24,8 @@ int main() {
 
     struct { int a; unsigned short b; } x = { 2, 3 };
     struct { short a; int b; char c[10]; } y = { .c = "Hi", .a = 11 };
+
+    struct test_t z = test;
 
     printf("a = %d, g_a = %d\n", a, g_a);
 
@@ -38,5 +42,6 @@ int main() {
     printf("g_y.a = %d, g_y.b = %s\n", g_y.a, g_y.b);
 
     printf("w[0].a[0] = %d, w[1].a[0] = %d\n", w[0].a[0], w[1].a[0]);
+    printf("z.b = %d\n", z.b);
     return 0;
 }

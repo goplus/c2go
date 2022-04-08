@@ -248,8 +248,16 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			return
 		}
 		cb := varDecl.InitStart(ctx.pkg)
-		initLit(ctx, typ, initExpr)
+		varInit(ctx, typ, initExpr)
 		cb.EndInit(1)
+	}
+}
+
+func varInit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
+	if initExpr.Kind == ast.InitListExpr {
+		initLit(ctx, typ, initExpr)
+	} else {
+		compileExpr(ctx, initExpr)
 	}
 }
 
