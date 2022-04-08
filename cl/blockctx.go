@@ -1,17 +1,37 @@
 package cl
 
 import (
+	"bytes"
 	"go/token"
 	"go/types"
+	"log"
+	"os"
 	"strconv"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
+	"github.com/qiniu/x/ctype"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 )
 
 // -----------------------------------------------------------------------------
+
+type funcCtx struct {
+	labels map[string]*gox.Label
+}
+
+func newFuncCtx() *funcCtx {
+	return &funcCtx{
+		labels: make(map[string]*gox.Label),
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+type source struct {
+	data []byte
+}
 
 type blockCtx struct {
 	pkg      *gox.Package
@@ -20,7 +40,59 @@ type blockCtx struct {
 	tyValist types.Type
 	unnameds map[ast.ID]*types.Named
 	uncompls map[string]*gox.TypeDecl
+	files    map[string]source
+	curfile  string
+	curfn    *funcCtx
 	asuBase  int // anonymous struct/union
+}
+
+func (p *blockCtx) getSource(file string) source {
+	if v, ok := p.files[file]; ok {
+		return v
+	}
+	b, err := os.ReadFile(file)
+	if err != nil {
+		log.Panicln("getSource:", err)
+	}
+	v := source{data: b}
+	p.files[file] = v
+	return v
+}
+
+func (p *blockCtx) getLabel(pos token.Pos, name string) *gox.Label {
+	if fn := p.curfn; fn != nil {
+		l, ok := fn.labels[name]
+		if !ok {
+			l = p.cb.NewLabel(pos, name)
+			fn.labels[name] = l
+		}
+		return l
+	}
+	log.Panicln("can't use label out of func")
+	return nil
+}
+
+func (p *blockCtx) labelOfGoto(v *ast.Node) string {
+	src := p.getSource(p.curfile)
+	off := v.Range.Begin.Offset
+	n := int64(v.Range.Begin.TokLen)
+	s := string(src.data[off : off+n])
+	if s != "goto" {
+		log.Panicln("gotoLabel:", s)
+	}
+	label := ident(src.data[off+n:], "label not found")
+	return label
+}
+
+func ident(b []byte, msg string) string {
+	b = bytes.TrimLeft(b, " \t\r\n")
+	idx := bytes.IndexFunc(b, func(r rune) bool {
+		return !ctype.Is(ctype.SYMBOL_NEXT_CHAR, r)
+	})
+	if idx <= 0 {
+		log.Panicln(msg)
+	}
+	return string(b[:idx])
 }
 
 func (p *blockCtx) sizeof(typ types.Type) int {

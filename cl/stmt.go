@@ -32,11 +32,27 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileDeclStmt(ctx, stmt, false)
 	case ast.CompoundStmt:
 		compileCompoundStmt(ctx, stmt)
+	case ast.GotoStmt:
+		compileGotoStmt(ctx, stmt)
+	case ast.LabelStmt:
+		compileLabelStmt(ctx, stmt)
 	case ast.NullStmt:
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", flagIgnoreResult)
 		ctx.cb.EndStmt()
 	}
+}
+
+func compileLabelStmt(ctx *blockCtx, stmt *ast.Node) {
+	l := ctx.getLabel(goNodePos(stmt), stmt.Name)
+	ctx.cb.Label(l)
+	compileStmt(ctx, stmt.Inner[0])
+}
+
+func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
+	label := ctx.labelOfGoto(stmt)
+	l := ctx.getLabel(goNodePos(stmt), label)
+	ctx.cb.Goto(l)
 }
 
 func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {

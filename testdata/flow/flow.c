@@ -17,14 +17,15 @@ int main() {
     }
     while (a) {
         a--;
+        if (a == 3) {
+            goto done;
+        }
         if (a == 5) {
             printf("a = 5, continue\n");
             continue;
         }
-        if (a == 3) {
-            break;
-        }
     }
+done:
     printf("a = %d\n", a);
     if (b) {
         printf("&a\n");

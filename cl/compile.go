@@ -4,6 +4,7 @@ import (
 	"go/token"
 	"go/types"
 	"log"
+	"strings"
 	"syscall"
 
 	goast "go/ast"
@@ -28,9 +29,13 @@ func SetDebug(flags int) {
 	debugCompileDecl = (flags & DbgFlagCompileDecl) != 0
 }
 
-func logFile(node *ast.Node) {
-	if debugCompileDecl {
-		if f := node.Loc.PresumedFile; f != "" {
+func logFile(ctx *blockCtx, node *ast.Node) {
+	if f := node.Loc.PresumedFile; f != "" {
+		ctx.curfile = f
+		if strings.HasSuffix(f, ".c") {
+			ctx.curfile += ".i"
+		}
+		if debugCompileDecl {
 			log.Println("==>", f)
 		}
 	}
@@ -83,6 +88,7 @@ func loadFile(p *gox.Package, file *ast.Node) error {
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		uncompls: make(map[string]*gox.TypeDecl),
+		files:    make(map[string]source),
 	}
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
@@ -95,7 +101,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 	for i := 0; i < n; i++ {
 		decl := node.Inner[i]
 		if global {
-			logFile(decl)
+			logFile(ctx, decl)
 			if decl.IsImplicit {
 				continue
 			}
@@ -187,7 +193,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Fatalln("compileFunc:", err)
 		}
 		cb := f.BodyStart(pkg)
+		ctx.curfn = newFuncCtx()
 		compileCompoundStmt(ctx, body)
+		ctx.curfn = nil
 		cb.End()
 		if isMain {
 			pkg.NewFunc(nil, "main", nil, nil, false).BodyStart(pkg)
