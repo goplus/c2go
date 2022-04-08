@@ -74,7 +74,7 @@
 - [x] Array: `T[] a = { expr1, expr2, ... }`, `T[N] a = { expr1, expr2, ... }`
 - [x] Struct: `struct T a = { expr1, expr2, ... }`, `struct T a = { .a = expr1, .b = expr2, ... }`
 - [x] Union: `union T a = { expr }, union T a = { .a = expr }`
-- [ ] Array in Struct: `struct { T[N] a; ... } v = { { expr1, expr2, ... }, ... }`, `struct { T[N] a; ... } v = { { [0].a = expr1, [1].a = expr2, ... }, ... }`
+- [x] Array in Struct: `struct { T[N] a; ... } v = { { expr1, expr2, ... }, ... }`, `struct { T[N] a; ... } v = { { [0].a = expr1, [1].a = expr2, ... }, ... }`
 
 ### Control structures
 
@@ -84,7 +84,7 @@
 - [x] While: `while (cond) stmt`
 - [x] Do While: `do stmt while (cond)`
 - [x] Break/Continue: `break`, `continue`
-- [ ] Goto: `goto label`
+- [x] Goto: `goto label`
 
 ### Functions
 

@@ -87,7 +87,7 @@ func (p *blockCtx) labelOfGoto(v *ast.Node) string {
 func ident(b []byte, msg string) string {
 	b = bytes.TrimLeft(b, " \t\r\n")
 	idx := bytes.IndexFunc(b, func(r rune) bool {
-		return !ctype.Is(ctype.SYMBOL_NEXT_CHAR, r)
+		return !ctype.Is(ctype.CSYMBOL_NEXT_CHAR, r)
 	})
 	if idx <= 0 {
 		log.Panicln(msg)
