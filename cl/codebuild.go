@@ -204,8 +204,24 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 
 // -----------------------------------------------------------------------------
 
-func assignOp(ctx *blockCtx, op token.Token, v *cast.Node) {
-	src := goNode(v)
+func typeCast(cb *gox.CodeBuilder, typ types.Type) {
+	stk := cb.InternalStack()
+	arg := stk.Get(-1)
+	if !types.Identical(typ, arg.Type) {
+		stk.PopN(1)
+		cb.Typ(typ).Val(arg).Call(1)
+	}
+}
+
+func assign(ctx *blockCtx, src ast.Node) {
+	cb := ctx.cb
+	arg1 := cb.InternalStack().Get(-2)
+	arg1Type, _ := gox.DerefType(arg1.Type)
+	typeCast(cb, arg1Type)
+	cb.AssignWith(1, 1, src)
+}
+
+func assignOp(ctx *blockCtx, op token.Token, src ast.Node) {
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	arg1 := stk.Get(-2)
@@ -233,11 +249,7 @@ func assignOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		}
 		fallthrough
 	default:
-		arg2 := stk.Get(-1)
-		if !types.Identical(arg1Type, arg2.Type) {
-			stk.PopN(1)
-			cb.Typ(arg1Type).Val(arg2).Call(1)
-		}
+		typeCast(cb, arg1Type)
 	case token.SHL_ASSIGN, token.SHR_ASSIGN:
 		// noop
 	}

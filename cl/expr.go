@@ -337,7 +337,7 @@ const (
 func compileSimpleAssignExpr(ctx *blockCtx, v *ast.Node) {
 	compileExprLHS(ctx, v.Inner[0])
 	compileExpr(ctx, v.Inner[1])
-	ctx.cb.AssignWith(1, 1, goNode(v.Inner[1]))
+	assign(ctx, goNode(v.Inner[1]))
 }
 
 func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
@@ -346,7 +346,7 @@ func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
 	addr := cb.Scope().Lookup(addrVarName)
 	cb.Val(addr).ElemRef()
 	compileExpr(ctx, v.Inner[1])
-	cb.AssignWith(1, 1, goNode(v.Inner[1]))
+	assign(ctx, goNode(v.Inner[1]))
 
 	cb.Val(addr).Elem().Return(1).End().Call(0)
 }
@@ -354,7 +354,7 @@ func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
 func compileSimpleAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
 	compileExprLHS(ctx, v.Inner[0])
 	compileExpr(ctx, v.Inner[1])
-	assignOp(ctx, op, v)
+	assignOp(ctx, op, goNode(v.Inner[1]))
 }
 
 func compileAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
@@ -363,7 +363,7 @@ func compileAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
 	addr := cb.Scope().Lookup(addrVarName)
 	cb.Val(addr).ElemRef()
 	compileExpr(ctx, v.Inner[1])
-	assignOp(ctx, op, v)
+	assignOp(ctx, op, goNode(v.Inner[1]))
 
 	cb.Val(addr).Elem().Return(1).End().Call(0)
 }
