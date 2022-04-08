@@ -486,6 +486,9 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, flags int) {
 	case "__extension__":
 		compileExpr(ctx, v.Inner[0])
 		return
+	case "+":
+		compileExpr(ctx, v.Inner[0])
+		return
 	default:
 		log.Panicln("compileUnaryOperator: unknown operator -", v.OpCode)
 	}
