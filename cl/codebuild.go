@@ -21,6 +21,7 @@ func decl_builtin(pkg *types.Package) {
 	decl_builtin_bswap(pkg, "__builtin_bswap32")
 	decl_builtin_bswap(pkg, "__builtin_bswap64")
 	decl_builtin_memcpy_chk(pkg)
+	decl_builtin_memset_chk(pkg)
 	decl_builtin_object_size(pkg)
 }
 
@@ -33,6 +34,16 @@ func decl_builtin_bswap(pkg *types.Package, name string) {
 	params := types.NewTuple(paramUInt)
 	sig := types.NewSignature(nil, params, params, false)
 	newFuncDecl(pkg, token.NoPos, name, sig)
+}
+
+func decl_builtin_memset_chk(pkg *types.Package) {
+	paramVoidPtr := types.NewParam(token.NoPos, pkg, "", types.Typ[types.UnsafePointer])
+	paramUlong := types.NewParam(token.NoPos, pkg, "", ctypes.Ulong)
+	paramInt := types.NewParam(token.NoPos, pkg, "", ctypes.Int)
+	params := types.NewTuple(paramVoidPtr, paramInt, paramUlong, paramUlong)
+	results := types.NewTuple(paramVoidPtr)
+	sig := types.NewSignature(nil, params, results, false)
+	newFuncDecl(pkg, token.NoPos, "__builtin___memset_chk", sig)
 }
 
 func decl_builtin_memcpy_chk(pkg *types.Package) {
