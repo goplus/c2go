@@ -134,12 +134,12 @@ func compileArraySubscriptExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	switch v.CastKind {
-	case ast.LValueToRValue, ast.FunctionToPointerDecay, ast.FloatingCast, ast.BuiltinFnToFnPtr, ast.NoOp:
+	case ast.LValueToRValue, ast.FunctionToPointerDecay, ast.BuiltinFnToFnPtr, ast.NoOp:
 		compileExpr(ctx, v.Inner[0])
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 		arrayToElemPtr(ctx.cb)
-	case ast.IntegralCast, ast.BitCast, ast.IntegralToFloating, ast.FloatingComplexCast, ast.FloatingRealToComplex:
+	case ast.IntegralCast, ast.FloatingCast, ast.BitCast, ast.IntegralToFloating, ast.FloatingComplexCast, ast.FloatingRealToComplex:
 		compileTypeCast(ctx, v, nil)
 	case ast.NullToPointer:
 		ctx.cb.Val(nil)
