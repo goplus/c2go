@@ -305,7 +305,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	}
 	if isCmpOperator(op) {
 		arg1 := stk.Get(-2)
-		if isPointer(arg1.Type) { // ptr <cmp> ptr
+		if isNilComparable(arg1.Type) { // ptr <cmp> ptr
 			arg2 := stk.Get(-1)
 			stk.PopN(2)
 			castPtrType(cb, tyUintptr, arg1)
@@ -350,7 +350,7 @@ func castToBoolExpr(cb *gox.CodeBuilder) {
 	elem := cb.InternalStack().Get(-1)
 	if t := elem.Type; isInteger(t) {
 		cb.Val(0).BinaryOp(token.NEQ)
-	} else if isPointer(t) {
+	} else if isNilComparable(t) {
 		cb.Val(nil).BinaryOp(token.NEQ)
 	}
 }

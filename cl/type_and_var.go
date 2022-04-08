@@ -340,9 +340,12 @@ func isKind(typ types.Type, mask types.BasicInfo) bool {
 	return false
 }
 
-func isPointer(typ types.Type) bool {
-	_, ok := typ.(*types.Pointer)
-	return ok
+func isNilComparable(typ types.Type) bool {
+	switch typ.(type) {
+	case *types.Pointer, *types.Signature:
+		return true
+	}
+	return false
 }
 
 func isFunc(typ types.Type) bool {
