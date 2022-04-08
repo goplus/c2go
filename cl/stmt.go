@@ -2,6 +2,7 @@ package cl
 
 import (
 	"go/token"
+	"go/types"
 	"log"
 
 	"github.com/goplus/c2go/clang/ast"
@@ -160,8 +161,14 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 	if n > 0 {
 		n = 1
 		compileExpr(ctx, stmt.Inner[0])
+		cb := ctx.cb
+		typeCast(cb, getRetType(cb), cb.Get(-1))
 	}
 	ctx.cb.Return(n, goNode(stmt))
+}
+
+func getRetType(cb *gox.CodeBuilder) types.Type {
+	return cb.Func().Type().(*types.Signature).Results().At(0).Type()
 }
 
 func compileCompoundStmt(ctx *blockCtx, stmts *ast.Node) {
