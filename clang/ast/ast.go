@@ -97,6 +97,7 @@ const (
 	ImplicitValueInitExpr    Kind = "ImplicitValueInitExpr"
 	UnaryExprOrTypeTraitExpr Kind = "UnaryExprOrTypeTraitExpr"
 	ArraySubscriptExpr       Kind = "ArraySubscriptExpr"
+	VAArgExpr                Kind = "VAArgExpr"
 	CompoundAssignOperator   Kind = "CompoundAssignOperator"
 	BinaryOperator           Kind = "BinaryOperator"
 	UnaryOperator            Kind = "UnaryOperator"

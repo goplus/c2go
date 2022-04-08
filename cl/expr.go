@@ -60,6 +60,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileConditionalOperator(ctx, expr)
 	case ast.ImaginaryLiteral:
 		compileImaginaryLiteral(ctx, expr)
+	case ast.VAArgExpr:
+		compileVAArgExpr(ctx, expr)
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}

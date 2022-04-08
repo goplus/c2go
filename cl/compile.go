@@ -222,6 +222,23 @@ const (
 	valistName = "__cgo_args"
 )
 
+func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
+	pkg := ctx.pkg
+	typ := toType(ctx, expr.Type, 0)
+	ret := pkg.NewParam(token.NoPos, "_cgo_ret", typ)
+	cb := ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg)
+	_, args := cb.Scope().LookupParent(valistName, token.NoPos)
+	//
+	// func() (_cgo_ret T) {
+	//    _cgo_ret = __cgo_args[0].(typ)
+	//    __cgo_args = __cgo_args[1:]
+	//    return
+	// }()
+	cb.VarRef(ret).Val(args).Val(0).Index(1, false).TypeAssert(typ, false).Assign(1).
+		VarRef(args).Val(args).Val(1).None().Slice(false).Assign(1).
+		Return(0).End().Call(0)
+}
+
 func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
 	name := ""
 	if hasName {
