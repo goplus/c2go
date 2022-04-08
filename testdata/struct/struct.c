@@ -12,6 +12,14 @@ typedef struct {
     } x, y;
 } foo;
 
+struct s_file {
+    struct s_file_methods *vtable;
+};
+
+struct s_file_methods {
+    int a;
+};
+
 int main() {
     struct {
         int a;

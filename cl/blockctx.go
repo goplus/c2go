@@ -101,7 +101,7 @@ func (p *blockCtx) sizeof(typ types.Type) int {
 
 func (p *blockCtx) getAsuName(v *ast.Node, ns string) (string, bool) {
 	if name := v.Name; name != "" {
-		if ns != "" {
+		if v.CompleteDefinition && ns != "" {
 			name = ns + "_" + name // TODO: use sth to replace _
 		}
 		return name, false
