@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"encoding/json"
 	"go/ast"
 	"go/constant"
 	"go/token"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/goplus/gox"
 
@@ -17,56 +19,30 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func decl_builtin(pkg *types.Package) {
-	decl_builtin_bswap(pkg, "__builtin_bswap32")
-	decl_builtin_bswap(pkg, "__builtin_bswap64")
-	decl_builtin_memcpy_chk(pkg)
-	decl_builtin_memset_chk(pkg)
-	decl_builtin_object_size(pkg)
-}
+const builtin_decls = `{
+	"__sync_synchronize": "void ()",
+	"__builtin_bswap32": "uint32 (uint32)",
+	"__builtin_bswap64": "uint64 (uint64)",
+	"__builtin___memset_chk": "void* (void*, int32, uint, uint)",
+	"__builtin___memcpy_chk": "void* (void*, void*, uint, uint)",
+	"__builtin_object_size": "uint (void*, int32)"
+}`
 
-func decl_builtin_bswap(pkg *types.Package, name string) {
-	typ := types.Typ[types.Uint32]
-	if name == "__builtin_bswap64" {
-		typ = types.Typ[types.Uint64]
+func decl_builtin(ctx *blockCtx) {
+	var fns map[string]string
+	err := json.NewDecoder(strings.NewReader(builtin_decls)).Decode(&fns)
+	if err != nil {
+		log.Panicln("decl_builtin decode error:", err)
 	}
-	paramUInt := types.NewParam(token.NoPos, pkg, "", typ)
-	params := types.NewTuple(paramUInt)
-	sig := types.NewSignature(nil, params, params, false)
-	newFuncDecl(pkg, token.NoPos, name, sig)
-}
-
-func decl_builtin_memset_chk(pkg *types.Package) {
-	paramVoidPtr := types.NewParam(token.NoPos, pkg, "", types.Typ[types.UnsafePointer])
-	paramUlong := types.NewParam(token.NoPos, pkg, "", ctypes.Ulong)
-	paramInt := types.NewParam(token.NoPos, pkg, "", ctypes.Int)
-	params := types.NewTuple(paramVoidPtr, paramInt, paramUlong, paramUlong)
-	results := types.NewTuple(paramVoidPtr)
-	sig := types.NewSignature(nil, params, results, false)
-	newFuncDecl(pkg, token.NoPos, "__builtin___memset_chk", sig)
-}
-
-func decl_builtin_memcpy_chk(pkg *types.Package) {
-	paramVoidPtr := types.NewParam(token.NoPos, pkg, "", types.Typ[types.UnsafePointer])
-	paramUlong := types.NewParam(token.NoPos, pkg, "", ctypes.Ulong)
-	params := types.NewTuple(paramVoidPtr, paramVoidPtr, paramUlong, paramUlong)
-	results := types.NewTuple(paramVoidPtr)
-	sig := types.NewSignature(nil, params, results, false)
-	newFuncDecl(pkg, token.NoPos, "__builtin___memcpy_chk", sig)
-}
-
-func decl_builtin_object_size(pkg *types.Package) {
-	paramVoidPtr := types.NewParam(token.NoPos, pkg, "", types.Typ[types.UnsafePointer])
-	paramUlong := types.NewParam(token.NoPos, pkg, "", ctypes.Ulong)
-	paramInt := types.NewParam(token.NoPos, pkg, "", ctypes.Int)
-	params := types.NewTuple(paramVoidPtr, paramInt)
-	results := types.NewTuple(paramUlong)
-	sig := types.NewSignature(nil, params, results, false)
-	newFuncDecl(pkg, token.NoPos, "__builtin_object_size", sig)
+	pkg := ctx.pkg.Types
+	scope := pkg.Scope()
+	for fn, proto := range fns {
+		t := toType(ctx, &cast.Type{QualType: proto}, 0)
+		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(ctypes.Func).Signature))
+	}
 }
 
 func newFuncDecl(pkg *types.Package, pos token.Pos, name string, sig *types.Signature) {
-	pkg.Scope().Insert(types.NewFunc(pos, pkg, name, sig))
 }
 
 // -----------------------------------------------------------------------------

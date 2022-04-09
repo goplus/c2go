@@ -125,7 +125,7 @@ func (p *blockCtx) initCTypes() {
 	aliasType(scope, pkg, "float", types.Typ[types.Float32])
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
 	aliasType(scope, pkg, "__int128", ctypes.Int128)
-	decl_builtin(pkg)
+	decl_builtin(p)
 }
 
 func initValist(scope *types.Scope, pkg *types.Package) types.Type {
