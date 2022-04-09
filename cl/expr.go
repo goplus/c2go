@@ -160,8 +160,10 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 
 func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
 	toVoid := v.CastKind == ast.ToVoid
-	if toVoid {
+	if toVoid { // _ = expr
+		cb := ctx.cb.VarRef(nil)
 		compileExpr(ctx, v.Inner[0])
+		cb.Assign(1)
 		return
 	}
 	t := toType(ctx, v.Type, 0)
@@ -522,7 +524,11 @@ var (
 
 func compileAtomicExpr(ctx *blockCtx, v *ast.Node) {
 	op := ctx.getInstr(v)
-	log.Panicln("compileAtomicExpr: TODO -", op)
+	cb := ctx.cb.Val(ctx.pkg.Ref(op))
+	for _, expr := range v.Inner {
+		compileExpr(ctx, expr)
+	}
+	cb.Call(len(v.Inner))
 }
 
 // -----------------------------------------------------------------------------

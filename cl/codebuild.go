@@ -25,8 +25,21 @@ const builtin_decls = `{
 	"__builtin_bswap64": "uint64 (uint64)",
 	"__builtin___memset_chk": "void* (void*, int32, uint, uint)",
 	"__builtin___memcpy_chk": "void* (void*, void*, uint, uint)",
-	"__builtin_object_size": "uint (void*, int32)"
+	"__builtin_object_size": "uint (void*, int32)",
+	"__atomic_store_n_i32": "void (int32*, int, int32)",
+	"__atomic_store_n_i64": "void (int64*, int, int64)"
 }`
+
+type overloadFn struct {
+	name      string
+	overloads []string
+}
+
+var (
+	builtin_overloads = []overloadFn{
+		{name: "__atomic_store_n", overloads: []string{"__atomic_store_n_i32", "__atomic_store_n_i64"}},
+	}
+)
 
 func decl_builtin(ctx *blockCtx) {
 	var fns map[string]string
@@ -39,6 +52,13 @@ func decl_builtin(ctx *blockCtx) {
 	for fn, proto := range fns {
 		t := toType(ctx, &cast.Type{QualType: proto}, 0)
 		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(ctypes.Func).Signature))
+	}
+	for _, o := range builtin_overloads {
+		fns := make([]types.Object, len(o.overloads))
+		for i, item := range o.overloads {
+			fns[i] = pkg.Scope().Lookup(item)
+		}
+		scope.Insert(gox.NewOverloadFunc(token.NoPos, pkg, o.name, fns...))
 	}
 }
 
