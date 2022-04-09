@@ -52,16 +52,19 @@ var (
 	tyCharPtr        = types.NewPointer(tyChar)
 	tyCharPtrPtr     = types.NewPointer(tyCharPtr)
 	tyConstantString = types.NewNamed(tnameConstantString, tyString, nil)
+	tyEmptyInterface = types.NewInterfaceType(nil, nil)
 )
 
 var (
 	paramInt        = types.NewParam(token.NoPos, pkg, "", tyInt)
 	paramVoidPtr    = types.NewParam(token.NoPos, pkg, "", ctypes.UnsafePointer)
 	paramCharPtrPtr = types.NewParam(token.NoPos, pkg, "", tyCharPtrPtr)
+	paramAnySlice   = types.NewParam(token.NoPos, pkg, "", types.NewSlice(tyEmptyInterface))
 )
 
 var (
 	typesInt     = types.NewTuple(paramInt)
+	typesIntVA   = types.NewTuple(paramInt, paramAnySlice)
 	typesVoidPtr = types.NewTuple(paramVoidPtr)
 	typesPICC    = types.NewTuple(paramVoidPtr, paramInt, paramCharPtrPtr, paramCharPtrPtr)
 )
@@ -70,8 +73,8 @@ func newFn(in, out *types.Tuple) types.Type {
 	return types.NewSignature(nil, in, out, false)
 }
 
-func newFnProto(in, out *types.Tuple) types.Type {
-	return ctypes.NewFunc(in, out, false)
+func newFnProto(in, out *types.Tuple, variadic bool) types.Type {
+	return ctypes.NewFunc(in, out, variadic)
 }
 
 var (
@@ -110,9 +113,10 @@ var cases = []testCase{
 	{qualType: "_Complex double", typ: types.Typ[types.Complex128]},
 	{qualType: "_Complex long double", typ: types.Typ[types.Complex128]},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
-	{qualType: "int (void)", typ: newFnProto(nil, typesInt)},
+	{qualType: "int (void)", typ: newFnProto(nil, typesInt, false)},
 	{qualType: "void (*)(void *)", typ: newFn(typesVoidPtr, nil)},
 	{qualType: "void (^ _Nonnull)(void)", typ: newFn(nil, nil)},
+	{qualType: "void (int, ...)", typ: newFnProto(typesIntVA, nil, true)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},
@@ -125,7 +129,7 @@ var cases = []testCase{
 	{qualType: "void *", typ: ctypes.UnsafePointer},
 	{qualType: "int (*_Nullable)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
 	{qualType: "void (*(*)(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
-	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFnProto(typesIF, typesF)},
+	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFnProto(typesIF, typesF, false)},
 	{qualType: "void (*(int, void (*)(int)))(int)", flags: FlagGetRetType, typ: tyFnHandle},
 	{qualType: "int (*)(void *, int, const char *, void (**)(void *, int, void **), void **)"},
 	{qualType: "struct (anonymous) [2]", anonym: tyInt, typ: types.NewArray(tyInt, 2)},

@@ -460,8 +460,11 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 					p.tok = token.EOF
 					return
 				}
-				results := types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
-				t = ctypes.NewFunc(types.NewTuple(args...), results, false)
+				var results *types.Tuple
+				if ctypes.NotVoid(t) {
+					results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
+				}
+				t = ctypes.NewFunc(types.NewTuple(args...), results, isVariadic(args))
 			}
 			t = newPointers(t, nstar)
 		case token.RPAREN:
@@ -474,6 +477,11 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				err = io.ErrUnexpectedEOF
 			}
 			return
+		case token.ELLIPSIS:
+			if t != nil {
+				return nil, 0, p.newError("illegal syntax: multiple types?")
+			}
+			t = tyVArgs
 		default:
 			log.Panicln("c.types.ParseType: unknown -", p.tok, p.lit)
 		}
@@ -491,5 +499,16 @@ func newPointers(t types.Type, nstar int) types.Type {
 func isPtr(tok token.Token) bool {
 	return tok == token.MUL || tok == token.XOR // * or ^
 }
+
+func isVariadic(args []*types.Var) bool {
+	if len(args) > 1 {
+		return args[len(args)-1].Type() == tyVArgs
+	}
+	return false
+}
+
+var (
+	tyVArgs = types.NewSlice(types.NewInterfaceType(nil, nil))
+)
 
 // -----------------------------------------------------------------------------
