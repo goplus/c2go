@@ -166,7 +166,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		}
 	}
 	typ := toType(ctx, decl.Type, 0)
-	if types.Identical(typ, ctx.tyValist) {
+	if ctypes.Identical(typ, ctx.tyValist) {
 		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 		return
 	}
@@ -315,7 +315,7 @@ func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.No
 	t := toType(ctx, initExpr.Type, 0)
 	for i, n := 0, ufs.Len(); i < n; i++ {
 		fld := ufs.At(i)
-		if types.Identical(fld.Type, t) {
+		if ctypes.Identical(fld.Type, t) {
 			pkg, cb := ctx.pkg, ctx.cb
 			scope := cb.Scope()
 			obj := scope.Lookup(name)

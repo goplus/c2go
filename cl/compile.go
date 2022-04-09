@@ -264,7 +264,7 @@ func checkVariadic(ctx *blockCtx, params []*types.Var, hasName bool) bool {
 }
 
 func isValistType(ctx *blockCtx, t types.Type) bool {
-	return types.Identical(t, ctx.tyValist)
+	return ctypes.Identical(t, ctx.tyValist)
 }
 
 // -----------------------------------------------------------------------------

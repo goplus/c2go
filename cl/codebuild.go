@@ -158,7 +158,7 @@ func (p *structBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
 }
 
 func (p *structBuilder) BitField(ctx *blockCtx, typ types.Type, name string, bits int) {
-	if p.leftBits >= bits && types.Identical(typ, p.lastTy) {
+	if p.leftBits >= bits && ctypes.Identical(typ, p.lastTy) {
 		if name != "" {
 			p.bitFields = append(p.bitFields, &gox.BitField{
 				Name:    name,
@@ -216,7 +216,7 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 // -----------------------------------------------------------------------------
 
 func typeCast(cb *gox.CodeBuilder, typ types.Type, arg *gox.Element) {
-	if !types.Identical(typ, arg.Type) {
+	if !ctypes.Identical(typ, arg.Type) {
 		*arg = *cb.Typ(typ).Val(arg).Call(1).InternalStack().Pop()
 	}
 }
@@ -291,7 +291,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 				cb.BinaryOp(op, src)
 				castPtrType(cb, t1, stk.Pop())
 				return
-			} else if op == token.SUB && types.Identical(t1, t2) {
+			} else if op == token.SUB && ctypes.Identical(t1, t2) {
 				castPtrType(cb, tyUintptr, arg1)
 				castPtrType(cb, tyUintptr, arg2)
 				cb.BinaryOp(token.SUB, src)
