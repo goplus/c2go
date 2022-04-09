@@ -64,6 +64,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileImaginaryLiteral(ctx, expr)
 	case ast.VAArgExpr:
 		compileVAArgExpr(ctx, expr)
+	case ast.AtomicExpr:
+		compileAtomicExpr(ctx, expr)
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}
@@ -515,5 +517,12 @@ var (
 		"!": token.NOT,
 	}
 )
+
+// -----------------------------------------------------------------------------
+
+func compileAtomicExpr(ctx *blockCtx, v *ast.Node) {
+	op := ctx.getInstr(v)
+	log.Panicln("compileAtomicExpr: TODO -", op)
+}
 
 // -----------------------------------------------------------------------------

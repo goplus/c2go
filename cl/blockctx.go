@@ -84,6 +84,13 @@ func (p *blockCtx) labelOfGoto(v *ast.Node) string {
 	return label
 }
 
+func (p *blockCtx) getInstr(v *ast.Node) string {
+	src := p.getSource(p.curfile)
+	off := v.Range.Begin.Offset
+	n := int64(v.Range.Begin.TokLen)
+	return string(src.data[off : off+n])
+}
+
 func ident(b []byte, msg string) string {
 	b = bytes.TrimLeft(b, " \t\r\n")
 	idx := bytes.IndexFunc(b, func(r rune) bool {

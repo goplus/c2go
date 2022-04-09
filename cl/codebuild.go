@@ -42,9 +42,6 @@ func decl_builtin(ctx *blockCtx) {
 	}
 }
 
-func newFuncDecl(pkg *types.Package, pos token.Pos, name string, sig *types.Signature) {
-}
-
 // -----------------------------------------------------------------------------
 
 type unionBuilder struct {
