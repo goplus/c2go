@@ -87,7 +87,7 @@ func loadFile(p *gox.Package, file *ast.Node) error {
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
-		uncompls: make(map[string]*gox.TypeDecl),
+		typdecls: make(map[string]*gox.TypeDecl),
 		files:    make(map[string]source),
 	}
 	ctx.initCTypes()

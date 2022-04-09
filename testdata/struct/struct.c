@@ -20,6 +20,8 @@ struct s_file_methods {
     int a;
 };
 
+struct s_file_methods;
+
 int main() {
     struct {
         int a;

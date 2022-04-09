@@ -30,7 +30,7 @@ retry:
 	t, kind, err := parser.ParseType(ctx.pkg.Types, scope, tyAnonym, typ.QualType, flags)
 	if err != nil {
 		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
-			ctx.uncompls[e.Literal] = ctx.cb.NewType(e.Literal)
+			ctx.typdecls[e.Literal] = ctx.cb.NewType(e.Literal)
 			goto retry
 		}
 		log.Fatalln("toType:", err, "-", typ.QualType)
@@ -179,14 +179,12 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
-	t, uncompl := ctx.uncompls[name]
-	if !uncompl {
+	t, decled := ctx.typdecls[name]
+	if !decled {
 		t = ctx.cb.NewType(name, goNodePos(decl))
+		ctx.typdecls[name] = t
 	}
 	if decl.CompleteDefinition {
-		if uncompl {
-			delete(ctx.uncompls, name)
-		}
 		var inner types.Type
 		switch decl.TagUsed {
 		case "struct":
@@ -195,8 +193,6 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 			inner = toUnionType(ctx, t.Type(), decl, name)
 		}
 		return t.InitType(ctx.pkg, inner)
-	} else {
-		ctx.uncompls[name] = t
 	}
 	return t.Type()
 }
