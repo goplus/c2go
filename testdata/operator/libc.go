@@ -32,8 +32,8 @@ func __builtin_object_size(unsafe.Pointer, int32) uint {
 	return 0
 }
 
-func __swbuf(_c int32, _p *__sFILE) int32 {
+func __swbuf(_c int32, _p *FILE) int32 {
 	return _c
 }
 
-type __sFILEX struct{}
+type struct___sFILEX struct{}

@@ -26,4 +26,8 @@ func NotVoid(t types.Type) bool {
 	return t != Void
 }
 
+func MangledName(tag, name string) string {
+	return tag + "_" + name // TODO: use sth to replace _
+}
+
 // -----------------------------------------------------------------------------

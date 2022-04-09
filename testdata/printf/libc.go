@@ -36,7 +36,7 @@ func __swbuf(_c int32, _p *FILE) int32 {
 	return _c
 }
 
-type __sFILEX struct{}
+type struct___sFILEX struct{}
 
 var (
 	__stdoutp *FILE

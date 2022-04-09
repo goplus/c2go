@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	ctypes "github.com/goplus/c2go/clang/types"
+
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
@@ -55,12 +57,15 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 				b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 			}
 		case ast.RecordDecl:
-			name, anonymous := ctx.getAsuName(decl, ns)
+			name, suKind := ctx.getSuName(decl, ns, decl.TagUsed)
 			typ := compileStructOrUnion(ctx, name, decl)
-			if !anonymous {
-				alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, decl.Name, typ)
-				scope.Insert(alias)
-				break
+			if suKind != suAnonymous {
+				if suKind == suNested {
+					mangledName := ctypes.MangledName(decl.TagUsed, decl.Name)
+					alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, mangledName, typ)
+					scope.Insert(alias)
+					break
+				}
 			}
 			for i+1 < n {
 				next := struc.Inner[i+1]
@@ -98,11 +103,14 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
 			b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 		case ast.RecordDecl:
-			name, anonymous := ctx.getAsuName(decl, ns)
+			name, suKind := ctx.getSuName(decl, ns, decl.TagUsed)
 			typ := compileStructOrUnion(ctx, name, decl)
-			if !anonymous {
-				alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, decl.Name, typ)
-				scope.Insert(alias)
+			if suKind != suAnonymous {
+				if suKind == suNested {
+					mangledName := ctypes.MangledName(decl.TagUsed, decl.Name)
+					alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, mangledName, typ)
+					scope.Insert(alias)
+				}
 				break
 			}
 			for i+1 < n {
@@ -216,7 +224,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDecl, v *ast.Node, iotav in
 
 func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 	if debugCompileDecl {
-		log.Println("var", decl.Name, "-", decl.Loc.PresumedLine)
+		log.Println("varDecl", decl.Name, "-", decl.Loc.PresumedLine)
 	}
 	scope := ctx.cb.Scope()
 	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, 0)
@@ -240,6 +248,9 @@ func compileVarWith(ctx *blockCtx, typ types.Type, decl *ast.Node) {
 }
 
 func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.Node) {
+	if debugCompileDecl {
+		log.Println("var", decl.Name, typ, "-", decl.Kind)
+	}
 	varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
@@ -256,15 +267,18 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 func varInit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
 	if initExpr.Kind == ast.InitListExpr {
 		initLit(ctx, typ, initExpr)
-	} else {
+	} else if !initWithStringLiteral(ctx, typ, initExpr) {
 		compileExpr(ctx, initExpr)
 	}
 }
 
 func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
+	if debugCompileDecl {
+		log.Println("initLit", typ, "-", initExpr.Kind)
+	}
 	switch t := typ.(type) {
 	case *types.Array:
-		if !initWithStringLiteral(ctx, t, initExpr) {
+		if !initWithStringLiteral(ctx, typ, initExpr) {
 			arrayLit(ctx, t, initExpr)
 		}
 	case *types.Named:

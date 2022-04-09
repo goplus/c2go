@@ -99,15 +99,21 @@ func (p *blockCtx) sizeof(typ types.Type) int {
 	return int(p.pkg.Sizeof(typ))
 }
 
-func (p *blockCtx) getAsuName(v *ast.Node, ns string) (string, bool) {
+const (
+	suNormal = iota
+	suAnonymous
+	suNested
+)
+
+func (p *blockCtx) getSuName(v *ast.Node, ns, tag string) (string, int) {
 	if name := v.Name; name != "" {
 		if v.CompleteDefinition && ns != "" {
-			name = ns + "_" + name // TODO: use sth to replace _
+			return ns + "_" + name, suNested // TODO: use sth to replace _
 		}
-		return name, false
+		return ctypes.MangledName(tag, name), suNormal
 	}
 	p.asuBase++
-	return "_cgoa_" + strconv.Itoa(p.asuBase), true
+	return "_cgoa_" + strconv.Itoa(p.asuBase), suAnonymous
 }
 
 func (p *blockCtx) initCTypes() {
@@ -123,7 +129,7 @@ func (p *blockCtx) initCTypes() {
 }
 
 func initValist(scope *types.Scope, pkg *types.Package) types.Type {
-	valist := types.NewTypeName(token.NoPos, pkg, "__va_list_tag", nil)
+	valist := types.NewTypeName(token.NoPos, pkg, ctypes.MangledName("struct", "__va_list_tag"), nil)
 	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
 	scope.Insert(valist)
 	tyValist := types.NewPointer(t)

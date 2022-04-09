@@ -296,7 +296,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 		switch p.tok {
 		case token.IDENT:
 		ident:
-			switch p.lit {
+			switch lit := p.lit; lit {
 			case "unsigned":
 				flags |= flagUnsigned
 			case "short":
@@ -329,13 +329,14 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				default:
 					log.Panicln("c.types.ParseType: struct/union - TODO:", p.lit)
 				}
+				lit = ctypes.MangledName(lit, p.lit)
 				flags |= flagStructOrUnion
 				fallthrough
 			default:
 				if t != nil {
 					return nil, 0, p.newError("illegal syntax: multiple types?")
 				}
-				if t, err = p.lookupType(p.lit, flags); err != nil {
+				if t, err = p.lookupType(lit, flags); err != nil {
 					return
 				}
 				flags = 0

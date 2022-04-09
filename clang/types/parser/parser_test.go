@@ -21,7 +21,7 @@ func init() {
 	aliasType(scope, pkg, "float", types.Typ[types.Float32])
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
 	aliasType(scope, pkg, "__int128", ctypes.Int128)
-	aliasType(scope, pkg, "ConstantString", tyConstantString)
+	aliasType(scope, pkg, ctypes.MangledName("struct", "ConstantString"), tyConstantString)
 }
 
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
