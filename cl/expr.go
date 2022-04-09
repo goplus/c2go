@@ -161,9 +161,10 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
 	toVoid := v.CastKind == ast.ToVoid
 	if toVoid { // _ = expr
-		cb := ctx.cb.VarRef(nil)
+		cb, _ := closureStartT(ctx, types.Typ[types.Int])
+		cb.VarRef(nil)
 		compileExpr(ctx, v.Inner[0])
-		cb.Assign(1)
+		cb.Assign(1).Val(0).Return(1).End().Call(0)
 		return
 	}
 	t := toType(ctx, v.Type, 0)
