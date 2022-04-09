@@ -155,14 +155,6 @@ func (p *parser) expect(tokExp token.Token) error {
 	return nil
 }
 
-func (p *parser) expect2(tokExp, tokExp2 token.Token) error {
-	p.next()
-	if p.tok != tokExp && p.tok != tokExp2 {
-		return p.newErrorf("expect %v, got %v", tokExp, p.tok)
-	}
-	return nil
-}
-
 const (
 	flagShort = 1 << iota
 	flagLong
@@ -285,7 +277,35 @@ func (p *parser) parseFunc(pkg *types.Package, t types.Type, inFlags int) (ret t
 	if err != nil {
 		return
 	}
-	return types.NewSignature(nil, types.NewTuple(args...), results, false), nil
+	return ctypes.NewFunc(types.NewTuple(args...), results, false), nil
+}
+
+func (p *parser) parseArgs(pkg *types.Package) ([]*types.Var, error) {
+	var args []*types.Var
+	for {
+		arg, _, e := p.parse(FlagIsParam)
+		if e != nil {
+			return nil, e
+		}
+		if ctypes.NotVoid(arg) {
+			args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
+		}
+		if p.tok != token.COMMA {
+			break
+		}
+	}
+	if p.tok != token.RPAREN { // )
+		return nil, p.newError("expect )")
+	}
+	return args, nil
+}
+
+func (p *parser) parseStars() (nstar int) {
+	for isPtr(p.peek()) {
+		p.next()
+		nstar++
+	}
+	return
 }
 
 func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
@@ -377,46 +397,48 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			if t == nil {
 				return nil, 0, p.newError("no function return type")
 			}
-			if err = p.expect2(token.MUL, token.XOR); err != nil { // * or ^
+			var nstar = p.parseStars()
+			var nstarRet int
+			var pkg, isFn = p.pkg, false
+			var args []*types.Var
+			if nstar == 0 {
 				if getRetType(inFlags) {
 					err = nil
 					p.tok = token.EOF
+					return
 				}
-				return
-			}
-			var nstar int
-			for p.peek() == token.MUL { // pointer to pointer
+				if args, err = p.parseArgs(pkg); err != nil {
+					return
+				}
+				isFn = true
+			} else {
+			nextTok:
 				p.next()
-				nstar++
-			}
-			var pkg, isRetFn = p.pkg, false
-			var args []*types.Var
-		nextTok:
-			p.next()
-			switch p.tok {
-			case token.RPAREN: // )
-			case token.LPAREN: // (
-				if !isRetFn {
-					if p.peek() == token.MUL { // *
-						p.next()
-						p.expect(token.RPAREN) // )
-						p.expect(token.LPAREN) // (
+				switch p.tok {
+				case token.RPAREN: // )
+				case token.LPAREN: // (
+					if !isFn {
+						nstar, nstarRet = p.parseStars(), nstar
+						if nstar != 0 {
+							p.expect(token.RPAREN) // )
+							p.expect(token.LPAREN) // (
+						}
+						if args, err = p.parseArgs(pkg); err != nil {
+							return
+						}
+						isFn = true
+						goto nextTok
 					}
-					if args, err = p.parseArgs(pkg); err != nil {
-						return
+					return nil, 0, p.newError("expect )")
+				case token.IDENT:
+					switch p.lit {
+					case "_Nullable", "_Nonnull":
+						goto nextTok
 					}
-					isRetFn = true
-					goto nextTok
+					fallthrough
+				default:
+					return nil, 0, p.newError("expect )")
 				}
-				return nil, 0, p.newError("expect )")
-			case token.IDENT:
-				switch p.lit {
-				case "_Nullable", "_Nonnull":
-					goto nextTok
-				}
-				fallthrough
-			default:
-				return nil, 0, p.newError("expect )")
 			}
 			p.next()
 			switch p.tok {
@@ -428,23 +450,20 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				if t, err = p.parseArrays(t, 0); err != nil {
 					return
 				}
+			case token.EOF:
 			default:
 				return nil, 0, p.newError("unexpected " + p.tok.String())
 			}
-			if isRetFn {
+			t = newPointers(t, nstarRet)
+			if isFn {
 				if getRetType(inFlags) {
 					p.tok = token.EOF
 					return
 				}
 				results := types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
-				t = types.NewSignature(nil, types.NewTuple(args...), results, false)
-			} else if _, ok := t.(*types.Signature); !ok {
-				t = ctypes.NewPointer(t)
+				t = ctypes.NewFunc(types.NewTuple(args...), results, false)
 			}
-			for nstar > 0 {
-				t = ctypes.NewPointer(t)
-				nstar--
-			}
+			t = newPointers(t, nstar)
 		case token.RPAREN:
 			if t == nil {
 				t = ctypes.Void
@@ -461,24 +480,16 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 	}
 }
 
-func (p *parser) parseArgs(pkg *types.Package) ([]*types.Var, error) {
-	var args []*types.Var
-	for {
-		arg, _, e := p.parse(FlagIsParam)
-		if e != nil {
-			return nil, e
-		}
-		if ctypes.NotVoid(arg) {
-			args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
-		}
-		if p.tok != token.COMMA {
-			break
-		}
+func newPointers(t types.Type, nstar int) types.Type {
+	for nstar > 0 {
+		t = ctypes.NewPointer(t)
+		nstar--
 	}
-	if p.tok != token.RPAREN { // )
-		return nil, p.newError("expect )")
-	}
-	return args, nil
+	return t
+}
+
+func isPtr(tok token.Token) bool {
+	return tok == token.MUL || tok == token.XOR // * or ^
 }
 
 // -----------------------------------------------------------------------------

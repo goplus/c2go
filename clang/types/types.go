@@ -38,7 +38,8 @@ type Func struct {
 	*types.Signature
 }
 
-func NewFunc(sig *types.Signature) types.Type {
+func NewFunc(params, results *types.Tuple, variadic bool) types.Type {
+	sig := types.NewSignature(nil, params, results, variadic)
 	return Func{sig}
 }
 
@@ -57,6 +58,19 @@ func NewPointer(typ types.Type) types.Type {
 func IsFunc(typ types.Type) bool {
 	_, ok := typ.(Func)
 	return ok
+}
+
+func Identical(typ1, typ2 types.Type) bool {
+	if t1, ok := typ1.(Func); ok {
+		if t2, ok := typ2.(Func); ok {
+			return types.Identical(t1.Signature, t2.Signature)
+		}
+		return false
+	}
+	if _, ok := typ2.(Func); ok {
+		return false
+	}
+	return types.Identical(typ1, typ2)
 }
 
 // -----------------------------------------------------------------------------

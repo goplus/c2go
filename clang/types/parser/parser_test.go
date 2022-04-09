@@ -70,6 +70,10 @@ func newFn(in, out *types.Tuple) types.Type {
 	return types.NewSignature(nil, in, out, false)
 }
 
+func newFnProto(in, out *types.Tuple) types.Type {
+	return ctypes.NewFunc(in, out, false)
+}
+
 var (
 	tyFnHandle    = newFn(typesInt, nil)
 	paramFnHandle = types.NewParam(token.NoPos, pkg, "", tyFnHandle)
@@ -106,6 +110,7 @@ var cases = []testCase{
 	{qualType: "_Complex double", typ: types.Typ[types.Complex128]},
 	{qualType: "_Complex long double", typ: types.Typ[types.Complex128]},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
+	{qualType: "int (void)", typ: newFnProto(nil, typesInt)},
 	{qualType: "void (*)(void *)", typ: newFn(typesVoidPtr, nil)},
 	{qualType: "void (^ _Nonnull)(void)", typ: newFn(nil, nil)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
@@ -118,9 +123,9 @@ var cases = []testCase{
 	{qualType: "char *", typ: tyCharPtr},
 	{qualType: "void", typ: ctypes.Void},
 	{qualType: "void *", typ: ctypes.UnsafePointer},
-	{qualType: "int (*)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
+	{qualType: "int (*_Nullable)(void *, int, char **, char **)", typ: newFn(typesPICC, typesInt)},
 	{qualType: "void (*(*)(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
-	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFn(typesIF, typesF)},
+	{qualType: "void (*(int, void (*)(int)))(int)", typ: newFnProto(typesIF, typesF)},
 	{qualType: "void (*(int, void (*)(int)))(int)", flags: FlagGetRetType, typ: tyFnHandle},
 	{qualType: "int (*)(void *, int, const char *, void (**)(void *, int, void **), void **)"},
 	{qualType: "struct (anonymous) [2]", anonym: tyInt, typ: types.NewArray(tyInt, 2)},
@@ -135,7 +140,7 @@ func TestCases(t *testing.T) {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, ", expected:", c.err)
 				}
-			} else if c.typ != nil && !types.Identical(typ, c.typ) {
+			} else if c.typ != nil && !ctypes.Identical(typ, c.typ) {
 				t.Fatal("ParseType:", typ, ", expected:", c.typ)
 			}
 		})
