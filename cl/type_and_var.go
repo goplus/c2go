@@ -64,8 +64,8 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 					mangledName := ctypes.MangledName(decl.TagUsed, decl.Name)
 					alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, mangledName, typ)
 					scope.Insert(alias)
-					break
 				}
+				break
 			}
 			for i+1 < n {
 				next := struc.Inner[i+1]
@@ -81,7 +81,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 				}
 				break
 			}
-		case ast.IndirectFieldDecl:
+		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr:
 		default:
 			log.Fatalln("toStructType: unknown field kind =", decl.Kind)
 		}
@@ -127,7 +127,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 				}
 				break
 			}
-		case ast.IndirectFieldDecl:
+		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr:
 		default:
 			log.Fatalln("toUnionType: unknown field kind =", decl.Kind)
 		}
