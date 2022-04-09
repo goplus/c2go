@@ -33,3 +33,30 @@ func MangledName(tag, name string) string {
 }
 
 // -----------------------------------------------------------------------------
+
+type Func struct {
+	*types.Signature
+}
+
+func NewFunc(sig *types.Signature) types.Type {
+	return Func{sig}
+}
+
+func NewPointer(typ types.Type) types.Type {
+	switch t := typ.(type) {
+	case *types.Basic:
+		if t == Void {
+			return types.Typ[types.UnsafePointer]
+		}
+	case Func:
+		return t.Signature
+	}
+	return types.NewPointer(typ)
+}
+
+func IsFunc(typ types.Type) bool {
+	_, ok := typ.(Func)
+	return ok
+}
+
+// -----------------------------------------------------------------------------

@@ -342,7 +342,7 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 	arr := cb.InternalStack().Pop()
 	t, _ := gox.DerefType(arr.Type)
 	elem := t.(*types.Array).Elem()
-	cb.Typ(types.NewPointer(elem)).Typ(ctypes.UnsafePointer).
+	cb.Typ(ctypes.NewPointer(elem)).Typ(ctypes.UnsafePointer).
 		Val(arr).UnaryOp(token.AND).Call(1).Call(1)
 }
 
@@ -445,7 +445,7 @@ func typeCastIndex(ctx *blockCtx, lhs bool) {
 
 func arrayPtrOf(elem types.Type) types.Type {
 	const (
-		arrayLen = 1 << 20 // TODO:
+		arrayLen = 1 << 20 // TODO: may need change
 	)
 	return types.NewPointer(types.NewArray(elem, arrayLen))
 }

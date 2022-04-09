@@ -256,7 +256,7 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 		return nil, p.newError("array length not an integer")
 	}
 	if isParam(inFlags) {
-		t = p.newPointer(t)
+		t = ctypes.NewPointer(t)
 	} else {
 		t = types.NewArray(t, n)
 	}
@@ -368,7 +368,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			if t == nil {
 				return nil, 0, p.newError("pointer to nil")
 			}
-			t = p.newPointer(t)
+			t = ctypes.NewPointer(t)
 		case token.LBRACK: // [
 			if t, err = p.parseArrays(t, inFlags); err != nil {
 				return
@@ -439,10 +439,10 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				results := types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
 				t = types.NewSignature(nil, types.NewTuple(args...), results, false)
 			} else if _, ok := t.(*types.Signature); !ok {
-				t = types.NewPointer(t)
+				t = ctypes.NewPointer(t)
 			}
 			for nstar > 0 {
-				t = types.NewPointer(t)
+				t = ctypes.NewPointer(t)
 				nstar--
 			}
 		case token.RPAREN:
@@ -479,13 +479,6 @@ func (p *parser) parseArgs(pkg *types.Package) ([]*types.Var, error) {
 		return nil, p.newError("expect )")
 	}
 	return args, nil
-}
-
-func (p *parser) newPointer(t types.Type) types.Type {
-	if ctypes.NotVoid(t) {
-		return types.NewPointer(t)
-	}
-	return types.Typ[types.UnsafePointer]
 }
 
 // -----------------------------------------------------------------------------
