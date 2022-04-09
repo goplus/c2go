@@ -81,7 +81,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 				}
 				break
 			}
-		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr:
+		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr:
 		default:
 			log.Fatalln("toStructType: unknown field kind =", decl.Kind)
 		}
@@ -127,7 +127,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 				}
 				break
 			}
-		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr:
+		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr:
 		default:
 			log.Fatalln("toUnionType: unknown field kind =", decl.Kind)
 		}
@@ -153,7 +153,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		if item.Kind == "ElaboratedType" {
 			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
 				if owned.Kind == ast.EnumDecl {
-					ctx.cb.AliasType(name, tyInt, goNodePos(decl))
+					ctx.cb.AliasType(name, ctypes.Enum, goNodePos(decl))
 					return
 				}
 				id := owned.ID
@@ -214,7 +214,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDecl, v *ast.Node, iotav in
 		cb.Val(iotav)
 		return 1
 	}
-	cdecl.New(fn, iotav, goNodePos(v), tyInt, v.Name)
+	cdecl.New(fn, iotav, goNodePos(v), ctypes.Enum, v.Name)
 	return iotav + 1
 }
 

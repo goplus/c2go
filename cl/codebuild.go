@@ -455,7 +455,6 @@ func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {
 }
 
 var (
-	tyInt        = types.Typ[types.Int]
 	tyUintptr    = types.Typ[types.Uintptr]
 	tyUintptrPtr = types.NewPointer(tyUintptr)
 )

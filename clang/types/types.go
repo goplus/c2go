@@ -16,6 +16,8 @@ var (
 	Ulong   = types.Typ[types.Uint]
 	NotImpl = UnsafePointer
 
+	Enum = types.Typ[types.Int32]
+
 	LongDouble = types.Typ[types.Float64]
 
 	Int128  = NotImpl

@@ -68,6 +68,7 @@ const (
 	MaxFieldAlignmentAttr    Kind = "MaxFieldAlignmentAttr"
 	WarnUnusedResultAttr     Kind = "WarnUnusedResultAttr"
 	AllocSizeAttr            Kind = "AllocSizeAttr"
+	AlignedAttr              Kind = "AlignedAttr"
 	FunctionProtoType        Kind = "FunctionProtoType"
 	FunctionDecl             Kind = "FunctionDecl"
 	ParmVarDecl              Kind = "ParmVarDecl"

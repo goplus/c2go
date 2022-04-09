@@ -314,6 +314,15 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			case "_Complex":
 				flags |= flagComplex
 			case "volatile", "restrict", "_Nullable", "_Nonnull":
+			case "enum":
+				if err = p.expect(token.IDENT); err != nil {
+					return
+				}
+				if t != nil {
+					return nil, 0, p.newError("illegal syntax: multiple types?")
+				}
+				t = ctypes.Enum
+				continue
 			case "struct", "union":
 				p.next()
 				switch p.tok {
