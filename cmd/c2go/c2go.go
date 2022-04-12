@@ -11,7 +11,6 @@ import (
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/preprocessor"
 	"github.com/goplus/gox"
-	"github.com/goplus/gox/packages"
 )
 
 var (
@@ -78,9 +77,7 @@ func main() {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
-	imp, _, _ := packages.NewImporter(nil, "fmt", "strings", "strconv")
-	confCl := &cl.Config{Importer: imp}
-	pkg, err := cl.NewPackage("", pkgname, doc, confCl)
+	pkg, err := cl.NewPackage("", pkgname, doc, nil)
 	check(err)
 
 	gofile := outfile + ".go"

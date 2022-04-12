@@ -61,21 +61,26 @@ type Config struct {
 }
 
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.Package, err error) {
-	fset := conf.Fset
-	if fset == nil {
-		fset = token.NewFileSet()
+	if conf == nil {
+		conf = new(Config)
 	}
 	confGox := &gox.Config{
-		Fset:            fset,
+		Fset:            conf.Fset,
 		Importer:        conf.Importer,
 		LoadNamed:       nil,
 		HandleErr:       nil,
 		NodeInterpreter: nil,
 		NewBuiltin:      nil,
+		// CanImplicitCast: implicitCast,
 	}
 	p = gox.NewPackage(pkgPath, pkgName, confGox)
 	err = loadFile(p, file)
 	return
+}
+
+func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
+	log.Panicln("==> implicitCast:", V, T)
+	return false
 }
 
 // -----------------------------------------------------------------------------
