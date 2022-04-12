@@ -351,9 +351,11 @@ func isKind(typ types.Type, mask types.BasicInfo) bool {
 }
 
 func isNilComparable(typ types.Type) bool {
-	switch typ.(type) {
+	switch t := typ.(type) {
 	case *types.Pointer, *types.Signature:
 		return true
+	case *types.Basic:
+		return t.Kind() == types.UnsafePointer
 	}
 	return false
 }
