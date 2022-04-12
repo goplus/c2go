@@ -33,6 +33,14 @@ func __atomic_store_n_i64(p *int64, memorder int32, v int64) {
 	*p = v
 }
 
+func __atomic_load_n_i32(p *int32, memorder int32) int32 {
+	return *p
+}
+
+func __atomic_load_n_i64(p *int64, memorder int32) int64 {
+	return *p
+}
+
 func __swbuf(_c int32, _p *FILE) int32 {
 	return _c
 }

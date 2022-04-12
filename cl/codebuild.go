@@ -27,7 +27,9 @@ const builtin_decls = `{
 	"__builtin___memcpy_chk": "void* (void*, void*, uint, uint)",
 	"__builtin_object_size": "uint (void*, int32)",
 	"__atomic_store_n_i32": "void (int32*, int, int32)",
-	"__atomic_store_n_i64": "void (int64*, int, int64)"
+	"__atomic_store_n_i64": "void (int64*, int, int64)",
+	"__atomic_load_n_i32": "int32 (int32*, int)",
+	"__atomic_load_n_i64": "int64 (int64*, int)"
 }`
 
 type overloadFn struct {
@@ -38,6 +40,7 @@ type overloadFn struct {
 var (
 	builtin_overloads = []overloadFn{
 		{name: "__atomic_store_n", overloads: []string{"__atomic_store_n_i32", "__atomic_store_n_i64"}},
+		{name: "__atomic_load_n", overloads: []string{"__atomic_load_n_i32", "__atomic_load_n_i64"}},
 	}
 )
 
