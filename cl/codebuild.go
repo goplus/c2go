@@ -311,10 +311,10 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	if isInteger(t) { // bool => int
 		args := stk.GetArgs(2)
 		if isBool(args[0].Type) {
-			args[0] = castFromBoolExpr(ctx, t, args[0])
+			args[0] = castFromBoolExpr(cb, t, args[0])
 		}
 		if isBool(args[1].Type) {
-			args[1] = castFromBoolExpr(ctx, t, args[1])
+			args[1] = castFromBoolExpr(cb, t, args[1])
 		}
 	}
 	cb.BinaryOp(op, src)
@@ -348,10 +348,10 @@ func castToBoolExpr(cb *gox.CodeBuilder) {
 	}
 }
 
-func castFromBoolExpr(ctx *blockCtx, typ types.Type, v *gox.Element) *gox.Element {
-	pkg := ctx.pkg
+func castFromBoolExpr(cb *gox.CodeBuilder, typ types.Type, v *gox.Element) *gox.Element {
+	pkg := cb.Pkg()
 	results := types.NewTuple(types.NewParam(token.NoPos, pkg.Types, "", typ))
-	return ctx.cb.NewClosure(nil, results, false).BodyStart(pkg).
+	return cb.NewClosure(nil, results, false).BodyStart(pkg).
 		If().Val(v).Then().Val(1).Return(1).
 		Else().Val(0).Return(1).
 		End().

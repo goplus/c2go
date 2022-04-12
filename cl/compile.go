@@ -71,7 +71,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 		HandleErr:       nil,
 		NodeInterpreter: nil,
 		NewBuiltin:      nil,
-		// CanImplicitCast: implicitCast,
+		CanImplicitCast: implicitCast,
 	}
 	p = gox.NewPackage(pkgPath, pkgName, confGox)
 	err = loadFile(p, file)
@@ -79,7 +79,21 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 }
 
 func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
-	log.Panicln("==> implicitCast:", V, T)
+	switch t := T.(type) {
+	case *types.Basic:
+		if (t.Info() & types.IsUntyped) != 0 { // untyped
+			return false
+		}
+		if (t.Info() & types.IsInteger) != 0 { // int type
+			if isBool(V) {
+				pv.Type, pv.Val = T, castFromBoolExpr(pkg.CB(), T, pv).Val
+				return true
+			}
+		}
+	case *types.Pointer:
+		return false
+	}
+	log.Panicln("==> implicitCast:", V, "to:", T)
 	return false
 }
 

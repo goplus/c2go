@@ -44,7 +44,7 @@ func main() {
 
 	if *verbose {
 		cl.SetDebug(cl.DbgFlagAll)
-		gox.SetDebug(gox.DbgFlagInstruction)
+		gox.SetDebug(gox.DbgFlagInstruction | gox.DbgFlagMatch)
 	}
 
 	outfile := infile

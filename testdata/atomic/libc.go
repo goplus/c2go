@@ -25,6 +25,10 @@ func printf(format *int8, args ...interface{}) int32 {
 	return 0
 }
 
+func __atomic_store_n_i32(p *int32, memorder int32, v int32) {
+	*p = v
+}
+
 func __atomic_store_n_i64(p *int64, memorder int32, v int64) {
 	*p = v
 }
