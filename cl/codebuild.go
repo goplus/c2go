@@ -263,6 +263,15 @@ done:
 	cb.AssignOp(op, src)
 }
 
+func isNegConst(v *gox.Element) bool {
+	if cval := v.CVal; cval != nil && cval.Kind() == constant.Int {
+		if v, ok := constant.Int64Val(cval); ok {
+			return v < 0
+		}
+	}
+	return false
+}
+
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	src := goNode(v)
 	cb := ctx.cb
@@ -273,6 +282,11 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		if t1, ok := arg1.Type.(*types.Pointer); ok {
 			elemSize := ctx.sizeof(t1.Elem())
 			arg2 := stk.Get(-1)
+			if isNegConst(arg2) { // fix: can't convert -1 to uintptr
+				cb.UnaryOp(token.SUB)
+				arg2 = stk.Get(-1)
+				op = (token.SUB + token.ADD) - op
+			}
 			stk.PopN(2)
 			if t2 := arg2.Type; isIntegerOrBool(t2) {
 				castPtrType(cb, tyUintptr, arg1)
