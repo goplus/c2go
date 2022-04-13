@@ -99,7 +99,7 @@ func execDirRecursively(dir string, doRunApp, doRunTest bool) {
 	}
 	if cfiles == 1 {
 		if doRunTest {
-			fmt.Printf("Testing %s ...\n", dir)
+			fmt.Printf("==> Testing %s ...\n", dir)
 		}
 		execDir("main", dir, doRunApp, doRunTest)
 	}
@@ -153,10 +153,10 @@ func checkEqual(prompt string, a, expected []byte) {
 		return
 	}
 
-	fmt.Fprintln(os.Stderr, "==> Result of", prompt)
+	fmt.Fprintln(os.Stderr, "=> Result of", prompt)
 	os.Stderr.Write(a)
 
-	fmt.Fprintln(os.Stderr, "\n==> Expected", prompt)
+	fmt.Fprintln(os.Stderr, "\n=> Expected", prompt)
 	os.Stderr.Write(expected)
 }
 
@@ -179,8 +179,9 @@ func runGoApp(dir string, stdout, stderr io.Writer, doRunTest bool) (dontRunTest
 	if doRunTest {
 		for _, file := range files {
 			if filepath.Base(file) == "main.go" {
+				stdout, stderr = os.Stdout, os.Stderr
 				dontRunTest = true
-				return
+				break
 			}
 		}
 	}
