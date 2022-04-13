@@ -106,40 +106,42 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	cb := ctx.cb.Switch()
 	compileExpr(ctx, switchStmt.Inner[0])
 	cb.Then()
-	switchBody := switchStmt.Inner[1]
-	for _, caseStmt := range switchBody.Inner {
-		switch caseStmt.Kind {
-		case ast.CaseStmt, ast.DefaultStmt:
-			caseBody := compileCaseCond(ctx, cb, caseStmt)
-			for _, stmt := range caseBody {
-				compileStmt(ctx, stmt)
-			}
-			cb.End()
-		case ast.BreakStmt:
+	bodyStmts := switchStmt.Inner[1].Inner
+	hasCase := false
+	for i, n := 0, len(bodyStmts); i < n; i++ {
+		stmt := bodyStmts[i]
+	retry:
+		var idx int
+		switch stmt.Kind {
+		case ast.CaseStmt:
+			idx = 1
+		case ast.DefaultStmt:
 		default:
-			log.Panicln("compileSwitchStmt: unknown case kind =", caseStmt.Kind)
+			compileStmt(ctx, stmt)
+			continue
 		}
-	}
-	cb.End() // switch
-}
-
-func compileCaseCond(ctx *blockCtx, cb *gox.CodeBuilder, caseStmt *ast.Node) (body []*ast.Node) {
-	var idx int
-	if caseStmt.Kind == ast.CaseStmt {
-		idx = 1
-		compileExpr(ctx, caseStmt.Inner[0])
-		cb.Case(1)
-	} else {
-		cb.Case(0)
-	}
-	if len(caseStmt.Inner) > 1 {
-		switch v := caseStmt.Inner[idx]; v.Kind {
+		if hasCase {
+			cb.End()
+			hasCase = false
+		}
+		if idx != 0 {
+			compileExpr(ctx, stmt.Inner[0])
+		}
+		cb.Case(idx)
+		switch caseBody := stmt.Inner[idx]; caseBody.Kind {
 		case ast.CaseStmt, ast.DefaultStmt:
 			cb.Fallthrough().End()
-			return compileCaseCond(ctx, cb, v)
+			stmt = caseBody
+			goto retry
+		default:
+			compileStmt(ctx, caseBody)
+			hasCase = true
 		}
 	}
-	return caseStmt.Inner[idx:]
+	if hasCase {
+		cb.End() // Case
+	}
+	cb.End() // switch
 }
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {

@@ -107,7 +107,14 @@ func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
 
 func compileSizeof(ctx *blockCtx, v *ast.Node) {
 	if v.Type != nil {
-		t := toType(ctx, v.Type, 0)
+		var typ *ast.Type
+		if len(v.Inner) > 0 {
+			typ = v.Inner[0].Type
+		} else {
+			qualType := ctx.typeOfSizeof(v)
+			typ = &ast.Type{QualType: qualType}
+		}
+		t := toType(ctx, typ, 0)
 		ctx.cb.Val(ctx.sizeof(t))
 		return
 	}

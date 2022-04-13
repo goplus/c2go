@@ -1,10 +1,11 @@
 #include <stdio.h>
 
 int main() {
-    int a = sizeof(1);
+    int a = sizeof(int);
     int *b = &a;
     switch (a) {
     case 4:
+        printf("Hi\n");
         printf("sizeof(int) == 4\n");
         break;
     case 8:
@@ -17,11 +18,11 @@ int main() {
     }
     while (a) {
         a--;
-        if (a == 3) {
+        if (a == 1) {
             goto done;
         }
-        if (a == 5) {
-            printf("a = 5, continue\n");
+        if (a == 3) {
+            printf("a = 3, continue\n");
             continue;
         }
     }

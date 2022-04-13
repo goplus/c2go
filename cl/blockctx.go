@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
@@ -76,12 +77,24 @@ func (p *blockCtx) labelOfGoto(v *ast.Node) string {
 	src := p.getSource(p.curfile)
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
-	s := string(src.data[off : off+n])
-	if s != "goto" {
-		log.Panicln("gotoLabel:", s)
+	op := string(src.data[off : off+n])
+	if op != "goto" {
+		log.Panicln("gotoOp:", op)
 	}
 	label := ident(src.data[off+n:], "label not found")
 	return label
+}
+
+func (p *blockCtx) typeOfSizeof(v *ast.Node) string {
+	src := p.getSource(p.curfile)
+	off := v.Range.Begin.Offset
+	n := int64(v.Range.Begin.TokLen)
+	op := string(src.data[off : off+n])
+	if op != "sizeof" {
+		log.Panicln("sizeofOp:", op)
+	}
+	typ := string(src.data[off+n : v.Range.End.Offset])
+	return strings.TrimPrefix(strings.TrimLeft(typ, " \t\r\n"), "(")
 }
 
 func (p *blockCtx) getInstr(v *ast.Node) string {
