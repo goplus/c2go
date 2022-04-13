@@ -134,7 +134,7 @@ func execFile(pkgname string, outfile string, doRunApp, doRunTest bool) {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
-	pkg, err := cl.NewPackage("", pkgname, doc, nil)
+	pkg, err := cl.NewPackage("", pkgname, outfile, doc, nil)
 	check(err)
 
 	gofile := outfile + ".go"

@@ -30,10 +30,6 @@ func newFuncCtx() *funcCtx {
 
 // -----------------------------------------------------------------------------
 
-type source struct {
-	data []byte
-}
-
 type blockCtx struct {
 	pkg      *gox.Package
 	cb       *gox.CodeBuilder
@@ -41,23 +37,22 @@ type blockCtx struct {
 	tyValist types.Type
 	unnameds map[ast.ID]*types.Named
 	typdecls map[string]*gox.TypeDecl
-	files    map[string]source
-	curfile  string
+	srcfile  string
+	cursrc   []byte
 	curfn    *funcCtx
 	asuBase  int // anonymous struct/union
 }
 
-func (p *blockCtx) getSource(file string) source {
-	if v, ok := p.files[file]; ok {
+func (p *blockCtx) getSource() []byte {
+	if v := p.cursrc; v != nil {
 		return v
 	}
-	b, err := os.ReadFile(file)
+	b, err := os.ReadFile(p.srcfile)
 	if err != nil {
 		log.Panicln("getSource:", err)
 	}
-	v := source{data: b}
-	p.files[file] = v
-	return v
+	p.cursrc = b
+	return b
 }
 
 func (p *blockCtx) getLabel(pos token.Pos, name string) *gox.Label {
@@ -74,34 +69,34 @@ func (p *blockCtx) getLabel(pos token.Pos, name string) *gox.Label {
 }
 
 func (p *blockCtx) labelOfGoto(v *ast.Node) string {
-	src := p.getSource(p.curfile)
+	src := p.getSource()
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
-	op := string(src.data[off : off+n])
+	op := string(src[off : off+n])
 	if op != "goto" {
 		log.Panicln("gotoOp:", op)
 	}
-	label := ident(src.data[off+n:], "label not found")
+	label := ident(src[off+n:], "label not found")
 	return label
 }
 
 func (p *blockCtx) typeOfSizeof(v *ast.Node) string {
-	src := p.getSource(p.curfile)
+	src := p.getSource()
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
-	op := string(src.data[off : off+n])
+	op := string(src[off : off+n])
 	if op != "sizeof" {
 		log.Panicln("sizeofOp:", op)
 	}
-	typ := string(src.data[off+n : v.Range.End.Offset])
+	typ := string(src[off+n : v.Range.End.Offset])
 	return strings.TrimPrefix(strings.TrimLeft(typ, " \t\r\n"), "(")
 }
 
 func (p *blockCtx) getInstr(v *ast.Node) string {
-	src := p.getSource(p.curfile)
+	src := p.getSource()
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
-	return string(src.data[off : off+n])
+	return string(src[off : off+n])
 }
 
 func ident(b []byte, msg string) string {

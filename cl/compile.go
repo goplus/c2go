@@ -4,7 +4,6 @@ import (
 	"go/token"
 	"go/types"
 	"log"
-	"strings"
 	"syscall"
 
 	goast "go/ast"
@@ -31,10 +30,6 @@ func SetDebug(flags int) {
 
 func logFile(ctx *blockCtx, node *ast.Node) {
 	if f := node.Loc.PresumedFile; f != "" {
-		ctx.curfile = f
-		if strings.HasSuffix(f, ".c") {
-			ctx.curfile += ".i"
-		}
 		if debugCompileDecl {
 			log.Println("==>", f)
 		}
@@ -60,7 +55,7 @@ type Config struct {
 	Importer types.Importer
 }
 
-func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.Package, err error) {
+func NewPackage(pkgPath, pkgName, srcfile string, file *ast.Node, conf *Config) (p *gox.Package, err error) {
 	if conf == nil {
 		conf = new(Config)
 	}
@@ -74,7 +69,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 		CanImplicitCast: implicitCast,
 	}
 	p = gox.NewPackage(pkgPath, pkgName, confGox)
-	err = loadFile(p, file)
+	err = loadFile(p, srcfile, file)
 	return
 }
 
@@ -99,7 +94,7 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, file *ast.Node) error {
+func loadFile(p *gox.Package, srcfile string, file *ast.Node) error {
 	if file.Kind != ast.TranslationUnitDecl {
 		return syscall.EINVAL
 	}
@@ -107,7 +102,7 @@ func loadFile(p *gox.Package, file *ast.Node) error {
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		typdecls: make(map[string]*gox.TypeDecl),
-		files:    make(map[string]source),
+		srcfile:  srcfile,
 	}
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
