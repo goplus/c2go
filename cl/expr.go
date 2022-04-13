@@ -49,7 +49,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.FloatingLiteral:
 		compileLiteral(ctx, token.FLOAT, expr)
 	case ast.ParenExpr, ast.ConstantExpr:
-		compileExpr(ctx, expr.Inner[0])
+		compileExprEx(ctx, expr.Inner[0], prompt, flags)
 	case ast.CStyleCastExpr:
 		compileTypeCast(ctx, expr, goNode(expr))
 	case ast.ArraySubscriptExpr:
