@@ -20,12 +20,67 @@ import (
 
 type funcCtx struct {
 	labels map[string]*gox.Label
+	base   int
 }
 
 func newFuncCtx() *funcCtx {
 	return &funcCtx{
 		labels: make(map[string]*gox.Label),
 	}
+}
+
+func (p *funcCtx) newLabel(cb *gox.CodeBuilder) *gox.Label {
+	p.base++
+	name := "_cgol_" + strconv.Itoa(p.base)
+	return cb.NewLabel(token.NoPos, name)
+}
+
+// -----------------------------------------------------------------------------
+
+type flowCtx interface { // switch, for
+	Parent() flowCtx
+}
+
+type baseFlowCtx struct {
+	parent flowCtx
+}
+
+func (p *baseFlowCtx) Parent() flowCtx {
+	return p.parent
+}
+
+// -----------------------------------------------------------------------------
+
+type switchCtx struct {
+	parent flowCtx
+	tag    types.Object
+	notmat types.Object // notMatched
+	next   *gox.Label
+	defau  *gox.Label
+	done   *gox.Label
+}
+
+func (p *switchCtx) Parent() flowCtx {
+	return p.parent
+}
+
+func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gox.Label {
+	l := ctx.curfn.newLabel(ctx.cb)
+	p.next = l
+	return l
+}
+
+func (p *switchCtx) defaultLabel(ctx *blockCtx) {
+	p.defau = ctx.curfn.newLabel(ctx.cb)
+}
+
+func (p *switchCtx) doneLabel(ctx *blockCtx) *gox.Label {
+	done := p.done
+	if done == nil {
+		done = ctx.curfn.newLabel(ctx.cb)
+		p.done = done
+	}
+	return done
 }
 
 // -----------------------------------------------------------------------------
@@ -40,7 +95,33 @@ type blockCtx struct {
 	srcfile  string
 	cursrc   []byte
 	curfn    *funcCtx
+	curflow  flowCtx
 	asuBase  int // anonymous struct/union
+}
+
+func (p *blockCtx) getSwitchCtx() *switchCtx {
+	for f := p.curflow; f != nil; f = f.Parent() {
+		if sw, ok := f.(*switchCtx); ok {
+			return sw
+		}
+	}
+	return nil
+}
+
+func (p *blockCtx) enterSwitch() *switchCtx {
+	f := &switchCtx{parent: p.curflow}
+	p.curflow = f
+	return f
+}
+
+func (p *blockCtx) enterFlow() *baseFlowCtx {
+	f := &baseFlowCtx{parent: p.curflow}
+	p.curflow = f
+	return f
+}
+
+func (p *blockCtx) leave(cur flowCtx) {
+	p.curflow = cur.Parent()
 }
 
 func (p *blockCtx) getSource() []byte {

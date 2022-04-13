@@ -37,6 +37,8 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileGotoStmt(ctx, stmt)
 	case ast.LabelStmt:
 		compileLabelStmt(ctx, stmt)
+	case ast.CaseStmt, ast.DefaultStmt:
+		compileCaseStmt(ctx, stmt)
 	case ast.NullStmt:
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", flagIgnoreResult)
@@ -103,10 +105,87 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
+	if isSimpleSwitch(switchStmt) {
+		compileSimpleSwitchStmt(ctx, switchStmt)
+		return
+	}
+
+	sw := ctx.enterSwitch()
+	defer ctx.leave(sw)
+
+	const (
+		tagName        = "_cgo_tag"
+		notMatchedName = "_cgo_nm"
+	)
+	cb := ctx.cb.DefineVarStart(token.NoPos, notMatchedName, tagName).Val(true)
+	compileExpr(ctx, switchStmt.Inner[0])
+	cb.EndInit(2)
+
+	scope := cb.Scope()
+	sw.notmat = scope.Lookup(notMatchedName)
+	sw.tag = scope.Lookup(tagName)
+
+	body := switchStmt.Inner[1]
+	if firstStmtNotCase(body) {
+		l := sw.nextCaseLabel(ctx)
+		cb.Goto(l)
+	}
+	compileStmt(ctx, body)
+	done := sw.doneLabel(ctx)
+	cb.Goto(done)
+	if sw.next != nil {
+		cb.Label(sw.next)
+	}
+	if sw.defau != nil {
+		cb.Goto(sw.defau)
+	}
+	cb.Label(done)
+}
+
+func compileCaseStmt(ctx *blockCtx, stmt *ast.Node) {
+	isCaseStmt := stmt.Kind == ast.CaseStmt
+	cb := ctx.cb
+	sw := ctx.getSwitchCtx()
+	if sw == nil {
+		log.Panicln("compileCaseStmt: case stmt isn't in switch")
+	}
+	if sw.next != nil {
+		cb.Label(sw.next)
+	}
+	if isCaseStmt {
+		cb.If().Val(sw.notmat).Val(sw.tag)
+		compileExpr(ctx, stmt.Inner[0])
+		cb.BinaryOp(token.NEQ).BinaryOp(token.LAND).Then()
+		l := sw.nextCaseLabel(ctx)
+		cb.Goto(l).End()
+		cb.VarRef(sw.notmat).Val(false).Assign(1)
+		compileStmt(ctx, stmt.Inner[1])
+	} else {
+		sw.defaultLabel(ctx)
+		compileStmt(ctx, stmt.Inner[0])
+	}
+}
+
+func firstStmtNotCase(body *ast.Node) bool {
+	if body.Kind != ast.CompoundStmt || len(body.Inner) == 0 {
+		return true
+	}
+	switch body.Inner[0].Kind {
+	case ast.CaseStmt, ast.DefaultStmt:
+		return false
+	}
+	return true
+}
+
+func compileSimpleSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	cb := ctx.cb.Switch()
 	compileExpr(ctx, switchStmt.Inner[0])
 	cb.Then()
-	bodyStmts := switchStmt.Inner[1].Inner
+	body := switchStmt.Inner[1]
+	if body.Kind != ast.CompoundStmt {
+		log.Panicln("compileSimpleSwitchStmt: not a simple switch stmt")
+	}
+	bodyStmts := body.Inner
 	hasCase := false
 	for i, n := 0, len(bodyStmts); i < n; i++ {
 		stmt := bodyStmts[i]
@@ -142,6 +221,10 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 		cb.End() // Case
 	}
 	cb.End() // switch
+}
+
+func isSimpleSwitch(stmt *ast.Node) bool {
+	return false
 }
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
