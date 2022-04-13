@@ -85,8 +85,8 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 			return false
 		}
 		if (t.Info() & types.IsInteger) != 0 { // int type
-			if isBool(V) {
-				pv.Type, pv.Val = T, castFromBoolExpr(pkg.CB(), T, pv).Val
+			if e, ok := gox.CastFromBool(pkg.CB(), T, pv); ok {
+				pv.Type, pv.Val = T, e.Val
 				return true
 			}
 		}

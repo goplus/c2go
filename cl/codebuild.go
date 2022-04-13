@@ -274,7 +274,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			elemSize := ctx.sizeof(t1.Elem())
 			arg2 := stk.Get(-1)
 			stk.PopN(2)
-			if t2 := arg2.Type; isInteger(t2) {
+			if t2 := arg2.Type; isIntegerOrBool(t2) {
 				castPtrType(cb, tyUintptr, arg1)
 				if t2 != tyUintptr {
 					cb.Typ(tyUintptr).Val(arg2).Call(1)
@@ -296,7 +296,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 				}
 				return
 			}
-			log.Panicln("binaryOp token.SUB - TODO: unexpected")
+			log.Panicln("binaryOp token.ADD/SUB - TODO: unexpected")
 		}
 	}
 	if isCmpOperator(op) {
@@ -313,11 +313,11 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	t := toType(ctx, v.Type, 0)
 	if isInteger(t) { // bool => int
 		args := stk.GetArgs(2)
-		if isBool(args[0].Type) {
-			args[0] = castFromBoolExpr(cb, t, args[0])
+		if v, ok := gox.CastFromBool(cb, t, args[0]); ok {
+			args[0] = v
 		}
-		if isBool(args[1].Type) {
-			args[1] = castFromBoolExpr(cb, t, args[1])
+		if v, ok := gox.CastFromBool(cb, t, args[1]); ok {
+			args[1] = v
 		}
 	}
 	cb.BinaryOp(op, src)
@@ -349,17 +349,6 @@ func castToBoolExpr(cb *gox.CodeBuilder) {
 	} else if isNilComparable(t) {
 		cb.Val(nil).BinaryOp(token.NEQ)
 	}
-}
-
-func castFromBoolExpr(cb *gox.CodeBuilder, typ types.Type, v *gox.Element) *gox.Element {
-	pkg := cb.Pkg()
-	results := types.NewTuple(types.NewParam(token.NoPos, pkg.Types, "", typ))
-	return cb.NewClosure(nil, results, false).BodyStart(pkg).
-		If().Val(v).Then().Val(1).Return(1).
-		Else().Val(0).Return(1).
-		End().
-		End().Call(0).
-		InternalStack().Pop()
 }
 
 func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize int) {

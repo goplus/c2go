@@ -12,7 +12,7 @@ typedef struct et_info {
   char fmttype;
   etByte base;
   etByte flags;
-  etByte type;
+  etByte type_;
   etByte charset;
   etByte prefix;
 } et_info;
@@ -344,7 +344,7 @@ void sqlite3_str_vappendf(
     for(idx=0; idx<((int)(sizeof(fmtinfo)/sizeof(fmtinfo[0]))); idx++){
       if( c==fmtinfo[idx].fmttype ){
         infop = &fmtinfo[idx];
-        xtype = infop->type;
+        xtype = infop->type_;
         break;
       }
     }

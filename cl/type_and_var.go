@@ -335,6 +335,10 @@ func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.No
 	log.Fatalln("initUnion: init with unexpect type -", t)
 }
 
+func isIntegerOrBool(typ types.Type) bool {
+	return isKind(typ, types.IsInteger|types.IsBoolean)
+}
+
 func isInteger(typ types.Type) bool {
 	return isKind(typ, types.IsInteger)
 }
