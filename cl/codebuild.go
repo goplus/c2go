@@ -411,28 +411,22 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 
 func typeCastIndex(ctx *blockCtx, lhs bool) {
 	cb := ctx.cb
-	stk := cb.InternalStack()
-	v := stk.Get(-2)
-	switch t := v.Type.(type) {
-	case *types.Pointer: // *T => *[N]T
-		arrt := arrayPtrOf(t.Elem())
-		idx := stk.Get(-1)
-		stk.PopN(2)
-		castPtrType(cb, arrt, v)
-		stk.Push(idx)
+	v := cb.Get(-2)
+	switch v.Type.(type) {
+	case *types.Pointer: // p[n] = *(p+n)
+		binaryOp(ctx, token.ADD, &cast.Node{})
+		if lhs {
+			cb.ElemRef()
+		} else {
+			cb.Elem()
+		}
+		return
 	}
 	if lhs {
 		cb.IndexRef(1)
 	} else {
 		cb.Index(1, false)
 	}
-}
-
-func arrayPtrOf(elem types.Type) types.Type {
-	const (
-		arrayLen = 1 << 20 // TODO: may need change
-	)
-	return types.NewPointer(types.NewArray(elem, arrayLen))
 }
 
 func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {
