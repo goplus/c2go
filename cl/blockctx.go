@@ -71,7 +71,10 @@ func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gox.Label {
 }
 
 func (p *switchCtx) defaultLabel(ctx *blockCtx) {
-	p.defau = ctx.curfn.newLabel(ctx.cb)
+	cb := ctx.cb
+	l := ctx.curfn.newLabel(cb)
+	p.defau = l
+	cb.Label(l)
 }
 
 func (p *switchCtx) doneLabel(ctx *blockCtx) *gox.Label {

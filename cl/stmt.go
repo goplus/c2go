@@ -28,7 +28,7 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 	case ast.ContinueStmt:
 		ctx.cb.Continue(nil)
 	case ast.BreakStmt:
-		ctx.cb.Break(nil)
+		compileBreakStmt(ctx, stmt)
 	case ast.DeclStmt:
 		compileDeclStmt(ctx, stmt, false)
 	case ast.CompoundStmt:
@@ -59,6 +59,9 @@ func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
+	flow := ctx.enterFlow()
+	defer ctx.leave(flow)
+
 	cb := ctx.cb.For().None().Then()
 	{
 		compileStmt(ctx, stmt.Inner[0])
@@ -73,6 +76,9 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
+	flow := ctx.enterFlow()
+	defer ctx.leave(flow)
+
 	cb := ctx.cb.For()
 	compileExpr(ctx, stmt.Inner[0])
 	castToBoolExpr(cb)
@@ -82,6 +88,9 @@ func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
+	flow := ctx.enterFlow()
+	defer ctx.leave(flow)
+
 	cb := ctx.cb.For()
 	if initStmt := stmt.Inner[0]; initStmt.Kind != "" {
 		compileStmt(ctx, initStmt)
@@ -102,6 +111,15 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileStmt(ctx, postStmt)
 	}
 	cb.End()
+}
+
+func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
+	if sw, ok := ctx.curflow.(*switchCtx); ok {
+		done := sw.doneLabel(ctx)
+		ctx.cb.Goto(done)
+		return
+	}
+	ctx.cb.Break(nil)
 }
 
 func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
@@ -149,10 +167,10 @@ func compileCaseStmt(ctx *blockCtx, stmt *ast.Node) {
 	if sw == nil {
 		log.Panicln("compileCaseStmt: case stmt isn't in switch")
 	}
-	if sw.next != nil {
-		cb.Label(sw.next)
-	}
 	if isCaseStmt {
+		if sw.next != nil {
+			cb.Label(sw.next)
+		}
 		cb.If().Val(sw.notmat).Val(sw.tag)
 		compileExpr(ctx, stmt.Inner[0])
 		cb.BinaryOp(token.NEQ).BinaryOp(token.LAND).Then()
@@ -178,6 +196,9 @@ func firstStmtNotCase(body *ast.Node) bool {
 }
 
 func compileSimpleSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
+	flow := ctx.enterFlow()
+	defer ctx.leave(flow)
+
 	cb := ctx.cb.Switch()
 	compileExpr(ctx, switchStmt.Inner[0])
 	cb.Then()
