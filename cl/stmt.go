@@ -25,10 +25,10 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileDoStmt(ctx, stmt)
 	case ast.ReturnStmt:
 		compileReturnStmt(ctx, stmt)
-	case ast.ContinueStmt:
-		ctx.cb.Continue(nil)
 	case ast.BreakStmt:
 		compileBreakStmt(ctx, stmt)
+	case ast.ContinueStmt:
+		compileContinueStmt(ctx, stmt)
 	case ast.DeclStmt:
 		compileDeclStmt(ctx, stmt, false)
 	case ast.CompoundStmt:
@@ -76,6 +76,27 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
+	if _, ok := ctx.curflow.(*switchCtx); !ok { // not in switch stmt
+		compileSimpleWhileStmt(ctx, stmt)
+		return
+	}
+
+	loop := ctx.enterLoop()
+	defer ctx.leave(loop)
+
+	loop.labelStart(ctx)
+
+	cb := ctx.cb.If()
+	compileExpr(ctx, stmt.Inner[0])
+	castToBoolExpr(cb)
+	done := loop.EndLabel(ctx)
+	cb.UnaryOp(token.NOT).Then().Goto(done).End()
+
+	compileStmt(ctx, stmt.Inner[1])
+	cb.Goto(loop.start).Label(done)
+}
+
+func compileSimpleWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
 
@@ -113,10 +134,17 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb.End()
 }
 
+func compileContinueStmt(ctx *blockCtx, stmt *ast.Node) {
+	if l := ctx.curflow.ContinueLabel(ctx); l != nil {
+		ctx.cb.Goto(l)
+		return
+	}
+	ctx.cb.Continue(nil)
+}
+
 func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
-	if sw, ok := ctx.curflow.(*switchCtx); ok {
-		done := sw.doneLabel(ctx)
-		ctx.cb.Goto(done)
+	if l := ctx.curflow.EndLabel(ctx); l != nil {
+		ctx.cb.Goto(l)
 		return
 	}
 	ctx.cb.Break(nil)
@@ -149,7 +177,7 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 		cb.Goto(l)
 	}
 	compileStmt(ctx, body)
-	done := sw.doneLabel(ctx)
+	done := sw.EndLabel(ctx)
 	cb.Goto(done)
 	if sw.next != nil {
 		cb.Label(sw.next)
@@ -167,6 +195,7 @@ func compileCaseStmt(ctx *blockCtx, stmt *ast.Node) {
 	if sw == nil {
 		log.Panicln("compileCaseStmt: case stmt isn't in switch")
 	}
+	var idx int
 	if isCaseStmt {
 		if sw.next != nil {
 			cb.Label(sw.next)
@@ -176,12 +205,12 @@ func compileCaseStmt(ctx *blockCtx, stmt *ast.Node) {
 		cb.BinaryOp(token.NEQ).BinaryOp(token.LAND).Then()
 		l := sw.nextCaseLabel(ctx)
 		cb.Goto(l).End()
-		cb.VarRef(sw.notmat).Val(false).Assign(1)
-		compileStmt(ctx, stmt.Inner[1])
+		idx = 1
 	} else {
-		sw.defaultLabel(ctx)
-		compileStmt(ctx, stmt.Inner[0])
+		sw.labelDefault(ctx)
 	}
+	cb.VarRef(sw.notmat).Val(false).Assign(1)
+	compileStmt(ctx, stmt.Inner[idx])
 }
 
 func firstStmtNotCase(body *ast.Node) bool {

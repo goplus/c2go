@@ -35,10 +35,18 @@ func (p *funcCtx) newLabel(cb *gox.CodeBuilder) *gox.Label {
 	return cb.NewLabel(token.NoPos, name)
 }
 
+func (p *funcCtx) label(cb *gox.CodeBuilder) *gox.Label {
+	l := p.newLabel(cb)
+	cb.Label(l)
+	return l
+}
+
 // -----------------------------------------------------------------------------
 
 type flowCtx interface { // switch, for
 	Parent() flowCtx
+	EndLabel(ctx *blockCtx) *gox.Label
+	ContinueLabel(ctx *blockCtx) *gox.Label
 }
 
 type baseFlowCtx struct {
@@ -49,19 +57,40 @@ func (p *baseFlowCtx) Parent() flowCtx {
 	return p.parent
 }
 
+func (p *baseFlowCtx) EndLabel(ctx *blockCtx) *gox.Label {
+	return nil
+}
+
+func (p *baseFlowCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+	return nil
+}
+
 // -----------------------------------------------------------------------------
 
 type switchCtx struct {
 	parent flowCtx
-	tag    types.Object
-	notmat types.Object // notMatched
+	done   *gox.Label
 	next   *gox.Label
 	defau  *gox.Label
-	done   *gox.Label
+	tag    types.Object
+	notmat types.Object // notMatched
 }
 
 func (p *switchCtx) Parent() flowCtx {
 	return p.parent
+}
+
+func (p *switchCtx) EndLabel(ctx *blockCtx) *gox.Label {
+	done := p.done
+	if done == nil {
+		done = ctx.curfn.newLabel(ctx.cb)
+		p.done = done
+	}
+	return done
+}
+
+func (p *switchCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+	return p.parent.ContinueLabel(ctx)
 }
 
 func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gox.Label {
@@ -70,20 +99,37 @@ func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gox.Label {
 	return l
 }
 
-func (p *switchCtx) defaultLabel(ctx *blockCtx) {
-	cb := ctx.cb
-	l := ctx.curfn.newLabel(cb)
-	p.defau = l
-	cb.Label(l)
+func (p *switchCtx) labelDefault(ctx *blockCtx) {
+	p.defau = ctx.curfn.label(ctx.cb)
 }
 
-func (p *switchCtx) doneLabel(ctx *blockCtx) *gox.Label {
+// -----------------------------------------------------------------------------
+
+type loopCtx struct {
+	parent flowCtx
+	done   *gox.Label
+	start  *gox.Label
+}
+
+func (p *loopCtx) Parent() flowCtx {
+	return p.parent
+}
+
+func (p *loopCtx) EndLabel(ctx *blockCtx) *gox.Label {
 	done := p.done
 	if done == nil {
 		done = ctx.curfn.newLabel(ctx.cb)
 		p.done = done
 	}
 	return done
+}
+
+func (p *loopCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+	return p.start
+}
+
+func (p *loopCtx) labelStart(ctx *blockCtx) {
+	p.start = ctx.curfn.label(ctx.cb)
 }
 
 // -----------------------------------------------------------------------------
@@ -109,6 +155,12 @@ func (p *blockCtx) getSwitchCtx() *switchCtx {
 		}
 	}
 	return nil
+}
+
+func (p *blockCtx) enterLoop() *loopCtx {
+	f := &loopCtx{parent: p.curflow}
+	p.curflow = f
+	return f
 }
 
 func (p *blockCtx) enterSwitch() *switchCtx {
