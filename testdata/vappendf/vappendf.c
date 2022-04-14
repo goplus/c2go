@@ -48,7 +48,6 @@ static const et_info fmtinfo[] = {
   { '%', 0, 0, 7, 0, 0 },
   { 'p', 16, 0, 13, 0, 1 },
 
-
   { 'T', 0, 0, 11, 0, 0 },
   { 'S', 0, 0, 12, 0, 0 },
   { 'r', 10, 1, 15, 0, 0 },
@@ -292,10 +291,6 @@ void sqlite3_str_vappendf(
             width = width >= -2147483647 ? -width : 0;
           }
 
-
-
-
-
           if( (c = fmt[1])!='.' && c!='l' ){
             c = *++fmt;
             done = 1;
@@ -324,10 +319,6 @@ void sqlite3_str_vappendf(
             precision = px & 0x7fffffff;
           }
 
-
-
-
-
           if( c=='l' ){
             --fmt;
           }else{
@@ -348,7 +339,6 @@ void sqlite3_str_vappendf(
         break;
       }
     }
-# 29836 "sqlite3.c"
     ((void)0);
     ((void)0);
     switch( xtype ){
@@ -468,8 +458,6 @@ void sqlite3_str_vappendf(
           realvalue = __builtin_va_arg(ap, double);
         }
 
-
-
         if( precision<0 ) precision = 6;
 
         if( precision>100000000 ){
@@ -520,9 +508,6 @@ void sqlite3_str_vappendf(
           }
         }
         bufpt = buf;
-
-
-
 
         if( xtype!=1 ){
           realvalue += rounder;
@@ -610,13 +595,8 @@ void sqlite3_str_vappendf(
         }
         *bufpt = 0;
 
-
-
-
         length = (int)(bufpt-zOut);
         bufpt = zOut;
-
-
 
         if( flag_zeropad && !flag_leftjustify && length < width){
           int i;
@@ -719,8 +699,6 @@ void sqlite3_str_vappendf(
         }
         if( precision>=0 ){
           if( flag_altform2 ){
-
-
             unsigned char *z = (unsigned char*)bufpt;
             while( precision-- > 0 && z[0] ){
               { if( (*(z++))>=0xc0 ){ while( (*z & 0xc0)==0x80 ){ z++; } } };

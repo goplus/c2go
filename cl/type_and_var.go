@@ -199,14 +199,14 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 
 func compileEnum(ctx *blockCtx, decl *ast.Node) {
 	scope := ctx.cb.Scope()
-	cdecl := ctx.pkg.NewConstDecl(scope)
+	cdecl := ctx.pkg.NewConstDefs(scope)
 	iotav := 0
 	for _, item := range decl.Inner {
 		iotav = compileEnumConst(ctx, cdecl, item, iotav)
 	}
 }
 
-func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDecl, v *ast.Node, iotav int) int {
+func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav int) int {
 	fn := func(cb *gox.CodeBuilder) int {
 		if v.Value != nil {
 			log.Fatalln("compileEnumConst: TODO -", v.Name)
@@ -247,7 +247,7 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	if debugCompileDecl {
 		log.Println("var", decl.Name, typ, "-", decl.Kind)
 	}
-	varDecl := ctx.pkg.NewVarEx(scope, goNodePos(decl), typ, decl.Name)
+	varDecl := ctx.pkg.NewVarDefs(scope).New(goNodePos(decl), typ, decl.Name)
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
 		if ufs, ok := checkUnion(ctx, typ); ok {
