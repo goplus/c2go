@@ -247,16 +247,24 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	if debugCompileDecl {
 		log.Println("var", decl.Name, typ, "-", decl.Kind)
 	}
-	varDecl := ctx.pkg.NewVarDefs(scope).New(goNodePos(decl), typ, decl.Name)
+	vdefs, inSwitch := ctx.getVarDefs(scope)
+	varDecl := vdefs.New(goNodePos(decl), typ, decl.Name)
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
 		if ufs, ok := checkUnion(ctx, typ); ok {
 			initUnionVar(ctx, decl.Name, ufs, initExpr)
 			return
 		}
-		cb := varDecl.InitStart(ctx.pkg)
-		varInit(ctx, typ, initExpr)
-		cb.EndInit(1)
+		if inSwitch {
+			addr := varDecl.Ref(decl.Name)
+			cb := ctx.cb.VarRef(addr)
+			varInit(ctx, typ, initExpr)
+			cb.Assign(1)
+		} else {
+			cb := varDecl.InitStart(ctx.pkg)
+			varInit(ctx, typ, initExpr)
+			cb.EndInit(1)
+		}
 	}
 }
 

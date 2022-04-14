@@ -72,6 +72,8 @@ type switchCtx struct {
 	done   *gox.Label
 	next   *gox.Label
 	defau  *gox.Label
+	vdefs  *gox.VarDefs
+	scope  *types.Scope
 	tag    types.Object
 	notmat types.Object // notMatched
 }
@@ -157,14 +159,23 @@ func (p *blockCtx) getSwitchCtx() *switchCtx {
 	return nil
 }
 
-func (p *blockCtx) enterLoop() *loopCtx {
-	f := &loopCtx{parent: p.curflow}
+func (p *blockCtx) getVarDefs(scope *types.Scope) (vdefs *gox.VarDefs, inSwitch bool) {
+	if sw := p.getSwitchCtx(); sw != nil && sw.scope == scope {
+		return sw.vdefs, true
+	}
+	return p.pkg.NewVarDefs(scope), false
+}
+
+func (p *blockCtx) enterSwitch() *switchCtx {
+	scope := p.cb.Scope()
+	vdefs := p.pkg.NewVarDefs(scope)
+	f := &switchCtx{parent: p.curflow, vdefs: vdefs, scope: scope}
 	p.curflow = f
 	return f
 }
 
-func (p *blockCtx) enterSwitch() *switchCtx {
-	f := &switchCtx{parent: p.curflow}
+func (p *blockCtx) enterLoop() *loopCtx {
+	f := &loopCtx{parent: p.curflow}
 	p.curflow = f
 	return f
 }
