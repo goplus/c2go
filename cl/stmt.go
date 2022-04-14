@@ -46,17 +46,7 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 	}
 }
 
-func compileLabelStmt(ctx *blockCtx, stmt *ast.Node) {
-	l := ctx.getLabel(goNodePos(stmt), stmt.Name)
-	ctx.cb.Label(l)
-	compileStmt(ctx, stmt.Inner[0])
-}
-
-func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
-	label := ctx.labelOfGoto(stmt)
-	l := ctx.getLabel(goNodePos(stmt), label)
-	ctx.cb.Goto(l)
-}
+// -----------------------------------------------------------------------------
 
 func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 	flow := ctx.enterFlow()
@@ -74,6 +64,8 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 			End()
 	}
 }
+
+// -----------------------------------------------------------------------------
 
 func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	if _, ok := ctx.curflow.(*switchCtx); !ok { // not in switch stmt
@@ -108,6 +100,8 @@ func compileSimpleWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb.End()
 }
 
+// -----------------------------------------------------------------------------
+
 func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
@@ -134,6 +128,8 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb.End()
 }
 
+// -----------------------------------------------------------------------------
+
 func compileContinueStmt(ctx *blockCtx, stmt *ast.Node) {
 	if l := ctx.curflow.ContinueLabel(ctx); l != nil {
 		ctx.cb.Goto(l)
@@ -150,8 +146,10 @@ func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
 	ctx.cb.Break(nil)
 }
 
+// -----------------------------------------------------------------------------
+
 func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
-	if isSimpleSwitch(switchStmt) {
+	if isSimpleSwitch(ctx, switchStmt) {
 		compileSimpleSwitchStmt(ctx, switchStmt)
 		return
 	}
@@ -224,6 +222,81 @@ func firstStmtNotCase(body *ast.Node) bool {
 	return true
 }
 
+// -----------------------------------------------------------------------------
+
+type nonSimpleSwChecker struct {
+	labels  map[string]int
+	idxCase int
+}
+
+func (p *nonSimpleSwChecker) checkStmt(ctx *blockCtx, stmt *ast.Node) {
+	var name string
+	switch stmt.Kind {
+	case ast.LabelStmt:
+		p.checkStmt(ctx, stmt.Inner[0])
+		name = stmt.Name
+	case ast.GotoStmt:
+		name = ctx.labelOfGoto(stmt)
+	case ast.CompoundStmt:
+		for _, item := range stmt.Inner {
+			p.checkStmt(ctx, item)
+		}
+	case ast.IfStmt:
+		p.checkStmt(ctx, stmt.Inner[1])
+		if stmt.HasElse {
+			p.checkStmt(ctx, stmt.Inner[2])
+		}
+	case ast.CaseStmt, ast.DefaultStmt:
+		panic(true)
+	default:
+		return
+	}
+	if idx, ok := p.labels[name]; ok {
+		if idx != p.idxCase {
+			panic(true)
+		}
+	} else {
+		p.labels[name] = p.idxCase
+	}
+}
+
+func isSimpleSwitch(ctx *blockCtx, switchStmt *ast.Node) (simple bool) {
+	body := switchStmt.Inner[1]
+	if firstStmtNotCase(body) {
+		return false
+	}
+	bodyStmts := body.Inner
+	checker := &nonSimpleSwChecker{
+		labels: make(map[string]int), // labelName => idxCase
+	}
+	defer func() {
+		simple = recover() == nil
+	}()
+	for i, n := 0, len(bodyStmts); i < n; i++ {
+		stmt := bodyStmts[i]
+	retry:
+		var idx int
+		switch stmt.Kind {
+		case ast.CaseStmt:
+			idx = 1
+		case ast.DefaultStmt:
+		default:
+			checker.checkStmt(ctx, stmt)
+			continue
+		}
+		checker.idxCase++
+		switch caseBody := stmt.Inner[idx]; caseBody.Kind {
+		case ast.CaseStmt, ast.DefaultStmt:
+			stmt = caseBody
+			checker.idxCase++
+			goto retry
+		default:
+			checker.checkStmt(ctx, caseBody)
+		}
+	}
+	return
+}
+
 func compileSimpleSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
@@ -273,9 +346,21 @@ func compileSimpleSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	cb.End() // switch
 }
 
-func isSimpleSwitch(stmt *ast.Node) bool {
-	return false
+// -----------------------------------------------------------------------------
+
+func compileLabelStmt(ctx *blockCtx, stmt *ast.Node) {
+	l := ctx.getLabel(goNodePos(stmt), stmt.Name)
+	ctx.cb.Label(l)
+	compileStmt(ctx, stmt.Inner[0])
 }
+
+func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
+	label := ctx.labelOfGoto(stmt)
+	l := ctx.getLabel(goNodePos(stmt), label)
+	ctx.cb.Goto(l)
+}
+
+// -----------------------------------------------------------------------------
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb := ctx.cb
@@ -291,6 +376,8 @@ func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb.End()
 }
 
+// -----------------------------------------------------------------------------
+
 func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 	n := len(stmt.Inner)
 	if n > 0 {
@@ -305,6 +392,8 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 func getRetType(cb *gox.CodeBuilder) types.Type {
 	return cb.Func().Type().(*types.Signature).Results().At(0).Type()
 }
+
+// -----------------------------------------------------------------------------
 
 func compileCompoundStmt(ctx *blockCtx, stmts *ast.Node) {
 	for _, stmt := range stmts.Inner {

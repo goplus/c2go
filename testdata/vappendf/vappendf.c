@@ -712,7 +712,6 @@ void sqlite3_str_vappendf(
         }
       adjust_width_for_utf8:
         if( flag_altform2 && width>0 ){
-
           int ii = length - 1;
           while( ii>=0 ) if( (bufpt[ii--] & 0xc0)==0x80 ) width++;
         }
