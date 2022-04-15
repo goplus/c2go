@@ -16,6 +16,10 @@ import (
 	ctypes "github.com/goplus/c2go/clang/types"
 )
 
+const (
+	space = " \t\r\n"
+)
+
 // -----------------------------------------------------------------------------
 
 type funcCtx struct {
@@ -227,16 +231,31 @@ func (p *blockCtx) labelOfGoto(v *ast.Node) string {
 	return label
 }
 
-func (p *blockCtx) typeOfSizeof(v *ast.Node) string {
+func (p *blockCtx) paramsOfOfsetof(v *ast.Node) (string, string) {
+	src := p.getSource()
+	off := v.Range.Begin.Offset
+	n := int64(v.Range.Begin.TokLen)
+	op := string(src[off : off+n])
+	if op != "__builtin_offsetof" {
+		log.Panicln("unknown offsetofOp:", op)
+	}
+	params := strings.SplitN(paramsOf(src[off+n:v.Range.End.Offset]), ",", 2)
+	return params[0], strings.Trim(params[1], space)
+}
+
+func paramsOf(v []byte) string {
+	return strings.TrimPrefix(strings.TrimLeft(string(v), space), "(")
+}
+
+func (p *blockCtx) paramOfSizeof(v *ast.Node) string {
 	src := p.getSource()
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
 	op := string(src[off : off+n])
 	if op != "sizeof" {
-		log.Panicln("sizeofOp:", op)
+		log.Panicln("unknown sizeofOp:", op)
 	}
-	typ := string(src[off+n : v.Range.End.Offset])
-	return strings.TrimPrefix(strings.TrimLeft(typ, " \t\r\n"), "(")
+	return paramsOf(src[off+n : v.Range.End.Offset])
 }
 
 func (p *blockCtx) getInstr(v *ast.Node) string {
@@ -247,7 +266,7 @@ func (p *blockCtx) getInstr(v *ast.Node) string {
 }
 
 func ident(b []byte, msg string) string {
-	b = bytes.TrimLeft(b, " \t\r\n")
+	b = bytes.TrimLeft(b, space)
 	idx := bytes.IndexFunc(b, func(r rune) bool {
 		return !ctype.Is(ctype.CSYMBOL_NEXT_CHAR, r)
 	})
@@ -259,6 +278,32 @@ func ident(b []byte, msg string) string {
 
 func (p *blockCtx) sizeof(typ types.Type) int {
 	return int(p.pkg.Sizeof(typ))
+}
+
+func (p *blockCtx) offsetof(typ types.Type, name string) int {
+retry:
+	switch t := typ.(type) {
+	case *types.Struct:
+		if flds, idx := getFld(t, name); idx >= 0 {
+			return int(p.pkg.Offsetsof(flds)[idx])
+		}
+	case *types.Named:
+		typ = t.Underlying()
+		goto retry
+	}
+	log.Panicf("offsetof(%v, %v): field not found", typ, name)
+	return -1
+}
+
+func getFld(t *types.Struct, name string) (flds []*types.Var, i int) {
+	for n := t.NumFields(); i < n; i++ {
+		f := t.Field(i)
+		flds = append(flds, f)
+		if f.Name() == name {
+			return
+		}
+	}
+	return nil, -1
 }
 
 const (

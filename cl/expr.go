@@ -66,6 +66,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileVAArgExpr(ctx, expr)
 	case ast.AtomicExpr:
 		compileAtomicExpr(ctx, expr)
+	case ast.OffsetOfExpr:
+		compileOffsetOfExpr(ctx, expr)
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}
@@ -105,13 +107,22 @@ func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
 
 // -----------------------------------------------------------------------------
 
+func compileOffsetOfExpr(ctx *blockCtx, v *ast.Node) {
+	tyStruct, name := ctx.paramsOfOfsetof(v)
+	if debugCompileDecl {
+		log.Println("==> offset", tyStruct, name)
+	}
+	t := toType(ctx, &ast.Type{QualType: tyStruct}, 0)
+	ctx.cb.Val(ctx.offsetof(t, name))
+}
+
 func compileSizeof(ctx *blockCtx, v *ast.Node) {
 	var t types.Type
 	if len(v.Inner) > 0 {
 		compileExpr(ctx, v.Inner[0])
 		t = ctx.cb.InternalStack().Pop().Type
 	} else {
-		qualType := ctx.typeOfSizeof(v)
+		qualType := ctx.paramOfSizeof(v)
 		if debugCompileDecl {
 			log.Println("==> sizeof", qualType)
 		}

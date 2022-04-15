@@ -101,6 +101,7 @@ const (
 	ImplicitCastExpr         Kind = "ImplicitCastExpr"
 	ImplicitValueInitExpr    Kind = "ImplicitValueInitExpr"
 	UnaryExprOrTypeTraitExpr Kind = "UnaryExprOrTypeTraitExpr"
+	OffsetOfExpr             Kind = "OffsetOfExpr"
 	ArraySubscriptExpr       Kind = "ArraySubscriptExpr"
 	AtomicExpr               Kind = "AtomicExpr"
 	VAArgExpr                Kind = "VAArgExpr"
