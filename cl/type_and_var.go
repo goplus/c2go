@@ -232,6 +232,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 			return
 		}
 		if isValistType(ctx, typ) { // skip valist variable
+			scope.Insert(types.NewVar(token.NoPos, ctx.pkg.Types, decl.Name, typ))
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl)

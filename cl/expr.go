@@ -153,7 +153,9 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		}
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
-		arrayToElemPtr(ctx.cb)
+		if cb := ctx.cb; !isEllipsis(ctx, cb) {
+			arrayToElemPtr(cb)
+		}
 	case ast.IntegralCast, ast.FloatingCast, ast.BitCast, ast.IntegralToFloating,
 		ast.FloatingComplexCast, ast.FloatingRealToComplex:
 		compileTypeCast(ctx, v, nil)
@@ -207,29 +209,25 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 			}
 		}
 		cb := ctx.cb
-		ellipsis := n > 2 && isValist(ctx, v.Inner[n-1])
-		if ellipsis {
-			n--
-		}
 		for i := 0; i < n; i++ {
 			compileExpr(ctx, v.Inner[i])
 		}
+		ellipsis := n > 2 && isEllipsis(ctx, cb)
 		if ellipsis {
 			_, o := cb.Scope().LookupParent(valistName, token.NoPos)
+			cb.InternalStack().Pop()
 			cb.Val(o)
-		} else {
-			n--
 		}
-		cb.CallWith(n, ellipsis, goNode(v))
+		cb.CallWith(n-1, ellipsis, goNode(v))
 	}
+}
+
+func isEllipsis(ctx *blockCtx, cb *gox.CodeBuilder) bool {
+	return isValistType(ctx, cb.Get(-1).Type)
 }
 
 func isBuiltinFn(fn *ast.Node) bool {
 	return fn.CastKind == ast.BuiltinFnToFnPtr
-}
-
-func isValist(ctx *blockCtx, v *ast.Node) bool {
-	return v.CastKind == ast.ArrayToPointerDecay && isValistType(ctx, toType(ctx, v.Type, 0))
 }
 
 // -----------------------------------------------------------------------------

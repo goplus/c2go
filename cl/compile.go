@@ -186,10 +186,12 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}
 	}
+	var vaParam *types.Var
 	if variadic = isVariadicFn(fnType); variadic {
 		params = append(params, newVariadicParam(ctx, hasName))
 	} else {
-		variadic = checkVariadic(ctx, params, hasName)
+		vaParam = checkVariadic(ctx, params, hasName)
+		variadic = vaParam != nil
 	}
 	pkg := ctx.pkg
 	if t := toType(ctx, fnType, parser.FlagGetRetType); ctypes.NotVoid(t) {
@@ -207,6 +209,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Fatalln("compileFunc:", err)
 		}
 		cb := f.BodyStart(pkg)
+		if vaParam != nil {
+			cb.Scope().Insert(vaParam)
+		}
 		ctx.curfn = newFuncCtx()
 		compileCompoundStmt(ctx, body)
 		ctx.curfn = nil
@@ -266,15 +271,15 @@ func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
 }
 
-func checkVariadic(ctx *blockCtx, params []*types.Var, hasName bool) bool {
+func checkVariadic(ctx *blockCtx, params []*types.Var, hasName bool) (ret *types.Var) {
 	n := len(params)
 	if n > 0 {
 		if last := params[n-1]; isValistType(ctx, last.Type()) {
-			params[n-1] = newVariadicParam(ctx, hasName)
-			return true
+			ret, params[n-1] = last, newVariadicParam(ctx, hasName)
+			return
 		}
 	}
-	return false
+	return nil
 }
 
 func isValistType(ctx *blockCtx, t types.Type) bool {
