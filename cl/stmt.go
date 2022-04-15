@@ -241,11 +241,13 @@ func (p *nonSimpleSwChecker) checkStmt(ctx *blockCtx, stmt *ast.Node) {
 		for _, item := range stmt.Inner {
 			p.checkStmt(ctx, item)
 		}
+		return
 	case ast.IfStmt:
 		p.checkStmt(ctx, stmt.Inner[1])
 		if stmt.HasElse {
 			p.checkStmt(ctx, stmt.Inner[2])
 		}
+		return
 	case ast.CaseStmt, ast.DefaultStmt:
 		panic(true)
 	default:

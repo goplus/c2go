@@ -81,8 +81,28 @@ int main() {
 	return 0;
 }
 `},
+		{name: "SqliteN1", simpleSw: true, code: `
+void foo(int i, int r) {
+	switch( i ){
+		case 4: {
+		  int x;
+		  ((void)x);
+		  break;
+		}
+		case 5: {
+		  int y = (int)r;
+		  ((void)y);
+		  break;
+		}
 	}
+}
+`},
+	}
+	sel := ""
 	for _, c := range cases {
+		if sel != "" && c.name != sel {
+			continue
+		}
 		t.Run(c.name, func(t *testing.T) {
 			f, src := parse(c.code)
 			ctx := &blockCtx{cursrc: src}
