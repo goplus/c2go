@@ -67,6 +67,7 @@ const (
 	ReturnsTwiceAttr         Kind = "ReturnsTwiceAttr"
 	NoThrowAttr              Kind = "NoThrowAttr"
 	NoInlineAttr             Kind = "NoInlineAttr"
+	NoSanitizeAttr           Kind = "NoSanitizeAttr"
 	MayAliasAttr             Kind = "MayAliasAttr"
 	MaxFieldAlignmentAttr    Kind = "MaxFieldAlignmentAttr"
 	WarnUnusedResultAttr     Kind = "WarnUnusedResultAttr"
