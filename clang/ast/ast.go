@@ -142,6 +142,7 @@ type CastKind string
 const (
 	LValueToRValue         CastKind = "LValueToRValue"
 	BitCast                CastKind = "BitCast"
+	FloatingToIntegral     CastKind = "FloatingToIntegral"
 	FloatingComplexCast    CastKind = "FloatingComplexCast"
 	FloatingRealToComplex  CastKind = "FloatingRealToComplex"
 	FloatingCast           CastKind = "FloatingCast"

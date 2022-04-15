@@ -168,7 +168,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 			arrayToElemPtr(cb)
 		}
 	case ast.IntegralCast, ast.FloatingCast, ast.BitCast, ast.IntegralToFloating,
-		ast.FloatingComplexCast, ast.FloatingRealToComplex:
+		ast.FloatingToIntegral, ast.FloatingComplexCast, ast.FloatingRealToComplex:
 		compileTypeCast(ctx, v, nil)
 	case ast.NullToPointer:
 		ctx.cb.Val(nil)

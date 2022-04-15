@@ -84,6 +84,11 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 				pv.Type, pv.Val = T, e.Val
 				return true
 			}
+			if v, ok := V.(*types.Basic); ok && (v.Info()&types.IsInteger) != 0 { // int => int
+				e := pkg.CB().Typ(T).Val(pv).Call(1).InternalStack().Pop()
+				pv.Type, pv.Val = T, e.Val
+				return true
+			}
 		}
 	case *types.Pointer:
 		return false
