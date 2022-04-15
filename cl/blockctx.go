@@ -47,6 +47,26 @@ func (p *funcCtx) label(cb *gox.CodeBuilder) *gox.Label {
 
 // -----------------------------------------------------------------------------
 
+type varNamespace struct {
+	parent *varNamespace
+	vars   map[string]types.Object
+}
+
+func newVarNamespace(parent *varNamespace) *varNamespace {
+	return &varNamespace{parent: parent, vars: make(map[string]types.Object)}
+}
+
+func (p *varNamespace) lookupParent(name string) types.Object {
+	for ; p != nil; p = p.parent {
+		if o, ok := p.vars[name]; ok {
+			return o
+		}
+	}
+	return nil
+}
+
+// -----------------------------------------------------------------------------
+
 type flowCtx interface { // switch, for
 	Parent() flowCtx
 	EndLabel(ctx *blockCtx) *gox.Label
@@ -78,8 +98,10 @@ type switchCtx struct {
 	defau  *gox.Label
 	vdefs  *gox.VarDefs
 	scope  *types.Scope
+	curns  *varNamespace
 	tag    types.Object
 	notmat types.Object // notMatched
+	base   int
 }
 
 func (p *switchCtx) Parent() flowCtx {
@@ -107,6 +129,28 @@ func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gox.Label {
 
 func (p *switchCtx) labelDefault(ctx *blockCtx) {
 	p.defau = ctx.curfn.label(ctx.cb)
+}
+
+func (p *switchCtx) enterNamespace() (old *varNamespace) {
+	old = p.curns
+	p.curns = newVarNamespace(p.curns)
+	return
+}
+
+func (p *switchCtx) leave(old *varNamespace) {
+	p.curns = old
+}
+
+func (p *switchCtx) newVar(pos token.Pos, typ types.Type, name string) *gox.VarDecl {
+	ns := p.curns
+	if _, ok := ns.vars[name]; ok {
+		log.Panicln("TODO: variable exists -", name)
+	}
+	p.base++
+	realName := name + "_cgo" + strconv.Itoa(p.base)
+	ret := p.vdefs.New(pos, typ, realName)
+	ns.vars[name] = ret.Ref(realName)
+	return ret
 }
 
 // -----------------------------------------------------------------------------
@@ -154,6 +198,24 @@ type blockCtx struct {
 	asuBase  int // anonymous struct/union
 }
 
+func (p *blockCtx) lookupParent(name string) types.Object {
+	if _, o := p.cb.Scope().LookupParent(name, token.NoPos); o != nil {
+		return o
+	}
+	if sw := p.getSwitchCtx(); sw != nil {
+		return sw.curns.lookupParent(name)
+	}
+	return nil
+}
+
+func (p *blockCtx) newVar(
+	scope *types.Scope, pos token.Pos, typ types.Type, name string) (ret *gox.VarDecl, inSwitch bool) {
+	if sw := p.getSwitchCtx(); sw != nil && sw.scope == scope {
+		return sw.newVar(pos, typ, name), true
+	}
+	return p.pkg.NewVarEx(scope, pos, typ, name), false
+}
+
 func (p *blockCtx) getSwitchCtx() *switchCtx {
 	for f := p.curflow; f != nil; f = f.Parent() {
 		if sw, ok := f.(*switchCtx); ok {
@@ -163,17 +225,11 @@ func (p *blockCtx) getSwitchCtx() *switchCtx {
 	return nil
 }
 
-func (p *blockCtx) getVarDefs(scope *types.Scope) (vdefs *gox.VarDefs, inSwitch bool) {
-	if sw := p.getSwitchCtx(); sw != nil && sw.scope == scope {
-		return sw.vdefs, true
-	}
-	return p.pkg.NewVarDefs(scope), false
-}
-
 func (p *blockCtx) enterSwitch() *switchCtx {
+	ns := newVarNamespace(nil)
 	scope := p.cb.Scope()
 	vdefs := p.pkg.NewVarDefs(scope)
-	f := &switchCtx{parent: p.curflow, vdefs: vdefs, scope: scope}
+	f := &switchCtx{parent: p.curflow, vdefs: vdefs, scope: scope, curns: ns}
 	p.curflow = f
 	return f
 }

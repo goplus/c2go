@@ -208,7 +208,15 @@ func compileCaseStmt(ctx *blockCtx, stmt *ast.Node) {
 		sw.labelDefault(ctx)
 	}
 	cb.VarRef(sw.notmat).Val(false).Assign(1)
-	compileStmt(ctx, stmt.Inner[idx])
+	caseBody := stmt.Inner[idx]
+	switch caseBody.Kind {
+	case ast.CompoundStmt:
+		nsOld := sw.enterNamespace()
+		defer sw.leave(nsOld)
+		fallthrough
+	default:
+		compileStmt(ctx, caseBody)
+	}
 }
 
 func firstStmtNotCase(body *ast.Node) bool {

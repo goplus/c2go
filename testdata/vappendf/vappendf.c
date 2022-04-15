@@ -779,7 +779,9 @@ void sqlite3_str_vappendf(
         break;
       }
       case 12: {
+        int i = 0;
         SrcItem *pItem;
+        (void)i;
         if( (pAccum->printfFlags & 0x01)==0 ) return;
         pItem = __builtin_va_arg(ap, SrcItem*);
         ((void)0);
