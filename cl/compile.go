@@ -181,7 +181,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			body = item
 		case ast.BuiltinAttr, ast.FormatAttr, ast.AsmLabelAttr, ast.AvailabilityAttr, ast.ColdAttr, ast.DeprecatedAttr,
 			ast.AlwaysInlineAttr, ast.WarnUnusedResultAttr, ast.NoThrowAttr, ast.NoInlineAttr, ast.AllocSizeAttr,
-			ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr:
+			ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr, ast.ReturnsTwiceAttr:
 		default:
 			log.Fatalln("compileFunc: unknown kind =", item.Kind)
 		}

@@ -76,7 +76,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 				}
 				break
 			}
-		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr:
+		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr, ast.PackedAttr:
 		default:
 			log.Fatalln("toStructType: unknown field kind =", decl.Kind)
 		}
@@ -117,7 +117,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
 				}
 				break
 			}
-		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr:
+		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr, ast.PackedAttr:
 		default:
 			log.Fatalln("toUnionType: unknown field kind =", decl.Kind)
 		}

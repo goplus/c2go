@@ -64,6 +64,7 @@ const (
 	PureAttr                 Kind = "PureAttr"
 	PackedAttr               Kind = "PackedAttr"
 	GNUInlineAttr            Kind = "GNUInlineAttr"
+	ReturnsTwiceAttr         Kind = "ReturnsTwiceAttr"
 	NoThrowAttr              Kind = "NoThrowAttr"
 	NoInlineAttr             Kind = "NoInlineAttr"
 	MayAliasAttr             Kind = "MayAliasAttr"
