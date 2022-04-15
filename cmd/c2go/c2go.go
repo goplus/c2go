@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -18,12 +19,13 @@ import (
 )
 
 var (
-	verbose = flag.Bool("v", false, "print verbose information")
-	test    = flag.Bool("test", false, "run test")
+	verbose  = flag.Bool("v", false, "print verbose information")
+	failfast = flag.Bool("ff", false, "fail fast (stop if an error is encountered)")
+	test     = flag.Bool("test", false, "run test")
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: c2go [-test -v] [pkgname] source.c\n")
+	fmt.Fprintf(os.Stderr, "Usage: c2go [-test -ff -v] [pkgname] source.c\n")
 	flag.PrintDefaults()
 }
 
@@ -106,6 +108,12 @@ func execDirRecursively(dir string, doRunApp, doRunTest bool) {
 }
 
 func execDir(pkgname string, dir string, doRunApp, doRunTest bool) int {
+	defer func() {
+		if e := recover(); e != nil && e != errStop {
+			panic(e)
+		}
+	}()
+
 	cwd, err := os.Getwd()
 	check(err)
 
@@ -158,6 +166,8 @@ func checkEqual(prompt string, a, expected []byte) {
 
 	fmt.Fprintln(os.Stderr, "\n=> Expected", prompt)
 	os.Stderr.Write(expected)
+
+	fatal()
 }
 
 func runTest(dir string) {
@@ -215,11 +225,22 @@ func runCApp(dir string, stdout, stderr io.Writer) {
 func check(err error) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		fatal()
 	}
 }
 
 func fatalf(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
-	os.Exit(1)
+	fatal()
 }
+
+func fatal() {
+	if *failfast {
+		os.Exit(1)
+	}
+	panic(errStop)
+}
+
+var (
+	errStop = errors.New("stop")
+)
