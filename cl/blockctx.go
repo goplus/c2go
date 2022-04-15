@@ -283,6 +283,7 @@ func (p *blockCtx) initCTypes() {
 	aliasType(scope, pkg, "float", types.Typ[types.Float32])
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
 	aliasType(scope, pkg, "__int128", ctypes.Int128)
+	aliasType(scope, pkg, "_Bool", types.Typ[types.Bool])
 	decl_builtin(p)
 }
 

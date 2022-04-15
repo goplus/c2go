@@ -432,7 +432,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 					return nil, 0, p.newError("expect )")
 				case token.IDENT:
 					switch p.lit {
-					case "_Nullable", "_Nonnull":
+					case "_Nullable", "_Nonnull", "const":
 						goto nextTok
 					}
 					fallthrough
