@@ -126,7 +126,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		case ast.RecordDecl:
-			name, suKind := ctx.getSuName(decl, "", decl.TagUsed)
+			name, suKind := ctx.getSuName(decl, decl.TagUsed)
 			typ := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
 				break

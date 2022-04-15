@@ -38,7 +38,7 @@ retry:
 	return
 }
 
-func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *types.Struct {
+func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct {
 	b := newStructBuilder()
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	n := len(struc.Inner)
@@ -57,14 +57,9 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 				b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 			}
 		case ast.RecordDecl:
-			name, suKind := ctx.getSuName(decl, ns, decl.TagUsed)
+			name, suKind := ctx.getSuName(decl, decl.TagUsed)
 			typ := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
-				if suKind == suNested {
-					mangledName := ctypes.MangledName(decl.TagUsed, decl.Name)
-					alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, mangledName, typ)
-					scope.Insert(alias)
-				}
 				break
 			}
 			for i+1 < n {
@@ -89,7 +84,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, ns string) *ty
 	return b.Type(ctx, t)
 }
 
-func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types.Type {
+func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
 	b := newUnionBuilder()
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	n := len(unio.Inner)
@@ -103,14 +98,9 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, ns string) types
 			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
 			b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
 		case ast.RecordDecl:
-			name, suKind := ctx.getSuName(decl, ns, decl.TagUsed)
+			name, suKind := ctx.getSuName(decl, decl.TagUsed)
 			typ := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
-				if suKind == suNested {
-					mangledName := ctypes.MangledName(decl.TagUsed, decl.Name)
-					alias := types.NewTypeName(token.NoPos, ctx.pkg.Types, mangledName, typ)
-					scope.Insert(alias)
-				}
 				break
 			}
 			for i+1 < n {
@@ -188,9 +178,9 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 		var inner types.Type
 		switch decl.TagUsed {
 		case "struct":
-			inner = toStructType(ctx, t.Type(), decl, name)
+			inner = toStructType(ctx, t.Type(), decl)
 		default:
-			inner = toUnionType(ctx, t.Type(), decl, name)
+			inner = toUnionType(ctx, t.Type(), decl)
 		}
 		return t.InitType(ctx.pkg, inner)
 	}

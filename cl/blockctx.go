@@ -264,14 +264,10 @@ func (p *blockCtx) sizeof(typ types.Type) int {
 const (
 	suNormal = iota
 	suAnonymous
-	suNested
 )
 
-func (p *blockCtx) getSuName(v *ast.Node, ns, tag string) (string, int) {
+func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
 	if name := v.Name; name != "" {
-		if v.CompleteDefinition && ns != "" {
-			return ns + "_" + name, suNested // TODO: use sth to replace _
-		}
 		return ctypes.MangledName(tag, name), suNormal
 	}
 	p.asuBase++
