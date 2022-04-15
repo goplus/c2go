@@ -73,6 +73,10 @@ func newFn(in, out *types.Tuple) types.Type {
 	return types.NewSignature(nil, in, out, false)
 }
 
+func newFnv(in, out *types.Tuple) types.Type {
+	return types.NewSignature(nil, in, out, true)
+}
+
 func newFnProto(in, out *types.Tuple, variadic bool) types.Type {
 	return ctypes.NewFunc(in, out, variadic)
 }
@@ -118,6 +122,7 @@ var cases = []testCase{
 	{qualType: "void (^ _Nonnull)(void)", typ: newFn(nil, nil)},
 	{qualType: "void (int, ...)", typ: newFnProto(typesIntVA, nil, true)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
+	{qualType: "int (*)(int, ...)", typ: newFnv(typesIntVA, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
@@ -137,7 +142,11 @@ var cases = []testCase{
 }
 
 func TestCases(t *testing.T) {
+	sel := ""
 	for _, c := range cases {
+		if sel != "" && c.qualType != sel {
+			continue
+		}
 		t.Run(c.qualType, func(t *testing.T) {
 			typ, _, err := ParseType(pkg, scope, c.anonym, c.qualType, c.flags)
 			if err != nil {

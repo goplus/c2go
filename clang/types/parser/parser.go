@@ -277,7 +277,7 @@ func (p *parser) parseFunc(pkg *types.Package, t types.Type, inFlags int) (ret t
 	if err != nil {
 		return
 	}
-	return ctypes.NewFunc(types.NewTuple(args...), results, false), nil
+	return ctypes.NewFunc(types.NewTuple(args...), results, isVariadic(args)), nil
 }
 
 func (p *parser) parseArgs(pkg *types.Package) ([]*types.Var, error) {
