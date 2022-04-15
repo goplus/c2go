@@ -106,19 +106,18 @@ func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileSizeof(ctx *blockCtx, v *ast.Node) {
-	if v.Type != nil {
-		var typ *ast.Type
-		if len(v.Inner) > 0 {
-			typ = v.Inner[0].Type
-		} else {
-			qualType := ctx.typeOfSizeof(v)
-			typ = &ast.Type{QualType: qualType}
+	var t types.Type
+	if len(v.Inner) > 0 {
+		compileExpr(ctx, v.Inner[0])
+		t = ctx.cb.InternalStack().Pop().Type
+	} else {
+		qualType := ctx.typeOfSizeof(v)
+		if debugCompileDecl {
+			log.Println("==> sizeof", qualType)
 		}
-		t := toType(ctx, typ, 0)
-		ctx.cb.Val(ctx.sizeof(t))
-		return
+		t = toType(ctx, &ast.Type{QualType: qualType}, 0)
 	}
-	log.Panicln("compileSizeof: TODO")
+	ctx.cb.Val(ctx.sizeof(t))
 }
 
 func compileUnaryExprOrTypeTraitExpr(ctx *blockCtx, v *ast.Node) {
