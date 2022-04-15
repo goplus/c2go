@@ -208,15 +208,7 @@ func compileCaseStmt(ctx *blockCtx, stmt *ast.Node) {
 		sw.labelDefault(ctx)
 	}
 	cb.VarRef(sw.notmat).Val(false).Assign(1)
-	caseBody := stmt.Inner[idx]
-	switch caseBody.Kind {
-	case ast.CompoundStmt:
-		nsOld := sw.enterNamespace()
-		defer sw.leave(nsOld)
-		fallthrough
-	default:
-		compileStmt(ctx, caseBody)
-	}
+	compileStmt(ctx, stmt.Inner[idx])
 }
 
 func firstStmtNotCase(body *ast.Node) bool {
@@ -404,6 +396,10 @@ func getRetType(cb *gox.CodeBuilder) types.Type {
 // -----------------------------------------------------------------------------
 
 func compileCompoundStmt(ctx *blockCtx, stmts *ast.Node) {
+	if sw := ctx.getSwitchCtx(); sw != nil {
+		nsOld := sw.enterNamespace()
+		defer sw.leave(nsOld)
+	}
 	for _, stmt := range stmts.Inner {
 		compileStmt(ctx, stmt)
 	}
