@@ -97,6 +97,27 @@ void foo(int i, int r) {
 	}
 }
 `},
+		{name: "SqliteN2", simpleSw: true, code: `
+void foo(int op, int iA) {
+  switch( op ){
+	case 106: if( iA ) goto fp_math; break;
+	case 107: if( iA ) goto fp_math; break;
+	case 108: if( iA ) goto fp_math; break;
+	case 109: {
+	  if( iA==0 ) goto arithmetic_result_is_null;
+	  break;
+	}
+	default: {
+	  if( iA==0 ) goto arithmetic_result_is_null;
+	  if( iA==-1 ) iA = 1;
+	  break;
+	}
+  }
+fp_math:
+arithmetic_result_is_null:
+  ;
+}
+`},
 	}
 	sel := ""
 	for _, c := range cases {

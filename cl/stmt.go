@@ -224,17 +224,24 @@ func firstStmtNotCase(body *ast.Node) bool {
 
 // -----------------------------------------------------------------------------
 
+type labelStat struct {
+	firstCase int
+	multi     bool
+	define    bool
+}
+
 type nonSimpleSwChecker struct {
-	labels  map[string]int
+	labels  map[string]*labelStat
 	idxCase int
 }
 
 func (p *nonSimpleSwChecker) checkStmt(ctx *blockCtx, stmt *ast.Node) {
 	var name string
+	var define bool
 	switch stmt.Kind {
 	case ast.LabelStmt:
 		p.checkStmt(ctx, stmt.Inner[0])
-		name = stmt.Name
+		name, define = stmt.Name, true
 	case ast.GotoStmt:
 		name = ctx.labelOfGoto(stmt)
 	case ast.CompoundStmt:
@@ -253,12 +260,20 @@ func (p *nonSimpleSwChecker) checkStmt(ctx *blockCtx, stmt *ast.Node) {
 	default:
 		return
 	}
-	if idx, ok := p.labels[name]; ok {
-		if idx != p.idxCase {
-			panic(true)
-		}
-	} else {
-		p.labels[name] = p.idxCase
+	l, ok := p.labels[name]
+	if !ok {
+		l = &labelStat{firstCase: p.idxCase, define: define}
+		p.labels[name] = l
+		return
+	}
+	if l.firstCase != p.idxCase {
+		l.multi = true
+	}
+	if define {
+		l.define = true
+	}
+	if l.multi && l.define {
+		panic(true)
 	}
 }
 
@@ -269,7 +284,7 @@ func isSimpleSwitch(ctx *blockCtx, switchStmt *ast.Node) (simple bool) {
 	}
 	bodyStmts := body.Inner
 	checker := &nonSimpleSwChecker{
-		labels: make(map[string]int), // labelName => idxCase
+		labels: make(map[string]*labelStat), // labelName => idxCase
 	}
 	defer func() {
 		simple = recover() == nil
