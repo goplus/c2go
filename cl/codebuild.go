@@ -26,6 +26,8 @@ const builtin_decls = `{
 	"__builtin___memset_chk": "void* (void*, int32, uint, uint)",
 	"__builtin___memcpy_chk": "void* (void*, void*, uint, uint)",
 	"__builtin___memmove_chk": "void* (void*, void*, uint, uint)",
+	"__builtin___strlcpy_chk": "uint (char*, char*, uint, uint)",
+	"__builtin___strlcat_chk": "uint (char*, char*, uint, uint)",
 	"__builtin_object_size": "uint (void*, int32)",
 	"__builtin_fabsf": "float32 (float32)",
 	"__builtin_fabsl": "float64 (float64)",
