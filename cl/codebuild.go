@@ -36,9 +36,17 @@ const builtin_decls = `{
 	"__builtin_inff": "float32 ()",
 	"__builtin_infl": "float64 ()",
 	"__builtin_inf": "float64 ()",
+	"__atomic_store_n_u16": "void (uint16*, int, uint16)",
+	"__atomic_store_n_i16": "void (int16*, int, int16)",
+	"__atomic_store_n_u32": "void (uint32*, int, uint32)",
 	"__atomic_store_n_i32": "void (int32*, int, int32)",
+	"__atomic_store_n_u64": "void (uint64*, int, uint64)",
 	"__atomic_store_n_i64": "void (int64*, int, int64)",
+	"__atomic_load_n_u16": "uint16 (uint16*, int)",
+	"__atomic_load_n_i16": "int16 (int16*, int)",
+	"__atomic_load_n_u32": "uint32 (uint32*, int)",
 	"__atomic_load_n_i32": "int32 (int32*, int)",
+	"__atomic_load_n_u64": "uint64 (uint64*, int)",
 	"__atomic_load_n_i64": "int64 (int64*, int)"
 }`
 
@@ -49,8 +57,14 @@ type overloadFn struct {
 
 var (
 	builtin_overloads = []overloadFn{
-		{name: "__atomic_store_n", overloads: []string{"__atomic_store_n_i32", "__atomic_store_n_i64"}},
-		{name: "__atomic_load_n", overloads: []string{"__atomic_load_n_i32", "__atomic_load_n_i64"}},
+		{name: "__atomic_store_n", overloads: []string{
+			"__atomic_store_n_u16", "__atomic_store_n_u32", "__atomic_store_n_u64",
+			"__atomic_store_n_i16", "__atomic_store_n_i32", "__atomic_store_n_i64",
+		}},
+		{name: "__atomic_load_n", overloads: []string{
+			"__atomic_load_n_u16", "__atomic_load_n_u32", "__atomic_load_n_u64",
+			"__atomic_load_n_i16", "__atomic_load_n_i32", "__atomic_load_n_i64",
+		}},
 	}
 )
 
