@@ -3,7 +3,7 @@
 int main() {
     int a = 1;
     int *pa = &a;
-    (*pa)++;
+    (*(0+pa))++;
     printf("%d\n", a);
     return 0;
 }

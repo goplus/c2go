@@ -285,8 +285,14 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	switch op {
-	case token.SUB, token.ADD: // ptr-ptr, ptr-n, ptr+n
+	case token.SUB, token.ADD: // ptr-ptr, ptr-n, ptr+n, n+ptr
 		arg1 := stk.Get(-2)
+		if op == token.ADD && isIntegerOrBool(arg1.Type) { // n+ptr
+			arg2 := stk.Get(-1)
+			if _, ok := arg2.Type.(*types.Pointer); ok {
+				*arg1, *arg2 = *arg2, *arg1 // => ptr+n
+			}
+		}
 		if t1, ok := arg1.Type.(*types.Pointer); ok {
 			elemSize := ctx.sizeof(t1.Elem())
 			arg2 := stk.Get(-1)

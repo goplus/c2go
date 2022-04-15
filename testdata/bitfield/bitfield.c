@@ -16,9 +16,9 @@ int main() {
     foo.a = 1;
     foo.b = 3;
     foo.c = 15;
-    foo.x = 1;
-    foo.y = 3;
     foo.z = 15;
+    foo.x = 1;
+    foo.y = -1;
     printf(
         "foo.a = %d, foo.b = %d, foo.c = %d\n",
         foo.a, foo.b, foo.c);
