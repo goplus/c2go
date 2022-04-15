@@ -199,11 +199,13 @@ type blockCtx struct {
 }
 
 func (p *blockCtx) lookupParent(name string) types.Object {
+	if sw := p.getSwitchCtx(); sw != nil {
+		if o := sw.curns.lookupParent(name); o != nil {
+			return o
+		}
+	}
 	if _, o := p.cb.Scope().LookupParent(name, token.NoPos); o != nil {
 		return o
-	}
-	if sw := p.getSwitchCtx(); sw != nil {
-		return sw.curns.lookupParent(name)
 	}
 	return nil
 }
