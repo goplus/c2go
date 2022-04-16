@@ -157,8 +157,8 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 			}
 		}
 	}
-	typ := toType(ctx, decl.Type, 0)
-	if ctx.isValistType(typ) {
+	typ := toType(ctx, decl.Type, parser.FlagIsTypedef)
+	if ctx.isValistType(typ) || isArrayUnknownLen(typ) {
 		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 		return
 	}
@@ -392,6 +392,13 @@ func isBool(typ types.Type) bool {
 func isKind(typ types.Type, mask types.BasicInfo) bool {
 	if t, ok := typ.(*types.Basic); ok {
 		return (t.Info() & mask) != 0
+	}
+	return false
+}
+
+func isArrayUnknownLen(typ types.Type) bool {
+	if t, ok := typ.(*types.Array); ok {
+		return t.Len() < 0
 	}
 	return false
 }

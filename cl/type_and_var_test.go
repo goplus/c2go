@@ -326,6 +326,12 @@ void test() {
 }
 `, `func test() {
 }`)
+	testFunc(t, "testTypedef", `
+void test() {
+	typedef int foo[];
+}
+`, `func test() {
+}`)
 	testFunc(t, "testArray", `
 void test() {
 	struct foo {
