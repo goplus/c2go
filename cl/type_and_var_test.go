@@ -372,6 +372,21 @@ void test() {
 		a int32
 	}
 }`)
+	testFunc(t, "testKeyword", `
+void test() {
+	struct foo {
+		int type;
+	};
+	struct foo a;
+	a.type = 1;
+}
+`, `func test() {
+	type struct_foo struct {
+		type_ int32
+	}
+	var a struct_foo
+	a.type_ = int32(1)
+}`)
 	testFunc(t, "testAnonymous", `
 void test() {
 	struct foo {

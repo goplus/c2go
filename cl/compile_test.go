@@ -137,3 +137,13 @@ func testWith(t *testing.T, name string, fn string, code string, outFunc string)
 }
 
 // -----------------------------------------------------------------------------
+
+func TestFuncAndDecl(t *testing.T) {
+	testFunc(t, "testKeyword", `
+void test(int var) {
+}
+`, `func test(var_ int32) {
+}`)
+}
+
+// -----------------------------------------------------------------------------

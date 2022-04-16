@@ -244,6 +244,7 @@ func isBuiltinFn(fn *ast.Node) bool {
 // -----------------------------------------------------------------------------
 
 func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
+	avoidKeyword(&v.Name)
 	name := v.Name
 	compileExpr(ctx, v.Inner[0])
 	if name == "" { // anonymous

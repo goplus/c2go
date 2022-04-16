@@ -277,6 +277,7 @@ func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
 
 func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 	typ := toType(ctx, decl.Type, parser.FlagIsParam)
+	avoidKeyword(&decl.Name)
 	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
 }
 
