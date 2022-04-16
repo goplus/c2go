@@ -166,6 +166,18 @@ void test() {
 		a int32
 	}
 }`)
+	testFunc(t, "testTypedef", `
+void test() {
+	typedef struct foo {
+		int a;
+	} foo;
+}
+`, `func test() {
+	type struct_foo struct {
+		a int32
+	}
+	type foo = struct_foo
+}`)
 }
 
 // -----------------------------------------------------------------------------
