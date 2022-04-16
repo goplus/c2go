@@ -155,6 +155,12 @@ void test() {
 `, `func test() {
 	var a int32
 }`)
+	testFunc(t, "testExtern", `
+void test() {
+	extern int a;
+}
+`, `func test() {
+}`)
 	testFunc(t, "testString", `
 void test() {
 	char a[] = "Hi";
@@ -247,6 +253,18 @@ void test() {
 		x     float64
 	}
 	var a struct_foo = struct_foo{1, 0, 0}
+}`)
+}
+
+// -----------------------------------------------------------------------------
+
+func TestConst(t *testing.T) {
+	testFunc(t, "testEnum", `
+void test() {
+	const i = 100;
+}
+`, `func test() {
+	const i int32 = 100
 }`)
 }
 
