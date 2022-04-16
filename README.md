@@ -11,12 +11,12 @@ c2go - Convert C to Go
 
 ## How to run examples?
 
-### Run an example
+Run an example:
 
 - Build c2go tools: `go install -v ./...`
 - Go `testdata/xxx` directory, and run `c2go .`
 
-### Run/Test multiple examples
+Run/Test multiple examples:
 
 - Run examples: `c2go ./...`
 - Test examples: `c2go -test ./...`
