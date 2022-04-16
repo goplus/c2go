@@ -15,6 +15,10 @@ var (
 	scope = pkg.Scope()
 )
 
+var (
+	tyValist types.Type
+)
+
 func init() {
 	aliasType(scope, pkg, "char", types.Typ[types.Int8])
 	aliasType(scope, pkg, "void", ctypes.Void)
@@ -22,6 +26,11 @@ func init() {
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
 	aliasType(scope, pkg, "__int128", ctypes.Int128)
 	aliasType(scope, pkg, ctypes.MangledName("struct", "ConstantString"), tyConstantString)
+
+	valist := types.NewTypeName(token.NoPos, pkg, ctypes.MangledName("struct", "__va_list_tag"), nil)
+	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
+	scope.Insert(valist)
+	tyValist = types.NewPointer(t)
 }
 
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
@@ -123,6 +132,7 @@ var cases = []testCase{
 	{qualType: "void (int, ...)", typ: newFnProto(typesIntVA, nil, true)},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)(int, ...)", typ: newFnv(typesIntVA, typesInt)},
+	{qualType: "int (*)(int, struct __va_list_tag*)", typ: newFnv(typesIntVA, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
@@ -148,7 +158,8 @@ func TestCases(t *testing.T) {
 			continue
 		}
 		t.Run(c.qualType, func(t *testing.T) {
-			typ, _, err := ParseType(pkg, scope, c.anonym, c.qualType, c.flags)
+			conf := &Config{Pkg: pkg, Scope: scope, TyAnonym: c.anonym, TyValist: tyValist, Flags: c.flags}
+			typ, _, err := ParseType(c.qualType, conf)
 			if err != nil {
 				if errMsgOf(err) != c.err {
 					t.Fatal("ParseType:", err, ", expected:", c.err)

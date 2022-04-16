@@ -27,8 +27,9 @@ func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 }
 
 func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int) {
+	conf := &parser.Config{Pkg: ctx.pkg.Types, Scope: scope, TyAnonym: tyAnonym, TyValist: ctx.tyValist, Flags: flags}
 retry:
-	t, kind, err := parser.ParseType(ctx.pkg.Types, scope, tyAnonym, typ.QualType, flags)
+	t, kind, err := parser.ParseType(typ.QualType, conf)
 	if err != nil {
 		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
 			ctx.typdecls[e.Literal] = ctx.cb.NewType(e.Literal)
@@ -157,7 +158,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		}
 	}
 	typ := toType(ctx, decl.Type, 0)
-	if ctypes.Identical(typ, ctx.tyValist) {
+	if ctx.isValistType(typ) {
 		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 		return
 	}
@@ -232,7 +233,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
 			return
 		}
-		if isValistType(ctx, typ) { // skip valist variable
+		if ctx.isValistType(typ) { // skip valist variable
 			scope.Insert(types.NewVar(token.NoPos, ctx.pkg.Types, decl.Name, typ))
 			return
 		}

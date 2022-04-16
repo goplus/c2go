@@ -233,7 +233,7 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 }
 
 func isEllipsis(ctx *blockCtx, cb *gox.CodeBuilder) bool {
-	return isValistType(ctx, cb.Get(-1).Type)
+	return ctx.isValistType(cb.Get(-1).Type)
 }
 
 func isBuiltinFn(fn *ast.Node) bool {

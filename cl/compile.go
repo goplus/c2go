@@ -283,16 +283,12 @@ func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 func checkVariadic(ctx *blockCtx, params []*types.Var, hasName bool) (ret *types.Var) {
 	n := len(params)
 	if n > 0 {
-		if last := params[n-1]; isValistType(ctx, last.Type()) {
+		if last := params[n-1]; ctx.isValistType(last.Type()) {
 			ret, params[n-1] = last, newVariadicParam(ctx, hasName)
 			return
 		}
 	}
 	return nil
-}
-
-func isValistType(ctx *blockCtx, t types.Type) bool {
-	return ctypes.Identical(t, ctx.tyValist)
 }
 
 // -----------------------------------------------------------------------------

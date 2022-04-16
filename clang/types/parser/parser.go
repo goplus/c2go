@@ -50,27 +50,35 @@ func getRetType(flags int) bool {
 	return (flags & FlagGetRetType) != 0
 }
 
+type Config struct {
+	Pkg      *types.Package
+	Scope    *types.Scope
+	TyAnonym types.Type
+	TyValist types.Type
+	Flags    int
+}
+
 const (
 	KindFConst = 1 << iota
 	KindFAnonymous
 )
 
 // qualType can be:
-//   unsigned int
-//   struct ConstantString
-//   volatile uint32_t
-//   int (*)(void *, int, char **, char **)
-//   int (*)(const char *, ...)
-//   int (*)(void)
-//   void (*(int, void (*)(int)))(int)
-//   const char *restrict
-//   const char [7]
-//   char *
-//   void
-//   ...
-func ParseType(pkg *types.Package, scope *types.Scope, tyAnonym types.Type, qualType string, flags int) (t types.Type, kind int, err error) {
-	p := newParser(pkg, scope, tyAnonym, qualType)
-	if t, kind, err = p.parse(flags); err != nil {
+//   - unsigned int
+//   - struct ConstantString
+//   - volatile uint32_t
+//   - int (*)(void *, int, char **, char **)
+//   - int (*)(const char *, ...)
+//   - int (*)(void)
+//   - void (*(int, void (*)(int)))(int)
+//   - const char *restrict
+//   - const char [7]
+//   - char *
+//   - void
+//   - ...
+func ParseType(qualType string, conf *Config) (t types.Type, kind int, err error) {
+	p := newParser(qualType, conf)
+	if t, kind, err = p.parse(conf.Flags); err != nil {
 		return
 	}
 	if p.tok != token.EOF {
@@ -86,6 +94,7 @@ type parser struct {
 	pkg    *types.Package
 	scope  *types.Scope
 	anonym types.Type
+	valist types.Type
 
 	tok token.Token
 	lit string
@@ -99,8 +108,8 @@ const (
 	invalidTok token.Token = -1
 )
 
-func newParser(pkg *types.Package, scope *types.Scope, tyAnonym types.Type, qualType string) *parser {
-	p := &parser{pkg: pkg, scope: scope, anonym: tyAnonym}
+func newParser(qualType string, conf *Config) *parser {
+	p := &parser{pkg: conf.Pkg, scope: conf.Scope, anonym: conf.TyAnonym, valist: conf.TyValist}
 	p.old.tok = invalidTok
 	p.s.Init(qualType)
 	return p
@@ -277,7 +286,7 @@ func (p *parser) parseFunc(pkg *types.Package, t types.Type, inFlags int) (ret t
 	if err != nil {
 		return
 	}
-	return ctypes.NewFunc(types.NewTuple(args...), results, isVariadic(args)), nil
+	return p.newFunc(args, results), nil
 }
 
 func (p *parser) parseArgs(pkg *types.Package) ([]*types.Var, error) {
@@ -464,7 +473,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				if ctypes.NotVoid(t) {
 					results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
 				}
-				t = ctypes.NewFunc(types.NewTuple(args...), results, isVariadic(args))
+				t = p.newFunc(args, results)
 			}
 			t = newPointers(t, nstar)
 		case token.RPAREN:
@@ -488,23 +497,30 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 	}
 }
 
-func newPointers(t types.Type, nstar int) types.Type {
-	for nstar > 0 {
-		t = ctypes.NewPointer(t)
-		nstar--
+func (p *parser) newFunc(args []*types.Var, results *types.Tuple) types.Type {
+	variadic := false
+	if n := len(args); n > 1 {
+		v := args[n-1]
+		if ctypes.Identical(v.Type(), p.valist) {
+			args[n-1] = types.NewParam(v.Pos(), v.Pkg(), v.Name(), tyVArgs)
+			variadic = true
+		} else {
+			variadic = v.Type() == tyVArgs
+		}
 	}
-	return t
+	return ctypes.NewFunc(types.NewTuple(args...), results, variadic)
 }
 
 func isPtr(tok token.Token) bool {
 	return tok == token.MUL || tok == token.XOR // * or ^
 }
 
-func isVariadic(args []*types.Var) bool {
-	if len(args) > 1 {
-		return args[len(args)-1].Type() == tyVArgs
+func newPointers(t types.Type, nstar int) types.Type {
+	for nstar > 0 {
+		t = ctypes.NewPointer(t)
+		nstar--
 	}
-	return false
+	return t
 }
 
 var (

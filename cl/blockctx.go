@@ -446,6 +446,10 @@ func (p *blockCtx) initCTypes() {
 	decl_builtin(p)
 }
 
+func (p *blockCtx) isValistType(t types.Type) bool {
+	return ctypes.Identical(t, p.tyValist)
+}
+
 func initValist(scope *types.Scope, pkg *types.Package) types.Type {
 	valist := types.NewTypeName(token.NoPos, pkg, ctypes.MangledName("struct", "__va_list_tag"), nil)
 	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
