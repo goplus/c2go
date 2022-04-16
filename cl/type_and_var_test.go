@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	ctypes "github.com/goplus/c2go/clang/types"
+	"github.com/goplus/gox"
 )
 
 // -----------------------------------------------------------------------------
@@ -55,12 +56,6 @@ type structFld struct {
 	typ  types.Type
 }
 
-type caseStruct struct {
-	name string
-	code string
-	flds []structFld
-}
-
 func newStruc(pair ...interface{}) []structFld {
 	n := len(pair)
 	flds := make([]structFld, 0, n/2)
@@ -80,15 +75,53 @@ func newStrucT(pkg *types.Package, flds []structFld) *types.Struct {
 	return types.NewStruct(items, nil)
 }
 
+func newBftype(typ types.Type, fldName, name string, off, bits int, first bool) *bfType {
+	return &bfType{
+		Type: typ,
+		BitField: &gox.BitField{
+			Name:    name,
+			FldName: fldName,
+			Off:     off,
+			Bits:    bits,
+		},
+		first: first,
+	}
+}
+
 var (
 	tyInt = ctypes.Int
 )
 
-func TestStruct(t *testing.T) {
+// -----------------------------------------------------------------------------
+
+type caseStruct struct {
+	name string
+	code string
+	flds []structFld
+}
+
+func TestVStruct(t *testing.T) {
 	cases := []caseStruct{
 		{name: "Basic", flds: newStruc("a", tyInt), code: `
 struct foo {
 	int a;
+};
+`},
+		{name: "BitF1", flds: newStruc(
+			"u", tyInt,
+			"a", newBftype(tyInt, "Xbf_0", "a", 0, 1, true),
+			"b", newBftype(tyInt, "Xbf_0", "b", 1, 2, false),
+			"x", tyInt,
+			"c", newBftype(tyInt, "Xbf_1", "c", 0, 3, true),
+			"y", tyInt,
+		), code: `
+struct foo {
+	int u;
+	int a :1;
+	int b :2;
+	int x;
+	int c :3;
+	int y;
 };
 `},
 	}
@@ -100,14 +133,13 @@ struct foo {
 			if o == nil {
 				t.Fatal("object not found")
 			}
-			if t1, ok := o.Type().Underlying().(*types.Struct); ok {
-				t2 := newStrucT(e.pkg, c.flds)
-				if identicalStruct(t1, t2) {
-					return
-				}
-				t.Fatal("identicalStruct failed:", t1, t2)
+			named := o.Type().(*types.Named)
+			t1 := e.ctx.getVStruct(named)
+			t2 := newStrucT(e.pkg, c.flds)
+			if identicalStruct(t1, t2) {
+				return
 			}
-			t.Fatal("unexpected type:", o.Type())
+			t.Fatal("identicalStruct failed:", t1, t2)
 		})
 	}
 }

@@ -2,6 +2,7 @@ package cl
 
 import (
 	"bytes"
+	"fmt"
 	"go/token"
 	"go/types"
 	"log"
@@ -393,7 +394,7 @@ func (p *blockCtx) buildVStruct(struc *types.Struct, vfs gox.VFields) *types.Str
 			}
 			from = idx + 1
 		}
-		for ; from < n; from++ {
+		for n = struc.NumFields(); from < n; from++ {
 			vFlds = append(vFlds, struc.Field(from))
 		}
 		return types.NewStruct(vFlds, nil)
@@ -401,10 +402,22 @@ func (p *blockCtx) buildVStruct(struc *types.Struct, vfs gox.VFields) *types.Str
 	return struc
 }
 
+func (p *blockCtx) getVStruct(typ *types.Named) *types.Struct {
+	t := typ.Underlying().(*types.Struct)
+	if vfs, ok := p.pkg.VFields(typ); ok {
+		t = p.buildVStruct(t, vfs)
+	}
+	return t
+}
+
 type bfType struct {
 	types.Type
 	*gox.BitField
 	first bool
+}
+
+func (p *bfType) String() string {
+	return fmt.Sprintf("bfType{t: %v, bf: %v, first: %v}", p.Type, p.BitField, p.first)
 }
 
 const (

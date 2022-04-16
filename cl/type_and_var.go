@@ -292,10 +292,7 @@ func arrayLit(ctx *blockCtx, t *types.Array, decl *ast.Node) {
 }
 
 func structLit(ctx *blockCtx, typ *types.Named, decl *ast.Node) {
-	t := typ.Underlying().(*types.Struct)
-	if vfs, ok := ctx.pkg.VFields(typ); ok {
-		t = ctx.buildVStruct(t, vfs)
-	}
+	t := ctx.getVStruct(typ)
 	n := 0
 	for i, initExpr := range decl.Inner {
 		n += initLit(ctx, t.Field(i).Type(), initExpr)

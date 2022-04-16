@@ -21,6 +21,8 @@ var (
 )
 
 func init() {
+	SetDebug(DbgFlagAll)
+
 	home, err := os.UserHomeDir()
 	check(err)
 
