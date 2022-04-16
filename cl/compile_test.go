@@ -1,11 +1,16 @@
 package cl
 
 import (
+	"bytes"
+	"go/format"
 	"go/types"
 	"log"
 	"os"
 	"strconv"
 	"sync/atomic"
+	"testing"
+
+	goast "go/ast"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/parser"
@@ -73,7 +78,7 @@ func check(err error) {
 
 type testEnv struct {
 	doc *ast.Node
-	pkg *types.Package
+	pkg *gox.Package
 	ctx *blockCtx
 }
 
@@ -86,7 +91,37 @@ func newTestEnv(code string) *testEnv {
 		typdecls: make(map[string]*gox.TypeDecl),
 	}
 	ctx.initCTypes()
-	return &testEnv{doc: doc, pkg: p.Types, ctx: ctx}
+	return &testEnv{doc: doc, pkg: p, ctx: ctx}
+}
+
+// -----------------------------------------------------------------------------
+
+func findFunc(file *goast.File, name string) *goast.FuncDecl {
+	for _, decl := range file.Decls {
+		switch v := decl.(type) {
+		case *goast.FuncDecl:
+			if v.Name.Name == name {
+				return v
+			}
+		}
+	}
+	return nil
+}
+
+func testFunc(t *testing.T, name string, code string, outFunc string) {
+	t.Run(name, func(t *testing.T) {
+		doc, src := parse(code)
+		pkg, err := NewPackage("", "main", doc, &Config{Src: src})
+		check(err)
+		file := gox.ASTFile(pkg, false)
+		fn := findFunc(file, "test")
+		w := bytes.NewBuffer(nil)
+		err = format.Node(w, pkg.Fset, fn)
+		check(err)
+		if out := w.String(); out != outFunc {
+			t.Fatalf("==> Result:\n%s\n==> Expected:\n%s\n", out, outFunc)
+		}
+	})
 }
 
 // -----------------------------------------------------------------------------

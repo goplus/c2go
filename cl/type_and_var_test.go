@@ -129,19 +129,43 @@ struct foo {
 		t.Run(c.name, func(t *testing.T) {
 			e := newTestEnv(c.code)
 			compileDeclStmt(e.ctx, e.doc, true)
-			o := e.pkg.Scope().Lookup("struct_foo")
+			pkg := e.pkg.Types
+			o := pkg.Scope().Lookup("struct_foo")
 			if o == nil {
 				t.Fatal("object not found")
 			}
 			named := o.Type().(*types.Named)
 			t1 := e.ctx.getVStruct(named)
-			t2 := newStrucT(e.pkg, c.flds)
+			t2 := newStrucT(pkg, c.flds)
 			if identicalStruct(t1, t2) {
 				return
 			}
 			t.Fatal("identicalStruct failed:", t1, t2)
 		})
 	}
+}
+
+// -----------------------------------------------------------------------------
+
+func TestTypeAndVar(t *testing.T) {
+	testFunc(t, "testBasic", `
+void test() {
+	int a;
+}
+`, `func test() {
+	var a int32
+}`)
+	testFunc(t, "testStruct", `
+void test() {
+	struct foo {
+		int a;
+	};
+}
+`, `func test() {
+	type struct_foo struct {
+		a int32
+	}
+}`)
 }
 
 // -----------------------------------------------------------------------------
