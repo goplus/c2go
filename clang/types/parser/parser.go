@@ -269,10 +269,10 @@ func (p *parser) parseArrays(t types.Type, inFlags int) (ret types.Type, err err
 		if ret, err = p.parseArray(t, inFlags); err != nil {
 			return
 		}
-		p.next()
-		if p.tok == token.EOF {
+		if p.peek() != token.LBRACK {
 			return
 		}
+		p.next()
 		t = ret
 	}
 }
@@ -408,6 +408,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			}
 			var nstar = p.parseStars()
 			var nstarRet int
+			var tyArr types.Type
 			var pkg, isFn = p.pkg, false
 			var args []*types.Var
 			if nstar == 0 {
@@ -439,6 +440,11 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 						goto nextTok
 					}
 					return nil, 0, p.newError("expect )")
+				case token.LBRACK:
+					if tyArr, err = p.parseArrays(ctypes.Void, 0); err != nil {
+						return
+					}
+					p.expect(token.RPAREN) // )
 				case token.IDENT:
 					switch p.lit {
 					case "_Nullable", "_Nonnull", "const":
@@ -476,6 +482,12 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				t = p.newFunc(args, results)
 			}
 			t = newPointers(t, nstar)
+		nextArr:
+			if arr, ok := tyArr.(*types.Array); ok {
+				t = types.NewArray(t, arr.Len())
+				tyArr = arr.Elem()
+				goto nextArr
+			}
 		case token.RPAREN:
 			if t == nil {
 				t = ctypes.Void

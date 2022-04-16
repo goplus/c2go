@@ -139,6 +139,7 @@ var cases = []testCase{
 	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
 	{qualType: "int (*)[100]", typ: tyPInt100},
 	{qualType: "int (*)[100][3]", typ: tyPInt100_3},
+	{qualType: "int (*const [2])(void *)", typ: types.NewArray(newFn(typesVoidPtr, typesInt), 2)},
 	{qualType: "char *", typ: tyCharPtr},
 	{qualType: "void", typ: ctypes.Void},
 	{qualType: "void *", typ: ctypes.UnsafePointer},
