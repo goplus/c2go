@@ -166,6 +166,132 @@ void test() {
 		a int32
 	}
 }`)
+	testFunc(t, "testAnonymous", `
+void test() {
+	struct foo {
+		int a;
+		struct {
+			double v;
+		};
+	};
+}
+`, `func test() {
+	type _cgoa_1 struct {
+		v float64
+	}
+	type struct_foo struct {
+		a int32
+		_cgoa_1
+	}
+}`)
+	testFunc(t, "testAnonymousVar", `
+void test() {
+	struct foo {
+		int a;
+		struct {
+			double v;
+		} b;
+	};
+}
+`, `func test() {
+	type _cgoa_1 struct {
+		v float64
+	}
+	type struct_foo struct {
+		a int32
+		b _cgoa_1
+	}
+}`)
+	testFunc(t, "testNestStruct", `
+void test() {
+	struct foo {
+		int a;
+		struct bar {
+			double v;
+		} b;
+	};
+}
+`, `func test() {
+	type struct_bar struct {
+		v float64
+	}
+	type struct_foo struct {
+		a int32
+		b struct_bar
+	}
+}`)
+	testFunc(t, "testUnion", `
+void test() {
+	union foo {
+		int a;
+		double b;
+	};
+}
+`, `func test() {
+	type union_foo struct {
+		b float64
+	}
+}`)
+	testFunc(t, "testUnionNest", `
+void test() {
+	union foo {
+		int a;
+		double b;
+		struct bar {
+			int x;
+			double y;
+		} c;
+	};
+}
+`, `func test() {
+	type struct_bar struct {
+		x int32
+		y float64
+	}
+	type union_foo struct {
+		c struct_bar
+	}
+}`)
+	testFunc(t, "testUnionAnonymous", `
+void test() {
+	union foo {
+		int a;
+		double b;
+		struct {
+			int x;
+			double y;
+		};
+	};
+}
+`, `func test() {
+	type _cgoa_1 struct {
+		x int32
+		y float64
+	}
+	type union_foo struct {
+		 _cgoa_1
+	}
+}`)
+	testFunc(t, "testUnionAnonymousVar", `
+void test() {
+	union foo {
+		int a;
+		double b;
+		struct {
+			int x;
+			double y;
+		} c;
+	};
+}
+`, `func test() {
+	type _cgoa_1 struct {
+		x int32
+		y float64
+	}
+	type union_foo struct {
+		c _cgoa_1
+	}
+}`)
 	testFunc(t, "testTypedef", `
 void test() {
 	typedef struct foo {
@@ -177,6 +303,16 @@ void test() {
 		a int32
 	}
 	type foo = struct_foo
+}`)
+	testFunc(t, "testTypedefEnum", `
+void test() {
+	typedef enum foo {
+		a = 1
+	} foo;
+}
+`, `func test() {
+	const a int32 = 0
+	type foo = int32
 }`)
 }
 
