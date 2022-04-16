@@ -100,9 +100,11 @@ func execDirRecursively(dir string, doRunApp, doRunTest bool) {
 		}
 	}
 	if cfiles == 1 {
+		action := "Running"
 		if doRunTest {
-			fmt.Printf("==> Testing %s ...\n", dir)
+			action = "Testing"
 		}
+		fmt.Printf("==> %s %s ...\n", action, dir)
 		execDir("main", dir, doRunApp, doRunTest)
 	}
 }
