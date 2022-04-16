@@ -39,12 +39,9 @@ func (p *ParseTypeError) Error() string {
 
 const (
 	FlagIsParam = 1 << iota
+	FlagIsField
 	FlagGetRetType
 )
-
-func isParam(flags int) bool {
-	return (flags & FlagIsParam) != 0
-}
 
 func getRetType(flags int) bool {
 	return (flags & FlagGetRetType) != 0
@@ -245,7 +242,11 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 	p.next()
 	switch p.tok {
 	case token.RBRACK: // ]
-		n = -1
+		if (inFlags & FlagIsField) != 0 {
+			n = 0
+		} else {
+			n = -1
+		}
 	case token.INT:
 		if n, err = strconv.ParseInt(p.lit, 10, 64); err != nil {
 			return nil, p.newError(err.Error())
@@ -256,10 +257,12 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 	default:
 		return nil, p.newError("array length not an integer")
 	}
-	if isParam(inFlags) {
+	if (inFlags & FlagIsParam) != 0 {
 		t = ctypes.NewPointer(t)
-	} else {
+	} else if n >= 0 {
 		t = types.NewArray(t, n)
+	} else {
+		return nil, p.newError("define array without length")
 	}
 	return t, nil
 }

@@ -137,6 +137,8 @@ var cases = []testCase{
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
 	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
+	{qualType: "char []", flags: FlagIsField, typ: types.NewArray(tyChar, 0)},
+	{qualType: "char []", flags: FlagIsParam, typ: tyCharPtr},
 	{qualType: "int (*)[100]", typ: tyPInt100},
 	{qualType: "int (*)[100][3]", typ: tyPInt100_3},
 	{qualType: "int (*const [2])(void *)", typ: types.NewArray(newFn(typesVoidPtr, typesInt), 2)},
