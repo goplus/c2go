@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"go/types"
 	"log"
 	"os"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/preprocessor"
+	"github.com/goplus/gox"
 )
 
 // -----------------------------------------------------------------------------
@@ -47,10 +49,42 @@ func parse(code string) (doc *ast.Node, src []byte) {
 	return
 }
 
+func findNode(root *ast.Node, kind ast.Kind, name string) *ast.Node {
+	if root.Kind == kind && root.Name == name {
+		return root
+	}
+	for i, n := 0, len(root.Inner); i < n; i++ {
+		if ret := findNode(root.Inner[i], kind, name); ret != nil {
+			return ret
+		}
+	}
+	return nil
+}
+
 func check(err error) {
 	if err != nil {
 		log.Panicln(err)
 	}
+}
+
+// -----------------------------------------------------------------------------
+
+type testEnv struct {
+	doc *ast.Node
+	pkg *types.Package
+	ctx *blockCtx
+}
+
+func newTestEnv(code string) *testEnv {
+	doc, src := parse(code)
+	p := gox.NewPackage("", "main", nil)
+	ctx := &blockCtx{
+		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
+		unnameds: make(map[ast.ID]*types.Named),
+		typdecls: make(map[string]*gox.TypeDecl),
+	}
+	ctx.initCTypes()
+	return &testEnv{doc: doc, pkg: p.Types, ctx: ctx}
 }
 
 // -----------------------------------------------------------------------------

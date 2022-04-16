@@ -7,7 +7,7 @@ import (
 )
 
 func a_cas(p *int32, t, s int32) int32 {
-	log.Fatalln("a_cas: notimpl")
+	log.Panicln("a_cas: notimpl")
 	return 0
 }
 
@@ -52,11 +52,11 @@ func __builtin_object_size(unsafe.Pointer, int32) uint {
 }
 
 func __builtin_bswap32(v uint32) uint32 {
-	log.Fatalln("__builtin_bswap32: notimpl")
+	log.Panicln("__builtin_bswap32: notimpl")
 	return v
 }
 
 func __builtin_bswap64(v uint64) uint64 {
-	log.Fatalln("__builtin_bswap32: notimpl")
+	log.Panicln("__builtin_bswap32: notimpl")
 	return v
 }

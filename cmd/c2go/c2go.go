@@ -142,7 +142,7 @@ func execFile(pkgname string, outfile string, doRunApp, doRunTest bool) {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
-	pkg, err := cl.NewPackage("", pkgname, outfile, doc, nil)
+	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{SrcFile: outfile})
 	check(err)
 
 	gofile := outfile + ".go"

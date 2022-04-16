@@ -33,7 +33,7 @@ retry:
 			ctx.typdecls[e.Literal] = ctx.cb.NewType(e.Literal)
 			goto retry
 		}
-		log.Fatalln("toType:", err, "-", typ.QualType)
+		log.Panicln("toType:", err, "-", typ.QualType)
 	}
 	return
 }
@@ -78,7 +78,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 			}
 		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr, ast.PackedAttr:
 		default:
-			log.Fatalln("toStructType: unknown field kind =", decl.Kind)
+			log.Panicln("toStructType: unknown field kind =", decl.Kind)
 		}
 	}
 	return b.Type(ctx, t)
@@ -119,7 +119,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
 			}
 		case ast.IndirectFieldDecl, ast.MaxFieldAlignmentAttr, ast.AlignedAttr, ast.PackedAttr:
 		default:
-			log.Fatalln("toUnionType: unknown field kind =", decl.Kind)
+			log.Panicln("toUnionType: unknown field kind =", decl.Kind)
 		}
 	}
 	return b.Type(ctx, t)
@@ -151,7 +151,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 					aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 					return
 				}
-				log.Fatalln("compileTypedef: unknown id =", id)
+				log.Panicln("compileTypedef: unknown id =", id)
 			}
 		}
 	}
@@ -199,7 +199,7 @@ func compileEnum(ctx *blockCtx, decl *ast.Node) {
 func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav int) int {
 	fn := func(cb *gox.CodeBuilder) int {
 		if v.Value != nil {
-			log.Fatalln("compileEnumConst: TODO -", v.Name)
+			log.Panicln("compileEnumConst: TODO -", v.Name)
 		}
 		cb.Val(iotav)
 		return 1
@@ -266,7 +266,7 @@ func varInit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
 	}
 }
 
-func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
+func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) int {
 	if debugCompileDecl {
 		log.Println("initLit", typ, "-", initExpr.Kind)
 	}
@@ -280,6 +280,7 @@ func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
 	default:
 		compileExpr(ctx, initExpr)
 	}
+	return 1
 }
 
 func arrayLit(ctx *blockCtx, t *types.Array, decl *ast.Node) {
@@ -292,10 +293,14 @@ func arrayLit(ctx *blockCtx, t *types.Array, decl *ast.Node) {
 
 func structLit(ctx *blockCtx, typ *types.Named, decl *ast.Node) {
 	t := typ.Underlying().(*types.Struct)
-	for i, initExpr := range decl.Inner {
-		initLit(ctx, t.Field(i).Type(), initExpr)
+	if vfs, ok := ctx.pkg.VFields(typ); ok {
+		t = ctx.buildVStruct(t, vfs)
 	}
-	ctx.cb.StructLit(typ, len(decl.Inner), false)
+	n := 0
+	for i, initExpr := range decl.Inner {
+		n += initLit(ctx, t.Field(i).Type(), initExpr)
+	}
+	ctx.cb.StructLit(typ, n, false)
 }
 
 func checkUnion(ctx *blockCtx, typ types.Type) (ufs *gox.UnionFields, is bool) {
@@ -330,7 +335,7 @@ func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.No
 			return
 		}
 	}
-	log.Fatalln("initUnion: init with unexpect type -", t)
+	log.Panicln("initUnion: init with unexpect type -", t)
 }
 
 func isIntegerOrBool(typ types.Type) bool {
@@ -384,7 +389,7 @@ func initWithStringLiteral(ctx *blockCtx, typ types.Type, decl *ast.Node) bool {
 		case ast.StringLiteral:
 			s, err := strconv.Unquote(decl.Value.(string))
 			if err != nil {
-				log.Fatalln("initWithStringLiteral:", err)
+				log.Panicln("initWithStringLiteral:", err)
 			}
 			stringLit(ctx.cb, s, typ)
 			return true

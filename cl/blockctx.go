@@ -192,7 +192,7 @@ type blockCtx struct {
 	unnameds map[ast.ID]*types.Named
 	typdecls map[string]*gox.TypeDecl
 	srcfile  string
-	cursrc   []byte
+	src      []byte
 	curfn    *funcCtx
 	curflow  flowCtx
 	asuBase  int // anonymous struct/union
@@ -253,14 +253,14 @@ func (p *blockCtx) leave(cur flowCtx) {
 }
 
 func (p *blockCtx) getSource() []byte {
-	if v := p.cursrc; v != nil {
+	if v := p.src; v != nil {
 		return v
 	}
 	b, err := os.ReadFile(p.srcfile)
 	if err != nil {
 		log.Panicln("getSource:", err)
 	}
-	p.cursrc = b
+	p.src = b
 	return b
 }
 
@@ -342,7 +342,7 @@ func (p *blockCtx) offsetof(typ types.Type, name string) int {
 retry:
 	switch t := typ.(type) {
 	case *types.Struct:
-		if flds, idx := getFld(t, name); idx >= 0 {
+		if flds, idx := getFld(t, name, 0); idx >= 0 {
 			return int(p.pkg.Offsetsof(flds)[idx])
 		}
 	case *types.Named:
@@ -353,8 +353,9 @@ retry:
 	return -1
 }
 
-func getFld(t *types.Struct, name string) (flds []*types.Var, i int) {
-	for n := t.NumFields(); i < n; i++ {
+func getFld(t *types.Struct, name string, from int) (flds []*types.Var, i int) {
+	var n int
+	for i, n = from, t.NumFields(); i < n; i++ {
 		f := t.Field(i)
 		flds = append(flds, f)
 		if f.Name() == name {
@@ -362,6 +363,48 @@ func getFld(t *types.Struct, name string) (flds []*types.Var, i int) {
 		}
 	}
 	return nil, -1
+}
+
+func (p *blockCtx) buildVStruct(struc *types.Struct, vfs gox.VFields) *types.Struct {
+	var pkg = p.pkg.Types
+	var vFlds []*types.Var
+	switch v := vfs.(type) {
+	case *gox.BitFields:
+		from, n := 0, v.Len()
+		for i := 0; i < n; i++ {
+			f := v.At(i)
+			name := f.FldName
+			flds, idx := getFld(struc, name, from)
+			if idx < 0 {
+				log.Panicln("buildVStruct: field not found -", name)
+			}
+			realf := flds[idx-from]
+			vft := &bfType{Type: realf.Type(), BitField: f, first: true}
+			vFlds = append(vFlds, flds[:idx-from]...)
+			vFlds = append(vFlds, types.NewField(token.NoPos, pkg, f.Name, vft, false))
+			for i+1 < n {
+				nextf := v.At(i + 1)
+				if nextf.FldName != name {
+					break
+				}
+				vft = &bfType{Type: realf.Type(), BitField: nextf}
+				vFlds = append(vFlds, types.NewField(token.NoPos, pkg, nextf.Name, vft, false))
+				i++
+			}
+			from = idx + 1
+		}
+		for ; from < n; from++ {
+			vFlds = append(vFlds, struc.Field(from))
+		}
+		return types.NewStruct(vFlds, nil)
+	}
+	return struc
+}
+
+type bfType struct {
+	types.Type
+	*gox.BitField
+	first bool
 }
 
 const (

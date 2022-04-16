@@ -53,9 +53,15 @@ type Config struct {
 
 	// An Importer resolves import paths to Packages.
 	Importer types.Importer
+
+	// SrcFile specifies a *.i (not *.c) source file path.
+	SrcFile string
+
+	// Src specifies source code of SrcFile. Will read from SrcFile if nil.
+	Src []byte
 }
 
-func NewPackage(pkgPath, pkgName, srcfile string, file *ast.Node, conf *Config) (p *gox.Package, err error) {
+func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.Package, err error) {
 	if conf == nil {
 		conf = new(Config)
 	}
@@ -69,7 +75,7 @@ func NewPackage(pkgPath, pkgName, srcfile string, file *ast.Node, conf *Config) 
 		CanImplicitCast: implicitCast,
 	}
 	p = gox.NewPackage(pkgPath, pkgName, confGox)
-	err = loadFile(p, srcfile, file)
+	err = loadFile(p, conf, file)
 	return
 }
 
@@ -99,7 +105,7 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, srcfile string, file *ast.Node) error {
+func loadFile(p *gox.Package, conf *Config, file *ast.Node) error {
 	if file.Kind != ast.TranslationUnitDecl {
 		return syscall.EINVAL
 	}
@@ -107,7 +113,8 @@ func loadFile(p *gox.Package, srcfile string, file *ast.Node) error {
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		typdecls: make(map[string]*gox.TypeDecl),
-		srcfile:  srcfile,
+		srcfile:  conf.SrcFile,
+		src:      conf.Src,
 	}
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
@@ -158,7 +165,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			}
 			fallthrough
 		default:
-			log.Fatalln("compileDeclStmt: unknown kind =", decl.Kind)
+			log.Panicln("compileDeclStmt: unknown kind =", decl.Kind)
 		}
 	}
 }
@@ -188,7 +195,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ast.AlwaysInlineAttr, ast.WarnUnusedResultAttr, ast.NoThrowAttr, ast.NoInlineAttr, ast.AllocSizeAttr,
 			ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr, ast.ReturnsTwiceAttr, ast.NoSanitizeAttr:
 		default:
-			log.Fatalln("compileFunc: unknown kind =", item.Kind)
+			log.Panicln("compileFunc: unknown kind =", item.Kind)
 		}
 	}
 	var vaParam *types.Var
@@ -211,7 +218,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 		f, err := pkg.NewFuncWith(goNodePos(fn), fnName, sig, nil)
 		if err != nil {
-			log.Fatalln("compileFunc:", err)
+			log.Panicln("compileFunc:", err)
 		}
 		cb := f.BodyStart(pkg)
 		if vaParam != nil {

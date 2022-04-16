@@ -126,7 +126,7 @@ arithmetic_result_is_null:
 		}
 		t.Run(c.name, func(t *testing.T) {
 			f, src := parse(c.code)
-			ctx := &blockCtx{cursrc: src}
+			ctx := &blockCtx{src: src}
 			check := checkSimpleSwitch(ctx, f)
 			if check != c.simpleSw {
 				t.Fatal("TestSimpleSwitch:", check, ", expect:", c.simpleSw, "code:", c.code)
