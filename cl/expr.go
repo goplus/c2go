@@ -196,6 +196,7 @@ func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
 
 func compileDeclRefExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	name := v.ReferencedDecl.Name
+	avoidKeyword(&name)
 	obj := ctx.lookupParent(name)
 	if obj == nil {
 		log.Panicln("compileDeclRefExpr: not found -", name)

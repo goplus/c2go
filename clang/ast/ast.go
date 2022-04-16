@@ -216,6 +216,7 @@ type Node struct {
 	CastKind             CastKind      `json:"castKind,omitempty"`
 	Size                 int           `json:"size,omitempty"` // array size
 	Inner                []*Node       `json:"inner,omitempty"`
+	ArrayFiller          []*Node       `json:"array_filler,omitempty"`
 }
 
 // -----------------------------------------------------------------------------

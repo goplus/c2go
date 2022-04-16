@@ -155,6 +155,61 @@ void test() {
 `, `func test() {
 	var a int32
 }`)
+	testFunc(t, "testString", `
+void test() {
+	char a[] = "Hi";
+	char *p = "Hi";
+}
+`, `func test() {
+	var a [3]int8 = [3]int8{'H', 'i', '\x00'}
+	var p *int8 = (*int8)(unsafe.Pointer(&[3]int8{'H', 'i', '\x00'}))
+}`)
+	testFunc(t, "testStringInArray", `
+void test() {
+	struct {
+		char *a;
+	} b = {"Hi"};
+	struct {
+		char a[6];
+	} c = {"Hi"};
+}
+`, `func test() {
+	type _cgoa_1 struct {
+		a *int8
+	}
+	var b _cgoa_1 = _cgoa_1{(*int8)(unsafe.Pointer(&[3]int8{'H', 'i', '\x00'}))}
+	type _cgoa_2 struct {
+		a [6]int8
+	}
+	var c _cgoa_2 = _cgoa_2{[6]int8{'H', 'i', '\x00'}}
+}`)
+	testFunc(t, "testIntArray", `
+void test() {
+	struct {
+		int a[6];
+		int b;
+	} x = {{1, 2, 3}};
+}
+`, `func test() {
+	type _cgoa_1 struct {
+		a [6]int32
+		b int32
+	}
+	var x _cgoa_1 = _cgoa_1{[6]int32{1, 2, 3}, 0}
+}`)
+	testFunc(t, "testKeyword", `
+void test() {
+	int type;
+	double import;
+	type = 1;
+	import = type;
+}
+`, `func test() {
+	var type_ int32
+	var import_ float64
+	type_ = int32(1)
+	import_ = float64(type_)
+}`)
 }
 
 // -----------------------------------------------------------------------------

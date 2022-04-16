@@ -226,6 +226,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 	}
 	scope := ctx.cb.Scope()
 	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, 0)
+	avoidKeyword(&decl.Name)
 	switch decl.StorageClass {
 	case ast.Extern:
 		scope.Insert(types.NewVar(goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
@@ -238,6 +239,14 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl)
+	}
+}
+
+func avoidKeyword(name *string) {
+	switch *name {
+	case "map", "type", "range", "chan", "var", "func", "go", "select",
+		"defer", "package", "import", "interface", "fallthrough":
+		*name += "_"
 	}
 }
 
@@ -304,11 +313,21 @@ func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) int {
 }
 
 func arrayLit(ctx *blockCtx, t *types.Array, decl *ast.Node) {
-	elem := t.Elem()
-	for _, initExpr := range decl.Inner {
+	var inits []*ast.Node
+	var elem = t.Elem()
+	if len(decl.ArrayFiller) > 0 {
+		idx := 0
+		if decl.ArrayFiller[idx].Kind == ast.ImplicitValueInitExpr {
+			idx = 1
+		}
+		inits = decl.ArrayFiller[idx:]
+	} else {
+		inits = decl.Inner
+	}
+	for _, initExpr := range inits {
 		initLit(ctx, elem, initExpr)
 	}
-	ctx.cb.ArrayLit(t, len(decl.Inner))
+	ctx.cb.ArrayLit(t, len(inits))
 }
 
 func structLit(ctx *blockCtx, typ *types.Named, decl *ast.Node) {
