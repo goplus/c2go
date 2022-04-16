@@ -224,13 +224,16 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 	if debugCompileDecl {
 		log.Println("varDecl", decl.Name, "-", decl.Loc.PresumedLine)
 	}
+	flags := 0
+	if decl.StorageClass == ast.Extern {
+		flags = parser.FlagIsExtern
+	}
 	scope := ctx.cb.Scope()
-	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, 0)
+	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, flags)
 	avoidKeyword(&decl.Name)
-	switch decl.StorageClass {
-	case ast.Extern:
+	if flags == parser.FlagIsExtern {
 		scope.Insert(types.NewVar(goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
-	default:
+	} else {
 		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
 			return
 		}

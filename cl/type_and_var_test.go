@@ -320,6 +320,12 @@ void test() {
 // -----------------------------------------------------------------------------
 
 func TestArray(t *testing.T) {
+	testFunc(t, "testExtern", `
+void test() {
+	extern int a[];
+}
+`, `func test() {
+}`)
 	testFunc(t, "testArray", `
 void test() {
 	struct foo {

@@ -40,6 +40,7 @@ func (p *ParseTypeError) Error() string {
 const (
 	FlagIsParam = 1 << iota
 	FlagIsField
+	FlagIsExtern
 	FlagGetRetType
 )
 
@@ -259,7 +260,7 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 	}
 	if (inFlags & FlagIsParam) != 0 {
 		t = ctypes.NewPointer(t)
-	} else if n >= 0 {
+	} else if n >= 0 || (inFlags&FlagIsExtern) != 0 {
 		t = types.NewArray(t, n)
 	} else {
 		return nil, p.newError("define array without length")
