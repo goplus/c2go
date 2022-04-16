@@ -1,7 +1,13 @@
-# c2go - Convert C to Go
+c2go - Convert C to Go
+========
+
+[![Build Status](https://github.com/goplus/c2go/actions/workflows/go.yml/badge.svg)](https://github.com/goplus/c2go/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/goplus/c2go)](https://goreportcard.com/report/github.com/goplus/c2go)
+[![GitHub release](https://img.shields.io/github/v/tag/goplus/c2go.svg?label=release)](https://github.com/goplus/c2go/releases)
+[![Coverage Status](https://codecov.io/gh/goplus/c2go/branch/main/graph/badge.svg)](https://codecov.io/gh/goplus/c2go)
+[![GoDoc](https://pkg.go.dev/badge/github.com/goplus/c2go.svg)](https://pkg.go.dev/mod/github.com/goplus/c2go)
 
 ![Screen Shot1](https://user-images.githubusercontent.com/396972/160951673-30ec62ae-2981-4cdf-a1ab-bc7fcb6f7475.png)
-
 
 ## How to run examples?
 
