@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"go/constant"
 	"go/token"
 	"go/types"
 	"log"
@@ -198,10 +199,20 @@ func compileEnum(ctx *blockCtx, decl *ast.Node) {
 
 func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav int) int {
 	fn := func(cb *gox.CodeBuilder) int {
-		if v.Value != nil {
-			log.Panicln("compileEnumConst: TODO -", v.Name)
+		if len(v.Inner) > 0 {
+			compileExpr(ctx, v.Inner[0])
+			cval := cb.Get(-1).CVal
+			if cval == nil {
+				log.Panicln("compileEnumConst: not a constant expression")
+			}
+			ival, ok := constant.Int64Val(cval)
+			if !ok {
+				log.Panicln("compileEnumConst: not a integer constant")
+			}
+			iotav = int(ival)
+		} else {
+			cb.Val(iotav)
 		}
-		cb.Val(iotav)
 		return 1
 	}
 	cdecl.New(fn, iotav, goNodePos(v), ctypes.Enum, v.Name)

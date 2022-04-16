@@ -125,7 +125,7 @@ arithmetic_result_is_null:
 			continue
 		}
 		t.Run(c.name, func(t *testing.T) {
-			f, src := parse(c.code)
+			f, src := parse(c.code, nil)
 			ctx := &blockCtx{src: src}
 			check := checkSimpleSwitch(ctx, f)
 			if check != c.simpleSw {

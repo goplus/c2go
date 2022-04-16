@@ -36,7 +36,7 @@ func init() {
 	check(err)
 }
 
-func parse(code string) (doc *ast.Node, src []byte) {
+func parse(code string, json *[]byte) (doc *ast.Node, src []byte) {
 	idx := atomic.AddInt64(&tmpFileIdx, 1)
 	infile := tmpDir + strconv.FormatInt(idx, 10) + ".c"
 	err := os.WriteFile(infile, []byte(code), 0666)
@@ -50,7 +50,7 @@ func parse(code string) (doc *ast.Node, src []byte) {
 	src, err = os.ReadFile(outfile)
 	check(err)
 
-	doc, _, err = parser.ParseFile(outfile, 0)
+	doc, _, err = parser.ParseFileEx(outfile, 0, json)
 	check(err)
 	os.Remove(outfile)
 	return
@@ -77,13 +77,15 @@ func check(err error) {
 // -----------------------------------------------------------------------------
 
 type testEnv struct {
-	doc *ast.Node
-	pkg *gox.Package
-	ctx *blockCtx
+	doc  *ast.Node
+	pkg  *gox.Package
+	ctx  *blockCtx
+	json []byte
 }
 
 func newTestEnv(code string) *testEnv {
-	doc, src := parse(code)
+	var json []byte
+	doc, src := parse(code, &json)
 	p := gox.NewPackage("", "main", nil)
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
@@ -91,7 +93,7 @@ func newTestEnv(code string) *testEnv {
 		typdecls: make(map[string]*gox.TypeDecl),
 	}
 	ctx.initCTypes()
-	return &testEnv{doc: doc, pkg: p, ctx: ctx}
+	return &testEnv{doc: doc, pkg: p, ctx: ctx, json: json}
 }
 
 // -----------------------------------------------------------------------------
@@ -110,7 +112,8 @@ func findFunc(file *goast.File, name string) *goast.FuncDecl {
 
 func testFunc(t *testing.T, name string, code string, outFunc string) {
 	t.Run(name, func(t *testing.T) {
-		doc, src := parse(code)
+		var json []byte
+		doc, src := parse(code, &json)
 		pkg, err := NewPackage("", "main", doc, &Config{Src: src})
 		check(err)
 		file := gox.ASTFile(pkg, false)
@@ -119,7 +122,9 @@ func testFunc(t *testing.T, name string, code string, outFunc string) {
 		err = format.Node(w, pkg.Fset, fn)
 		check(err)
 		if out := w.String(); out != outFunc {
-			t.Fatalf("==> Result:\n%s\n==> Expected:\n%s\n", out, outFunc)
+			t.Fatalf(
+				"==> Result:\n%s\n==> Expected:\n%s\n==> AST:\n%s\n",
+				out, outFunc, string(json))
 		}
 	})
 }

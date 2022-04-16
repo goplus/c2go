@@ -147,7 +147,7 @@ struct foo {
 
 // -----------------------------------------------------------------------------
 
-func TestTypeAndVar(t *testing.T) {
+func TestVarAndInit(t *testing.T) {
 	testFunc(t, "testBasic", `
 void test() {
 	int a;
@@ -155,6 +155,43 @@ void test() {
 `, `func test() {
 	var a int32
 }`)
+}
+
+// -----------------------------------------------------------------------------
+
+func TestEnum(t *testing.T) {
+	testFunc(t, "testEnum", `
+void test() {
+	enum foo {
+		a,
+		b
+	};
+}
+`, `func test() {
+	const (
+		a int32 = 0
+		b int32 = 1
+	)
+}`)
+	testFunc(t, "testTypedefEnum", `
+void test() {
+	typedef enum foo {
+		a = 3,
+		b
+	} foo;
+}
+`, `func test() {
+	const (
+		a int32 = 3
+		b int32 = 4
+	)
+	type foo = int32
+}`)
+}
+
+// -----------------------------------------------------------------------------
+
+func TestStructUnion(t *testing.T) {
 	testFunc(t, "testStruct", `
 void test() {
 	struct foo {
@@ -303,16 +340,6 @@ void test() {
 		a int32
 	}
 	type foo = struct_foo
-}`)
-	testFunc(t, "testTypedefEnum", `
-void test() {
-	typedef enum foo {
-		a = 1
-	} foo;
-}
-`, `func test() {
-	const a int32 = 0
-	type foo = int32
 }`)
 }
 

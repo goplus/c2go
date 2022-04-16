@@ -45,10 +45,13 @@ func DumpAST(filename string) (result []byte, warning []byte, err error) {
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func ParseFile(filename string, mode Mode) (file *ast.Node, warning []byte, err error) {
+func ParseFileEx(filename string, mode Mode, ret *[]byte) (file *ast.Node, warning []byte, err error) {
 	out, warning, err := DumpAST(filename)
 	if err != nil {
 		return
+	}
+	if ret != nil {
+		*ret = out
 	}
 	file = new(ast.Node)
 	err = json.Unmarshal(out, file)
@@ -56,6 +59,10 @@ func ParseFile(filename string, mode Mode) (file *ast.Node, warning []byte, err 
 		err = &ParseError{Err: err}
 	}
 	return
+}
+
+func ParseFile(filename string, mode Mode) (file *ast.Node, warning []byte, err error) {
+	return ParseFileEx(filename, mode, nil)
 }
 
 // -----------------------------------------------------------------------------
