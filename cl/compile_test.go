@@ -111,15 +111,22 @@ func findFunc(file *goast.File, name string) *goast.FuncDecl {
 }
 
 func testFunc(t *testing.T, name string, code string, outFunc string) {
+	testWith(t, name, "test", code, outFunc)
+}
+
+func testWith(t *testing.T, name string, fn string, code string, outFunc string) {
 	t.Run(name, func(t *testing.T) {
 		var json []byte
 		doc, src := parse(code, &json)
 		pkg, err := NewPackage("", "main", doc, &Config{Src: src})
 		check(err)
 		file := gox.ASTFile(pkg, false)
-		fn := findFunc(file, "test")
+		ret := goast.Node(file)
+		if fn != "" {
+			ret = findFunc(file, fn)
+		}
 		w := bytes.NewBuffer(nil)
-		err = format.Node(w, pkg.Fset, fn)
+		err = format.Node(w, pkg.Fset, ret)
 		check(err)
 		if out := w.String(); out != outFunc {
 			t.Fatalf(

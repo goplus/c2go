@@ -196,10 +196,11 @@ type Node struct {
 	IsArrow              bool          `json:"isArrow,omitempty"`      // is ptr->member not obj.member
 	IsPostfix            bool          `json:"isPostfix,omitempty"`
 	IsPartOfExplicitCast bool          `json:"isPartOfExplicitCast,omitempty"`
-	HasElse              bool          `json:"hasElse,omitempty"`
+	IsBitfield           bool          `json:"isBitfield,omitempty"`
 	Inline               bool          `json:"inline,omitempty"`
 	StorageClass         StorageClass  `json:"storageClass,omitempty"`
 	TagUsed              string        `json:"tagUsed,omitempty"` // struct | union
+	HasElse              bool          `json:"hasElse,omitempty"`
 	CompleteDefinition   bool          `json:"completeDefinition,omitempty"`
 	Name                 string        `json:"name,omitempty"`
 	MangledName          string        `json:"mangledName,omitempty"`

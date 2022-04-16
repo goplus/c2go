@@ -159,6 +159,44 @@ void test() {
 
 // -----------------------------------------------------------------------------
 
+func TestBitField(t *testing.T) {
+	testFunc(t, "testBasic", `
+void test() {
+	struct foo {
+		int a;
+		int b :1;
+		int c :2;
+		double x;
+	};
+}
+`, `func test() {
+	type struct_foo struct {
+		a     int32
+		Xbf_0 int32
+		x     float64
+	}
+}`)
+	testFunc(t, "testBFInit", `
+void test() {
+	struct foo {
+		int a;
+		int b :1;
+		int c :2;
+		double x;
+	} a = {1};
+}
+`, `func test() {
+	type struct_foo struct {
+		a     int32
+		Xbf_0 int32
+		x     float64
+	}
+	var a struct_foo = struct_foo{1, 0, 0}
+}`)
+}
+
+// -----------------------------------------------------------------------------
+
 func TestEnum(t *testing.T) {
 	testFunc(t, "testEnum", `
 void test() {

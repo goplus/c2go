@@ -288,6 +288,14 @@ func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) int {
 		}
 	case *types.Named:
 		structLit(ctx, t, initExpr)
+	case *bfType:
+		if initExpr.Kind != ast.ImplicitValueInitExpr {
+			log.Panicln("initLit bfType: TODO")
+		}
+		if !t.first {
+			return 0
+		}
+		ctx.cb.ZeroLit(t.Type)
 	default:
 		compileExpr(ctx, initExpr)
 	}
