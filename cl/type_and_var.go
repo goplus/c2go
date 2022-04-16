@@ -51,7 +51,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 			if debugCompileDecl {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
-			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
+			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsField)
 			if len(decl.Inner) > 0 {
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
 				b.BitField(ctx, typ, decl.Name, int(bits))

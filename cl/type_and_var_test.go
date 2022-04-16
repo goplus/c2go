@@ -229,6 +229,52 @@ void test() {
 
 // -----------------------------------------------------------------------------
 
+func TestValist(t *testing.T) {
+	testFunc(t, "testValistVar", `
+void test() {
+	__builtin_va_list a;
+}
+`, `func test() {
+}`)
+	testFunc(t, "testValistTypedef", `
+void test() {
+	typedef __builtin_va_list foo;
+}
+`, `func test() {
+}`)
+}
+
+// -----------------------------------------------------------------------------
+
+func TestArray(t *testing.T) {
+	testFunc(t, "testArray", `
+void test() {
+	struct foo {
+		int a[3];
+	};
+}
+`, `func test() {
+	type struct_foo struct {
+		a [3]int32
+	}
+}`)
+	testFunc(t, "testDynArray", `
+void test() {
+	struct foo {
+		int h;
+		int a[];
+	};
+}
+`, `func test() {
+	type struct_foo struct {
+		h int32
+		a [0]int32
+	}
+}`)
+}
+
+// -----------------------------------------------------------------------------
+
 func TestStructUnion(t *testing.T) {
 	testFunc(t, "testStruct", `
 void test() {
