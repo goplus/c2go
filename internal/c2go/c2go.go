@@ -1,9 +1,8 @@
-package main
+package c2go
 
 import (
 	"bytes"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -18,16 +17,12 @@ import (
 	"github.com/goplus/gox"
 )
 
-var (
-	verbose  = flag.Bool("v", false, "print verbose information")
-	failfast = flag.Bool("ff", false, "fail fast (stop if an error is encountered)")
-	test     = flag.Bool("test", false, "run test")
+const (
+	FlagRunApp = 1 << iota
+	FlagRunTest
+	FlagFailFast
+	flagChdir
 )
-
-func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: c2go [-test -ff -v] [pkgname] source.c\n")
-	flag.PrintDefaults()
-}
 
 func isDir(name string) bool {
 	if fi, err := os.Lstat(name); err == nil {
@@ -36,25 +31,12 @@ func isDir(name string) bool {
 	return false
 }
 
-func main() {
-	flag.Parse()
-	var pkgname, infile string
-	var run bool
-	switch flag.NArg() {
-	case 1:
-		pkgname, infile, run = "main", flag.Arg(0), true
-	case 2:
-		pkgname, infile = flag.Arg(0), flag.Arg(1)
-	default:
-		usage()
-		return
-	}
-
-	if *verbose {
-		cl.SetDebug(cl.DbgFlagAll)
-		gox.SetDebug(gox.DbgFlagInstruction) // | gox.DbgFlagMatch)
-	}
-
+func Run(pkgname, infile string, flags int) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = e.(error)
+		}
+	}()
 	outfile := infile
 	switch filepath.Ext(infile) {
 	case ".i":
@@ -65,9 +47,9 @@ func main() {
 	default:
 		if strings.HasSuffix(infile, "/...") {
 			infile = strings.TrimSuffix(infile, "/...")
-			execDirRecursively(infile, run, *test)
+			execDirRecursively(infile, flags)
 		} else if isDir(infile) {
-			switch n := execDir(pkgname, infile, run, *test); n {
+			switch n := execDir(pkgname, infile, flags); n {
 			case 1:
 			case 0:
 				fatalf("no *.c files in this directory.\n")
@@ -79,10 +61,11 @@ func main() {
 		}
 		return
 	}
-	execFile(pkgname, outfile, run, *test)
+	execFile(pkgname, outfile, flags|flagChdir)
+	return
 }
 
-func execDirRecursively(dir string, doRunApp, doRunTest bool) {
+func execDirRecursively(dir string, flags int) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
@@ -92,7 +75,7 @@ func execDirRecursively(dir string, doRunApp, doRunTest bool) {
 	for _, fi := range fis {
 		if fi.IsDir() {
 			pkgDir := path.Join(dir, fi.Name())
-			execDirRecursively(pkgDir, doRunApp, doRunTest)
+			execDirRecursively(pkgDir, flags)
 			continue
 		}
 		if strings.HasSuffix(fi.Name(), ".c") {
@@ -102,31 +85,26 @@ func execDirRecursively(dir string, doRunApp, doRunTest bool) {
 	if cfiles == 1 {
 		var action string
 		switch {
-		case doRunTest:
+		case (flags & FlagRunTest) != 0:
 			action = "Testing"
-		case doRunApp:
+		case (flags & FlagRunApp) != 0:
 			action = "Running"
 		default:
 			action = "Compiling"
 		}
 		fmt.Printf("==> %s %s ...\n", action, dir)
-		execDir("main", dir, doRunApp, doRunTest)
+		execDir("main", dir, flags)
 	}
 }
 
-func execDir(pkgname string, dir string, doRunApp, doRunTest bool) int {
+func execDir(pkgname string, dir string, flags int) int {
 	defer func() {
-		if e := recover(); e != nil && e != errStop {
+		if e := recover(); e != nil && (flags&FlagFailFast) != 0 {
 			panic(e)
 		}
 	}()
 
-	cwd, err := os.Getwd()
-	check(err)
-
-	err = os.Chdir(dir)
-	check(err)
-
+	cwd := chdir(dir)
 	defer os.Chdir(cwd)
 
 	var infile, outfile string
@@ -138,14 +116,14 @@ func execDir(pkgname string, dir string, doRunApp, doRunTest bool) int {
 		outfile = infile + ".i"
 		err := preprocessor.Do(infile, outfile, nil)
 		check(err)
-		execFile(pkgname, outfile, doRunApp, doRunTest)
+		execFile(pkgname, outfile, flags)
 		fallthrough
 	default:
 		return n
 	}
 }
 
-func execFile(pkgname string, outfile string, doRunApp, doRunTest bool) {
+func execFile(pkgname string, outfile string, flags int) {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
@@ -156,9 +134,15 @@ func execFile(pkgname string, outfile string, doRunApp, doRunTest bool) {
 	err = gox.WriteFile(gofile, pkg, false)
 	check(err)
 
-	if doRunTest {
+	if (flags & flagChdir) != 0 {
+		dir, _ := filepath.Split(gofile)
+		cwd := chdir(dir)
+		defer os.Chdir(cwd)
+	}
+
+	if (flags & FlagRunTest) != 0 {
 		runTest("")
-	} else if doRunApp {
+	} else if (flags & FlagRunApp) != 0 {
 		runGoApp("", os.Stdout, os.Stderr, false)
 	}
 }
@@ -174,7 +158,7 @@ func checkEqual(prompt string, a, expected []byte) {
 	fmt.Fprintln(os.Stderr, "\n=> Expected", prompt)
 	os.Stderr.Write(expected)
 
-	fatal()
+	fatal(errors.New("checkEqual: unexpected " + prompt))
 }
 
 func runTest(dir string) {
@@ -229,25 +213,27 @@ func runCApp(dir string, stdout, stderr io.Writer) {
 	os.Remove("./a.out")
 }
 
+func chdir(dir string) string {
+	cwd, err := os.Getwd()
+	check(err)
+
+	err = os.Chdir(dir)
+	check(err)
+
+	return cwd
+}
+
 func check(err error) {
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		fatal()
+		fatal(err)
 	}
 }
 
 func fatalf(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format, args...)
-	fatal()
+	fatal(fmt.Errorf(format, args...))
 }
 
-func fatal() {
-	if *failfast {
-		os.Exit(1)
-	}
-	panic(errStop)
+func fatal(err error) {
+	fmt.Fprintln(os.Stderr, err)
+	panic(err)
 }
-
-var (
-	errStop = errors.New("stop")
-)

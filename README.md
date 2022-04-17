@@ -33,7 +33,7 @@ Run/Test multiple examples:
 ### Data structures
 
 - [x] Void: `void`
-- [x] Boolean: `bool`
+- [x] Boolean: `_Bool`, `bool`
 - [x] Integer: [`signed`/`unsigned`] [`short`/`long`/`long long`] `int`
 - [x] Enum: `enum`
 - [x] Float: `float`, `double`, `long double`
