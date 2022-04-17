@@ -7,9 +7,12 @@ on:
     branches: [ main ]
 
 jobs:
-
-  build:
-    runs-on: ubuntu-latest
+  Test:
+    strategy:
+      matrix:
+        go-version: [1.17.x]
+        os: [macos-11]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
 
