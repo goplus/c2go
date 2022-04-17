@@ -31,12 +31,7 @@ func isDir(name string) bool {
 	return false
 }
 
-func Run(pkgname, infile string, flags int) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = e.(error)
-		}
-	}()
+func Run(pkgname, infile string, flags int) {
 	outfile := infile
 	switch filepath.Ext(infile) {
 	case ".i":
@@ -47,9 +42,15 @@ func Run(pkgname, infile string, flags int) (err error) {
 	default:
 		if strings.HasSuffix(infile, "/...") {
 			infile = strings.TrimSuffix(infile, "/...")
-			execDirRecursively(infile, flags)
+			if err := execDirRecursively(infile, flags); err != nil {
+				panic(err)
+			}
 		} else if isDir(infile) {
-			switch n := execDir(pkgname, infile, flags); n {
+			n, err := execDir(pkgname, infile, flags)
+			if err != nil {
+				panic(err)
+			}
+			switch n {
 			case 1:
 			case 0:
 				fatalf("no *.c files in this directory.\n")
@@ -65,17 +66,19 @@ func Run(pkgname, infile string, flags int) (err error) {
 	return
 }
 
-func execDirRecursively(dir string, flags int) {
+func execDirRecursively(dir string, flags int) (last error) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
-	fis, err := os.ReadDir(dir)
-	check(err)
+	fis, last := os.ReadDir(dir)
+	check(last)
 	var cfiles int
 	for _, fi := range fis {
 		if fi.IsDir() {
 			pkgDir := path.Join(dir, fi.Name())
-			execDirRecursively(pkgDir, flags)
+			if e := execDirRecursively(pkgDir, flags); e != nil {
+				last = e
+			}
 			continue
 		}
 		if strings.HasSuffix(fi.Name(), ".c") {
@@ -93,16 +96,23 @@ func execDirRecursively(dir string, flags int) {
 			action = "Compiling"
 		}
 		fmt.Printf("==> %s %s ...\n", action, dir)
-		execDir("main", dir, flags)
+		if _, e := execDir("main", dir, flags); e != nil {
+			last = e
+		}
 	}
+	return
 }
 
-func execDir(pkgname string, dir string, flags int) int {
+func execDir(pkgname string, dir string, flags int) (n int, err error) {
 	defer func() {
-		if e := recover(); e != nil && (flags&FlagFailFast) != 0 {
-			panic(e)
+		if e := recover(); e != nil {
+			if (flags & FlagFailFast) != 0 {
+				panic(e)
+			}
+			err = e.(error)
 		}
 	}()
+	n = -1
 
 	cwd := chdir(dir)
 	defer os.Chdir(cwd)
@@ -110,17 +120,15 @@ func execDir(pkgname string, dir string, flags int) int {
 	var infile, outfile string
 	files, err := filepath.Glob("*.c")
 	check(err)
-	switch n := len(files); n {
+	switch n = len(files); n {
 	case 1:
 		infile = files[0]
 		outfile = infile + ".i"
-		err := preprocessor.Do(infile, outfile, nil)
+		err = preprocessor.Do(infile, outfile, nil)
 		check(err)
 		execFile(pkgname, outfile, flags)
-		fallthrough
-	default:
-		return n
 	}
+	return
 }
 
 func execFile(pkgname string, outfile string, flags int) {

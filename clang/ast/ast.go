@@ -202,6 +202,7 @@ type Node struct {
 	TagUsed              string        `json:"tagUsed,omitempty"` // struct | union
 	HasElse              bool          `json:"hasElse,omitempty"`
 	CompleteDefinition   bool          `json:"completeDefinition,omitempty"`
+	Complicated          bool          `json:"-"` // complicated statement
 	Name                 string        `json:"name,omitempty"`
 	MangledName          string        `json:"mangledName,omitempty"`
 	Type                 *Type         `json:"type,omitempty"`
