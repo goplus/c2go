@@ -9,6 +9,7 @@ c2go - Convert C to Go
 
 ![Screen Shot1](https://user-images.githubusercontent.com/396972/160951673-30ec62ae-2981-4cdf-a1ab-bc7fcb6f7475.png)
 
+
 ## How to run examples?
 
 Run an example:
@@ -21,11 +22,19 @@ Run/Test multiple examples:
 - Run examples: `c2go ./...`
 - Test examples: `c2go -test ./...`
 
+
 ## What's our plan?
 
 - First, Support most of the syntax of C. Stage: `Finished Almost`, see [Supported C syntax](#supported-c-syntax).
 - Second, Support most of C standard libaries, and can import them by Go+. Stage: `Doing`.
 - Last, Support all custom libraries, especially those well-known open source libraries. Stage: `Planning`.
+
+
+## Tested Platform
+
+- [x] MacOS: 1.17.x
+- [ ] Linux
+- [ ] Windows
 
 
 ## Supported C syntax
@@ -70,6 +79,7 @@ Run/Test multiple examples:
 - [x] Function Call: f(a1, a2, ...)
 - [x] Conversion: (T)a
 - [x] Sizeof: sizeof(T), sizeof(a)
+- [x] Offsetof: __builtin_offsetof(T, member)
 
 ### Literals
 
