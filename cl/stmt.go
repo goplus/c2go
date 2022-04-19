@@ -40,6 +40,8 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 	case ast.CaseStmt, ast.DefaultStmt:
 		compileCaseStmt(ctx, stmt)
 	case ast.NullStmt:
+	case ast.GCCAsmStmt:
+		// TODO: skip
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", flagIgnoreResult)
 		ctx.cb.EndStmt()

@@ -53,7 +53,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 			}
 			avoidKeyword(&decl.Name)
 			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsField)
-			if len(decl.Inner) > 0 {
+			if decl.IsBitfield {
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
 				b.BitField(ctx, typ, decl.Name, int(bits))
 			} else {

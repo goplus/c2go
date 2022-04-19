@@ -95,6 +95,7 @@ const (
 	CaseStmt                 Kind = "CaseStmt"
 	DefaultStmt              Kind = "DefaultStmt"
 	ReturnStmt               Kind = "ReturnStmt"
+	GCCAsmStmt               Kind = "GCCAsmStmt"
 	ParenExpr                Kind = "ParenExpr"
 	CallExpr                 Kind = "CallExpr"
 	ConstantExpr             Kind = "ConstantExpr"
