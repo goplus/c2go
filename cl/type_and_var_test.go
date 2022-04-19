@@ -258,6 +258,17 @@ void test() {
 
 // -----------------------------------------------------------------------------
 
+func TestVoid(t *testing.T) {
+	testFunc(t, "testVoidTypedef", `
+void test() {
+	typedef void foo;
+}
+`, `func test() {
+}`)
+}
+
+// -----------------------------------------------------------------------------
+
 func TestConst(t *testing.T) {
 	testFunc(t, "testEnum", `
 void test() {
