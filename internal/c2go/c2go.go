@@ -198,7 +198,7 @@ func runGoApp(dir string, stdout, stderr io.Writer, doRunTest bool) (dontRunTest
 	cmd.Dir = dir
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
-	check(cmd.Run())
+	checkWith(cmd.Run(), stdout, stderr)
 	return
 }
 
@@ -216,7 +216,7 @@ func runCApp(dir string, stdout, stderr io.Writer) {
 	cmd.Dir = dir
 	cmd2.Stdout = stdout
 	cmd2.Stderr = stderr
-	check(cmd2.Run())
+	checkWith(cmd2.Run(), stdout, stderr)
 
 	os.Remove("./a.out")
 }
