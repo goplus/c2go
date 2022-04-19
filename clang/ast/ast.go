@@ -69,6 +69,7 @@ const (
 	NoThrowAttr              Kind = "NoThrowAttr"
 	NoInlineAttr             Kind = "NoInlineAttr"
 	NoSanitizeAttr           Kind = "NoSanitizeAttr"
+	NonNullAttr              Kind = "NonNullAttr"
 	MayAliasAttr             Kind = "MayAliasAttr"
 	MaxFieldAlignmentAttr    Kind = "MaxFieldAlignmentAttr"
 	WarnUnusedResultAttr     Kind = "WarnUnusedResultAttr"
