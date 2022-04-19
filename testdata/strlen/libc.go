@@ -31,3 +31,5 @@ func printf(format *int8, args ...interface{}) int32 {
 	fmt.Printf(goformat, args...)
 	return 0
 }
+
+type struct___locale_data struct{}

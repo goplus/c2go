@@ -159,13 +159,11 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node) {
 		}
 	}
 	typ := toType(ctx, decl.Type, parser.FlagIsTypedef)
-	if ctx.isValistType(typ) || isArrayUnknownLen(typ) {
+	if ctx.isValistType(typ) || isArrayUnknownLen(typ) || typ == ctypes.Void {
 		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
 		return
 	}
-	if typ.String() != name {
-		ctx.cb.AliasType(name, typ, goNodePos(decl))
-	}
+	ctx.cb.AliasType(name, typ, goNodePos(decl))
 }
 
 func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Named {
