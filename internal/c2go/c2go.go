@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/goplus/c2go/cl"
@@ -185,6 +186,21 @@ func runGoApp(dir string, stdout, stderr io.Writer, doRunTest bool) (dontRunTest
 	files, err := filepath.Glob("*.go")
 	check(err)
 
+	for i, n := 0, len(files); i < n; i++ {
+		fname := filepath.Base(files[i])
+		if pos := strings.LastIndex(fname, "_"); pos >= 0 {
+			switch os := fname[pos+1 : len(fname)-3]; os {
+			case "darwin", "linux", "windows":
+				if os != runtime.GOOS { // skip
+					n--
+					files[i], files[n] = files[n], files[i]
+					files = files[:n]
+					i--
+				}
+			}
+		}
+	}
+
 	if doRunTest {
 		for _, file := range files {
 			if filepath.Base(file) == "main.go" {
@@ -212,13 +228,23 @@ func runCApp(dir string, stdout, stderr io.Writer) {
 	cmd.Stderr = os.Stderr
 	check(cmd.Run())
 
-	cmd2 := exec.Command("./a.out")
+	cmd2 := exec.Command(clangOut)
 	cmd.Dir = dir
 	cmd2.Stdout = stdout
 	cmd2.Stderr = stderr
 	checkWith(cmd2.Run(), stdout, stderr)
 
-	os.Remove("./a.out")
+	os.Remove(clangOut)
+}
+
+var (
+	clangOut = "./a.out"
+)
+
+func init() {
+	if runtime.GOOS == "windows" {
+		clangOut = "./a.exe"
+	}
 }
 
 func chdir(dir string) string {

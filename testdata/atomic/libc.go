@@ -47,6 +47,6 @@ func __swbuf(_c int32, _p *FILE) int32 {
 
 type struct___sFILEX struct{}
 
-type struct__IO_marker struct{}
+type struct__IO_marker struct{} // Linux
 type struct__IO_codecvt struct{}
 type struct__IO_wide_data struct{}
