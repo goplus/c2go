@@ -71,6 +71,7 @@ const (
 	NoSanitizeAttr           Kind = "NoSanitizeAttr"
 	NonNullAttr              Kind = "NonNullAttr"
 	MayAliasAttr             Kind = "MayAliasAttr"
+	MSAllocatorAttr          Kind = "MSAllocatorAttr"
 	MaxFieldAlignmentAttr    Kind = "MaxFieldAlignmentAttr"
 	WarnUnusedResultAttr     Kind = "WarnUnusedResultAttr"
 	AllocSizeAttr            Kind = "AllocSizeAttr"
