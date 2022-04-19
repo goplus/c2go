@@ -41,7 +41,7 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileCaseStmt(ctx, stmt)
 	case ast.NullStmt:
 	case ast.GCCAsmStmt:
-		// TODO: skip
+		// TODO: skip asm
 	default:
 		compileExprEx(ctx, stmt, "compileStmt: unknown kind =", flagIgnoreResult)
 		ctx.cb.EndStmt()
