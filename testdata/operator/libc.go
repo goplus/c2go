@@ -24,7 +24,13 @@ func printf(format *int8, args ...interface{}) int32 {
 	return 0
 }
 
+func memcpy(dst unsafe.Pointer, src unsafe.Pointer, n uint) unsafe.Pointer {
+	copy(sliceOf(dst, n), sliceOf(src, n))
+	return dst
+}
+
 func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n uint, elem uint) unsafe.Pointer {
+	copy(sliceOf(dst, n), sliceOf(src, n))
 	return dst
 }
 

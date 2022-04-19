@@ -42,6 +42,11 @@ func sliceOf(v unsafe.Pointer, bytes uint) []byte {
 	return (*[1 << 20]byte)(v)[:bytes]
 }
 
+func memcpy(dst unsafe.Pointer, src unsafe.Pointer, n uint) unsafe.Pointer {
+	copy(sliceOf(dst, n), sliceOf(src, n))
+	return dst
+}
+
 func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n uint, elem uint) unsafe.Pointer {
 	copy(sliceOf(dst, n), sliceOf(src, n))
 	return dst
