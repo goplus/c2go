@@ -8,7 +8,7 @@ import (
 
 func main() {
 	if runtime.GOOS == "linux" { // TODO: temp skip
-		rteurn
+		return
 	}
 	type elem_t = int
 	const elemLen = unsafe.Sizeof(elem_t(0))
