@@ -43,5 +43,6 @@ type struct__IO_codecvt struct{}
 type struct__IO_wide_data struct{}
 
 var (
+	stdout    *FILE
 	__stdoutp *FILE
 )
