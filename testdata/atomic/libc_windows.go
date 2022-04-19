@@ -1,6 +1,3 @@
-//go:build windows
-// +build windows
-
 package main
 
 func __swbuf_r(_ptr *struct__reent, _c int32, _p *FILE) int32 {

@@ -186,6 +186,21 @@ func runGoApp(dir string, stdout, stderr io.Writer, doRunTest bool) (dontRunTest
 	files, err := filepath.Glob("*.go")
 	check(err)
 
+	for i, n := 0, len(files); i < n; i++ {
+		fname := filepath.Base(files[i])
+		if pos := strings.LastIndex(fname, "_"); pos >= 0 {
+			switch os := fname[pos+1 : len(fname)-3]; os {
+			case "darwin", "linux", "windows":
+				if os != runtime.GOOS { // skip
+					n--
+					files[i], files[n] = files[n], files[i]
+					files = files[:n]
+					i--
+				}
+			}
+		}
+	}
+
 	if doRunTest {
 		for _, file := range files {
 			if filepath.Base(file) == "main.go" {
