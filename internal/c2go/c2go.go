@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/goplus/c2go/cl"
@@ -212,13 +213,23 @@ func runCApp(dir string, stdout, stderr io.Writer) {
 	cmd.Stderr = os.Stderr
 	check(cmd.Run())
 
-	cmd2 := exec.Command("./a.out")
+	cmd2 := exec.Command(clangOut)
 	cmd.Dir = dir
 	cmd2.Stdout = stdout
 	cmd2.Stderr = stderr
 	checkWith(cmd2.Run(), stdout, stderr)
 
-	os.Remove("./a.out")
+	os.Remove(clangOut)
+}
+
+var (
+	clangOut = "./a.out"
+)
+
+func init() {
+	if runtime.GOOS == "windows" {
+		clangOut = "./a.exe"
+	}
 }
 
 func chdir(dir string) string {
