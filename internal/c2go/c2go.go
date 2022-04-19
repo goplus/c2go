@@ -237,6 +237,12 @@ func check(err error) {
 	}
 }
 
+func checkWith(err error, stdout, stderr io.Writer) {
+	if err != nil {
+		fatalWith(err, stdout, stderr)
+	}
+}
+
 func fatalf(format string, args ...interface{}) {
 	fatal(fmt.Errorf(format, args...))
 }
@@ -244,4 +250,24 @@ func fatalf(format string, args ...interface{}) {
 func fatal(err error) {
 	fmt.Fprintln(os.Stderr, err)
 	panic(err)
+}
+
+func fatalWith(err error, stdout, stderr io.Writer) {
+	if o, ok := getBytes(stdout, stderr); ok {
+		os.Stderr.Write(o.Bytes())
+	}
+	fmt.Fprintln(os.Stderr, err)
+	panic(err)
+}
+
+type iBytes interface {
+	Bytes() []byte
+}
+
+func getBytes(stdout, stderr io.Writer) (o iBytes, ok bool) {
+	if o, ok = stderr.(iBytes); ok {
+		return
+	}
+	o, ok = stdout.(iBytes)
+	return
 }
