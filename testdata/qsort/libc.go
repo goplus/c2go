@@ -60,3 +60,5 @@ func __builtin_bswap64(v uint64) uint64 {
 	log.Panicln("__builtin_bswap32: notimpl")
 	return v
 }
+
+type struct___locale_data struct{}
