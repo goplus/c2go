@@ -269,7 +269,6 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			return
 		}
 		if inVBlock {
-			log.Panicln("newVarAndInit: TODO - inVBlock varInit")
 			addr := varDecl.Ref(decl.Name)
 			cb := ctx.cb.VarRef(addr)
 			varInit(ctx, typ, initExpr)
@@ -280,7 +279,8 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			cb.EndInit(1)
 		}
 	} else if inVBlock {
-		log.Panicln("newVarAndInit: TODO - inVBlock zeroInit")
+		addr := varDecl.Ref(decl.Name)
+		ctx.cb.VarRef(addr).ZeroLit(typ).Assign(1)
 	}
 }
 
@@ -362,7 +362,7 @@ func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.No
 		if ctypes.Identical(fld.Type, t) {
 			pkg, cb := ctx.pkg, ctx.cb
 			scope := cb.Scope()
-			obj := scope.Lookup(name)
+			obj := gox.Lookup(scope, name)
 			global := scope == pkg.Types.Scope()
 			if global {
 				pkg.NewFunc(nil, "init", nil, nil, false).BodyStart(pkg)
