@@ -16,6 +16,21 @@ next:
     }
 }
 
+void g(int n) {
+    goto one;
+    do {
+one:
+        printf("one shot\n");
+        break;
+    } while (1);
+    goto two;
+    do {
+two:
+        printf("multiple shots\n");
+        n--;
+    } while (n > 0);
+}
+
 int main() {
     int a = sizeof(int);
     int *b = &a;
@@ -50,5 +65,6 @@ done:
     f(0);
     f(1);
     f(-1);
+    g(2);
     return 0;
 }

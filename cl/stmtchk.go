@@ -71,21 +71,19 @@ func (at *blockMarkCtx) isComplicated(ref *blockMarkCtx) bool {
 }
 
 type labelCtx struct {
-	at   *blockMarkCtx          // block that defines this label
-	refs map[*blockMarkCtx]none // blocks that refer this label
+	at      *blockMarkCtx          // block that defines this label
+	refs    map[*blockMarkCtx]none // blocks that refer this label
+	defined bool
 }
 
 func (p *labelCtx) defineLabel(name string, at *blockMarkCtx) {
-	if p.at != nil {
+	if p.defined {
 		log.Panicln("defineLabel: label exists -", name)
 	}
-	p.at = at
+	p.at, p.defined = at, true
 }
 
 func (p *labelCtx) useLabel(at *blockMarkCtx) {
-	if p.at == at {
-		return
-	}
 	if p.refs == nil {
 		p.refs = make(map[*blockMarkCtx]none)
 	}
@@ -253,6 +251,9 @@ func (p *markCtx) markEnd() {
 }
 
 func (p *markCtx) markComplicated(stmt *ast.Node) {
+	if stmt == nil {
+		return
+	}
 	if debugMarkComplicated && !stmt.Complicated {
 		log.Println("==> markComplicated", stmt.Kind, *stmt.Range)
 	}

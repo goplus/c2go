@@ -50,9 +50,21 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 
 // -----------------------------------------------------------------------------
 
+func compileSub(ctx *blockCtx, stmt *ast.Node) {
+	switch stmt.Kind {
+	case ast.CompoundStmt:
+		for _, item := range stmt.Inner {
+			compileStmt(ctx, item)
+		}
+		return
+	}
+	compileStmt(ctx, stmt)
+}
+
 func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 	if stmt.Complicated {
-		log.Panicln("TODO: compileComplicatedDoStmt")
+		compileComplicatedDoStmt(ctx, stmt)
+		return
 	}
 
 	flow := ctx.enterFlow(flowKindLoop)
@@ -71,15 +83,21 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 	}
 }
 
-func compileSub(ctx *blockCtx, stmt *ast.Node) {
-	switch stmt.Kind {
-	case ast.CompoundStmt:
-		for _, item := range stmt.Inner {
-			compileStmt(ctx, item)
-		}
-		return
+func compileComplicatedDoStmt(ctx *blockCtx, stmt *ast.Node) {
+	loop := ctx.enterLoop()
+	defer ctx.leave(loop)
+
+	loop.labelStart(ctx)
+	compileSub(ctx, stmt.Inner[0])
+
+	cb := ctx.cb.If()
+	compileExpr(ctx, stmt.Inner[1])
+	castToBoolExpr(cb)
+	cb.Then().Goto(loop.start).End()
+
+	if loop.done != nil {
+		cb.Label(loop.done)
 	}
-	compileStmt(ctx, stmt)
 }
 
 // -----------------------------------------------------------------------------
