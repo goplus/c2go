@@ -269,6 +269,7 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			return
 		}
 		if inVBlock {
+			log.Panicln("newVarAndInit: TODO - inVBlock varInit")
 			addr := varDecl.Ref(decl.Name)
 			cb := ctx.cb.VarRef(addr)
 			varInit(ctx, typ, initExpr)
@@ -278,6 +279,8 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			varInit(ctx, typ, initExpr)
 			cb.EndInit(1)
 		}
+	} else if inVBlock {
+		log.Panicln("newVarAndInit: TODO - inVBlock zeroInit")
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -43,14 +44,11 @@ func Run(pkgname, infile string, flags int) {
 	default:
 		if strings.HasSuffix(infile, "/...") {
 			infile = strings.TrimSuffix(infile, "/...")
-			if err := execDirRecursively(infile, flags); err != nil {
-				panic(err)
-			}
+			err := execDirRecursively(infile, flags)
+			check(err)
 		} else if isDir(infile) {
 			n, err := execDir(pkgname, infile, flags)
-			if err != nil {
-				panic(err)
-			}
+			check(err)
 			switch n {
 			case 1:
 			case 0:
@@ -105,14 +103,13 @@ func execDirRecursively(dir string, flags int) (last error) {
 }
 
 func execDir(pkgname string, dir string, flags int) (n int, err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			if (flags & FlagFailFast) != 0 {
-				panic(e)
+	if (flags & FlagFailFast) == 0 {
+		defer func() {
+			if e := recover(); e != nil {
+				err = newError(e)
 			}
-			err = newError(e)
-		}
-	}()
+		}()
+	}
 	n = -1
 
 	cwd := chdir(dir)
@@ -274,16 +271,14 @@ func fatalf(format string, args ...interface{}) {
 }
 
 func fatal(err error) {
-	fmt.Fprintln(os.Stderr, err)
-	panic(err)
+	log.Panicln(err)
 }
 
 func fatalWith(err error, stdout, stderr io.Writer) {
 	if o, ok := getBytes(stdout, stderr); ok {
 		os.Stderr.Write(o.Bytes())
 	}
-	fmt.Fprintln(os.Stderr, err)
-	panic(err)
+	log.Panicln(err)
 }
 
 func newError(v interface{}) error {

@@ -269,7 +269,7 @@ func (p *blockCtx) markComplicated(name string, body *ast.Node) bool {
 	}
 	labels := make(map[string]*labelCtx)
 	marker := &markCtx{labels: labels}
-	marker.mark(p, body)
+	marker.markBody(p, body)
 	marker.markEnd()
 	return marker.complicat
 }

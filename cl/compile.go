@@ -226,7 +226,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			cb.Scope().Insert(vaParam)
 		}
 		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fn.Name, body))
-		compileCompoundStmt(ctx, body)
+		compileSub(ctx, body)
 		ctx.curfn = nil
 		cb.End()
 		if isMain {
