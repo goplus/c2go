@@ -25,13 +25,18 @@ const (
 
 type funcCtx struct {
 	labels map[string]*gox.Label
+	vdefs  *gox.VarDefs
 	base   int
 }
 
-func newFuncCtx() *funcCtx {
-	return &funcCtx{
+func newFuncCtx(pkg *gox.Package, complicated bool) *funcCtx {
+	ctx := &funcCtx{
 		labels: make(map[string]*gox.Label),
 	}
+	if complicated {
+		ctx.vdefs = pkg.NewVarDefs(pkg.CB().Scope())
+	}
+	return ctx
 }
 
 func (p *funcCtx) newLabel(cb *gox.CodeBuilder) *gox.Label {
@@ -46,24 +51,10 @@ func (p *funcCtx) label(cb *gox.CodeBuilder) *gox.Label {
 	return l
 }
 
-// -----------------------------------------------------------------------------
-
-type varNamespace struct {
-	parent *varNamespace
-	vars   map[string]types.Object
-}
-
-func newVarNamespace(parent *varNamespace) *varNamespace {
-	return &varNamespace{parent: parent, vars: make(map[string]types.Object)}
-}
-
-func (p *varNamespace) lookupParent(name string) types.Object {
-	for ; p != nil; p = p.parent {
-		if o, ok := p.vars[name]; ok {
-			return o
-		}
-	}
-	return nil
+func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) *gox.VarDecl {
+	p.base++
+	realName := name + "_cgo" + strconv.Itoa(p.base)
+	return p.vdefs.New(pos, typ, realName)
 }
 
 // -----------------------------------------------------------------------------
@@ -97,12 +88,8 @@ type switchCtx struct {
 	done   *gox.Label
 	next   *gox.Label
 	defau  *gox.Label
-	vdefs  *gox.VarDefs
-	scope  *types.Scope
-	curns  *varNamespace
 	tag    types.Object
 	notmat types.Object // notMatched
-	base   int
 }
 
 func (p *switchCtx) Parent() flowCtx {
@@ -130,28 +117,6 @@ func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gox.Label {
 
 func (p *switchCtx) labelDefault(ctx *blockCtx) {
 	p.defau = ctx.curfn.label(ctx.cb)
-}
-
-func (p *switchCtx) enterNamespace() (old *varNamespace) {
-	old = p.curns
-	p.curns = newVarNamespace(p.curns)
-	return
-}
-
-func (p *switchCtx) leave(old *varNamespace) {
-	p.curns = old
-}
-
-func (p *switchCtx) newVar(pos token.Pos, typ types.Type, name string) *gox.VarDecl {
-	ns := p.curns
-	if _, ok := ns.vars[name]; ok {
-		log.Panicln("TODO: variable exists -", name)
-	}
-	p.base++
-	realName := name + "_cgo" + strconv.Itoa(p.base)
-	ret := p.vdefs.New(pos, typ, realName)
-	ns.vars[name] = ret.Ref(realName)
-	return ret
 }
 
 // -----------------------------------------------------------------------------
@@ -196,27 +161,23 @@ type blockCtx struct {
 	src      []byte
 	curfn    *funcCtx
 	curflow  flowCtx
-	asuBase  int // anonymous struct/union
+	base     int // anonymous struct/union
 }
 
 func (p *blockCtx) lookupParent(name string) types.Object {
-	if sw := p.getSwitchCtx(); sw != nil {
-		if o := sw.curns.lookupParent(name); o != nil {
-			return o
-		}
-	}
-	if _, o := p.cb.Scope().LookupParent(name, token.NoPos); o != nil {
-		return o
-	}
-	return nil
+	_, o := gox.LookupParent(p.cb.Scope(), name, token.NoPos)
+	return o
 }
 
-func (p *blockCtx) newVar(
-	scope *types.Scope, pos token.Pos, typ types.Type, name string) (ret *gox.VarDecl, inSwitch bool) {
-	if sw := p.getSwitchCtx(); sw != nil && sw.scope == scope {
-		return sw.newVar(pos, typ, name), true
+func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, name string) (ret *gox.VarDecl, inVBlock bool) {
+	cb, pkg := p.cb, p.pkg
+	if inVBlock = cb.InVBlock(); inVBlock {
+		ret = p.curfn.newAutoVar(pos, typ, name)
+		scope.Insert(gox.NewSubstVar(pos, pkg.Types, name, ret.Ref(name)))
+	} else {
+		ret = pkg.NewVarEx(scope, pos, typ, name)
 	}
-	return p.pkg.NewVarEx(scope, pos, typ, name), false
+	return
 }
 
 func (p *blockCtx) getSwitchCtx() *switchCtx {
@@ -229,16 +190,15 @@ func (p *blockCtx) getSwitchCtx() *switchCtx {
 }
 
 func (p *blockCtx) enterSwitch() *switchCtx {
-	ns := newVarNamespace(nil)
-	scope := p.cb.Scope()
-	vdefs := p.pkg.NewVarDefs(scope)
-	f := &switchCtx{parent: p.curflow, vdefs: vdefs, scope: scope, curns: ns}
+	f := &switchCtx{parent: p.curflow}
+	p.cb.VBlock()
 	p.curflow = f
 	return f
 }
 
 func (p *blockCtx) enterLoop() *loopCtx {
 	f := &loopCtx{parent: p.curflow}
+	p.cb.VBlock()
 	p.curflow = f
 	return f
 }
@@ -250,6 +210,9 @@ func (p *blockCtx) enterFlow() *baseFlowCtx {
 }
 
 func (p *blockCtx) leave(cur flowCtx) {
+	if _, simple := cur.(*baseFlowCtx); !simple {
+		p.cb.End()
+	}
 	p.curflow = cur.Parent()
 }
 
@@ -429,8 +392,8 @@ func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
 	if name := v.Name; name != "" {
 		return ctypes.MangledName(tag, name), suNormal
 	}
-	p.asuBase++
-	return "_cgoa_" + strconv.Itoa(p.asuBase), suAnonymous
+	p.base++
+	return "_cgoa_" + strconv.Itoa(p.base), suAnonymous
 }
 
 func (p *blockCtx) initCTypes() {

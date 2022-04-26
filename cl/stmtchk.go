@@ -16,32 +16,32 @@ type blockMarkCtx struct {
 	ownerStmt *ast.Node
 }
 
-func markComplicatedByDepth(a, b *blockMarkCtx) {
+func markComplicatedByDepth(ctx *markCtx, a, b *blockMarkCtx) {
 	aDepth, bDepth := a.depth(), b.depth()
 retry:
 	if aDepth < bDepth {
-		markComplicated(b.ownerStmt)
+		ctx.markComplicated(b.ownerStmt)
 		b = b.owner
 		bDepth = b.depth()
 		goto retry
 	} else if bDepth < aDepth {
-		markComplicated(a.ownerStmt)
+		ctx.markComplicated(a.ownerStmt)
 		a = a.owner
 		aDepth = a.depth()
 		goto retry
 	} else if a != b {
-		markComplicated(a.ownerStmt)
-		markComplicated(b.ownerStmt)
+		ctx.markComplicated(a.ownerStmt)
+		ctx.markComplicated(b.ownerStmt)
 		a, b = a.owner, b.owner
 		aDepth, bDepth = a.depth(), b.depth()
 		goto retry
 	}
 }
 
-func (at *blockMarkCtx) markComplicated(ref *blockMarkCtx) {
+func (at *blockMarkCtx) markComplicated(ctx *markCtx, ref *blockMarkCtx) {
 	if at.isComplicated(ref) {
-		markComplicated(at.ownerStmt)
-		markComplicatedByDepth(at, ref)
+		ctx.markComplicated(at.ownerStmt)
+		markComplicatedByDepth(ctx, at, ref)
 	}
 }
 
@@ -102,6 +102,7 @@ type markCtx struct {
 	owner     *blockMarkCtx
 	ownerStmt *ast.Node
 	labels    map[string]*labelCtx
+	complicat bool
 }
 
 func (p *markCtx) reqLabel(name string) *labelCtx {
@@ -182,7 +183,7 @@ func (p *markCtx) markSwitchComplicated() {
 	owner, stmt := p.owner, p.ownerStmt
 	for owner != nil {
 		if stmt.Kind == ast.SwitchStmt {
-			markComplicated(stmt)
+			p.markComplicated(stmt)
 			return
 		}
 		owner, stmt = owner.owner, owner.ownerStmt
@@ -195,7 +196,7 @@ func (p *markCtx) markSwitch(ctx *blockCtx, switchStmt *ast.Node) {
 
 	body := switchStmt.Inner[1]
 	if firstStmtNotCase(body) {
-		markComplicated(switchStmt)
+		p.markComplicated(switchStmt)
 	}
 	var bodyStmts = body.Inner
 	var caseCtx *blockMarkCtx
@@ -230,117 +231,22 @@ func (p *markCtx) markSwitch(ctx *blockCtx, switchStmt *ast.Node) {
 func (p *markCtx) markEnd() {
 	for _, l := range p.labels {
 		for ref := range l.refs {
-			l.at.markComplicated(ref)
+			l.at.markComplicated(p, ref)
 		}
 	}
 }
 
-func markComplicated(stmt *ast.Node) {
+func (p *markCtx) markComplicated(stmt *ast.Node) {
 	stmt.Complicated = true
+	p.complicat = true
 }
 
-func (p *blockCtx) markComplicated(body *ast.Node) {
+func (p *blockCtx) markComplicated(body *ast.Node) bool {
 	labels := make(map[string]*labelCtx)
 	marker := &markCtx{labels: labels}
 	marker.mark(p, body)
 	marker.markEnd()
+	return marker.complicat
 }
 
-func isSimpleSwitch(ctx *blockCtx, switchStmt *ast.Node) bool {
-	ctx.markComplicated(switchStmt)
-	return !switchStmt.Complicated
-}
-
-// -----------------------------------------------------------------------------
-/*
-type labelStat struct {
-	firstCase int
-	multi     bool
-	define    bool
-}
-
-type nonSimpleSwChecker struct {
-	labels  map[string]*labelStat
-	idxCase int
-}
-
-func (p *nonSimpleSwChecker) checkStmt(ctx *blockCtx, stmt *ast.Node) {
-	var name string
-	var define bool
-	switch stmt.Kind {
-	case ast.LabelStmt:
-		p.checkStmt(ctx, stmt.Inner[0])
-		name, define = stmt.Name, true
-	case ast.GotoStmt:
-		name = ctx.labelOfGoto(stmt)
-	case ast.CompoundStmt:
-		for _, item := range stmt.Inner {
-			p.checkStmt(ctx, item)
-		}
-		return
-	case ast.IfStmt:
-		p.checkStmt(ctx, stmt.Inner[1])
-		if stmt.HasElse {
-			p.checkStmt(ctx, stmt.Inner[2])
-		}
-		return
-	case ast.CaseStmt, ast.DefaultStmt:
-		panic(true)
-	default:
-		return
-	}
-	l, ok := p.labels[name]
-	if !ok {
-		l = &labelStat{firstCase: p.idxCase, define: define}
-		p.labels[name] = l
-		return
-	}
-	if l.firstCase != p.idxCase {
-		l.multi = true
-	}
-	if define {
-		l.define = true
-	}
-	if l.multi && l.define {
-		panic(true)
-	}
-}
-
-func isSimpleSwitch(ctx *blockCtx, switchStmt *ast.Node) (simple bool) {
-	body := switchStmt.Inner[1]
-	if firstStmtNotCase(body) {
-		return false
-	}
-	bodyStmts := body.Inner
-	checker := &nonSimpleSwChecker{
-		labels: make(map[string]*labelStat), // labelName => idxCase
-	}
-	defer func() {
-		simple = recover() == nil
-	}()
-	for i, n := 0, len(bodyStmts); i < n; i++ {
-		stmt := bodyStmts[i]
-	retry:
-		var idx int
-		switch stmt.Kind {
-		case ast.CaseStmt:
-			idx = 1
-		case ast.DefaultStmt:
-		default:
-			checker.checkStmt(ctx, stmt)
-			continue
-		}
-		checker.idxCase++
-		switch caseBody := stmt.Inner[idx]; caseBody.Kind {
-		case ast.CaseStmt, ast.DefaultStmt:
-			stmt = caseBody
-			checker.idxCase++
-			goto retry
-		default:
-			checker.checkStmt(ctx, caseBody)
-		}
-	}
-	return
-}
-*/
 // -----------------------------------------------------------------------------

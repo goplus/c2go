@@ -70,11 +70,14 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
-	if _, ok := ctx.curflow.(*switchCtx); !ok { // not in switch stmt
-		compileSimpleWhileStmt(ctx, stmt)
+	if stmt.Complicated {
+		compileComplicatedWhileStmt(ctx, stmt)
 		return
 	}
+	compileSimpleWhileStmt(ctx, stmt)
+}
 
+func compileComplicatedWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	loop := ctx.enterLoop()
 	defer ctx.leave(loop)
 
@@ -151,11 +154,14 @@ func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
-	if isSimpleSwitch(ctx, switchStmt) {
-		compileSimpleSwitchStmt(ctx, switchStmt)
+	if switchStmt.Complicated {
+		compileComplicatedSwitchStmt(ctx, switchStmt)
 		return
 	}
+	compileSimpleSwitchStmt(ctx, switchStmt)
+}
 
+func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	sw := ctx.enterSwitch()
 	defer ctx.leave(sw)
 
@@ -323,10 +329,6 @@ func getRetType(cb *gox.CodeBuilder) types.Type {
 // -----------------------------------------------------------------------------
 
 func compileCompoundStmt(ctx *blockCtx, stmts *ast.Node) {
-	if sw := ctx.getSwitchCtx(); sw != nil {
-		nsOld := sw.enterNamespace()
-		defer sw.leave(nsOld)
-	}
 	for _, stmt := range stmts.Inner {
 		compileStmt(ctx, stmt)
 	}

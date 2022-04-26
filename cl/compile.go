@@ -222,7 +222,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		if vaParam != nil {
 			cb.Scope().Insert(vaParam)
 		}
-		ctx.curfn = newFuncCtx()
+		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(body))
 		compileCompoundStmt(ctx, body)
 		ctx.curfn = nil
 		cb.End()
