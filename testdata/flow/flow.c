@@ -18,17 +18,19 @@ next:
 
 void g(int n) {
     goto one;
-    do {
-one:
-        printf("one shot\n");
-        break;
-    } while (1);
-    goto two;
-    do {
-two:
-        printf("multiple shots\n");
-        n--;
-    } while (n > 0);
+    {
+        do {
+one:        printf("one shot\n");
+            break;
+        } while (1);
+    }
+    {
+        goto two;
+        do {
+two:        printf("multiple shots\n");
+            n--;
+        } while (n > 0);
+    }
 }
 
 int main() {

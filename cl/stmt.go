@@ -186,11 +186,12 @@ func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileCompoundStmt(ctx *blockCtx, cStmt *ast.Node) {
+	cb := ctx.cb
 	if cStmt.Complicated {
-		log.Panicln("TODO: compileComplicatedCompoundStmt")
+		cb.VBlock()
+	} else {
+		cb.Block()
 	}
-
-	cb := ctx.cb.Block()
 	for _, stmt := range cStmt.Inner {
 		compileStmt(ctx, stmt)
 	}
