@@ -1,8 +1,14 @@
 #include <stdio.h>
 
 void f(int a) {
-    if (a) {
+    if (a > 0) {
         a++;
+        goto next;
+    } else if (a) {
+        int b = -3;
+        int c;
+        (void)c;
+        a = b;
         goto next;
     } else {
 next:
@@ -43,5 +49,6 @@ done:
     }
     f(0);
     f(1);
+    f(-1);
     return 0;
 }

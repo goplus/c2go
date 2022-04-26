@@ -265,11 +265,14 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
 		if ufs, ok := checkUnion(ctx, typ); ok {
+			if inVBlock {
+				log.Panicln("TODO: initUnionVar inVBlock")
+			}
 			initUnionVar(ctx, decl.Name, ufs, initExpr)
 			return
 		}
 		if inVBlock {
-			addr := varDecl.Ref(decl.Name)
+			addr := gox.Lookup(scope, decl.Name)
 			cb := ctx.cb.VarRef(addr)
 			varInit(ctx, typ, initExpr)
 			cb.Assign(1)
@@ -279,7 +282,7 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			cb.EndInit(1)
 		}
 	} else if inVBlock {
-		addr := varDecl.Ref(decl.Name)
+		addr := gox.Lookup(scope, decl.Name)
 		ctx.cb.VarRef(addr).ZeroLit(typ).Assign(1)
 	}
 }
