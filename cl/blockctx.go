@@ -84,9 +84,24 @@ func (p *baseFlowCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
 
 // -----------------------------------------------------------------------------
 
+type endLabelCtx struct {
+	done *gox.Label
+}
+
+func (p *endLabelCtx) EndLabel(ctx *blockCtx) *gox.Label {
+	done := p.done
+	if done == nil {
+		done = ctx.curfn.newLabel(ctx.cb)
+		p.done = done
+	}
+	return done
+}
+
+// -----------------------------------------------------------------------------
+
 type switchCtx struct {
+	endLabelCtx
 	parent flowCtx
-	done   *gox.Label
 	next   *gox.Label
 	defau  *gox.Label
 	tag    types.Object
@@ -95,15 +110,6 @@ type switchCtx struct {
 
 func (p *switchCtx) Parent() flowCtx {
 	return p.parent
-}
-
-func (p *switchCtx) EndLabel(ctx *blockCtx) *gox.Label {
-	done := p.done
-	if done == nil {
-		done = ctx.curfn.newLabel(ctx.cb)
-		p.done = done
-	}
-	return done
 }
 
 func (p *switchCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
@@ -122,23 +128,33 @@ func (p *switchCtx) labelDefault(ctx *blockCtx) {
 
 // -----------------------------------------------------------------------------
 
-type loopCtx struct {
+type ifCtx struct {
+	endLabelCtx
 	parent flowCtx
-	done   *gox.Label
+}
+
+func (p *ifCtx) Parent() flowCtx {
+	return p.parent
+}
+
+func (p *ifCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+	return p.parent.ContinueLabel(ctx)
+}
+
+func (p *ifCtx) elseLabel(ctx *blockCtx) *gox.Label {
+	return ctx.curfn.newLabel(ctx.cb)
+}
+
+// -----------------------------------------------------------------------------
+
+type loopCtx struct {
+	endLabelCtx
+	parent flowCtx
 	start  *gox.Label
 }
 
 func (p *loopCtx) Parent() flowCtx {
 	return p.parent
-}
-
-func (p *loopCtx) EndLabel(ctx *blockCtx) *gox.Label {
-	done := p.done
-	if done == nil {
-		done = ctx.curfn.newLabel(ctx.cb)
-		p.done = done
-	}
-	return done
 }
 
 func (p *loopCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
@@ -191,6 +207,13 @@ func (p *blockCtx) getSwitchCtx() *switchCtx {
 		}
 	}
 	return nil
+}
+
+func (p *blockCtx) enterIf() *ifCtx {
+	f := &ifCtx{parent: p.curflow}
+	p.cb.VBlock()
+	p.curflow = f
+	return f
 }
 
 func (p *blockCtx) enterSwitch() *switchCtx {

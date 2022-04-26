@@ -89,7 +89,16 @@ func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileComplicatedWhileStmt(ctx, stmt)
 		return
 	}
-	compileSimpleWhileStmt(ctx, stmt)
+
+	flow := ctx.enterFlow()
+	defer ctx.leave(flow)
+
+	cb := ctx.cb.For()
+	compileExpr(ctx, stmt.Inner[0])
+	castToBoolExpr(cb)
+	cb.Then()
+	compileSub(ctx, stmt.Inner[1])
+	cb.End()
 }
 
 func compileComplicatedWhileStmt(ctx *blockCtx, stmt *ast.Node) {
@@ -108,15 +117,65 @@ func compileComplicatedWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb.Goto(loop.start).Label(done)
 }
 
-func compileSimpleWhileStmt(ctx *blockCtx, stmt *ast.Node) {
+// -----------------------------------------------------------------------------
+
+func compileComplicatedIfStmt(ctx *blockCtx, stmt *ast.Node) {
+	flow := ctx.enterIf()
+	defer ctx.leave(flow)
+
+	var done = flow.EndLabel(ctx)
+	var label *gox.Label
+	if stmt.HasElse {
+		label = flow.elseLabel(ctx)
+	} else {
+		label = done
+	}
+
+	cb := ctx.cb.If()
+	compileExpr(ctx, stmt.Inner[0])
+	castToBoolExpr(cb)
+	cb.UnaryOp(token.NOT).Then().Goto(label).End()
+	compileSub(ctx, stmt.Inner[1])
+
+	if stmt.HasElse {
+		cb.Goto(done).Label(label)
+		compileSub(ctx, stmt.Inner[2])
+	}
+	cb.Label(done)
+}
+
+func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
+	if stmt.Complicated {
+		compileComplicatedIfStmt(ctx, stmt)
+		return
+	}
+
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
 
-	cb := ctx.cb.For()
+	cb := ctx.cb.If()
 	compileExpr(ctx, stmt.Inner[0])
 	castToBoolExpr(cb)
 	cb.Then()
 	compileSub(ctx, stmt.Inner[1])
+	if stmt.HasElse {
+		cb.Else()
+		compileSub(ctx, stmt.Inner[2])
+	}
+	cb.End()
+}
+
+// -----------------------------------------------------------------------------
+
+func compileCompoundStmt(ctx *blockCtx, cStmt *ast.Node) {
+	if cStmt.Complicated {
+		log.Panicln("TODO: compileComplicatedCompoundStmt")
+	}
+
+	cb := ctx.cb.Block()
+	for _, stmt := range cStmt.Inner {
+		compileStmt(ctx, stmt)
+	}
 	cb.End()
 }
 
@@ -150,24 +209,6 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileStmt(ctx, postStmt)
 	}
 	cb.End()
-}
-
-// -----------------------------------------------------------------------------
-
-func compileContinueStmt(ctx *blockCtx, stmt *ast.Node) {
-	if l := ctx.curflow.ContinueLabel(ctx); l != nil {
-		ctx.cb.Goto(l)
-		return
-	}
-	ctx.cb.Continue(nil)
-}
-
-func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
-	if l := ctx.curflow.EndLabel(ctx); l != nil {
-		ctx.cb.Goto(l)
-		return
-	}
-	ctx.cb.Break(nil)
 }
 
 // -----------------------------------------------------------------------------
@@ -300,6 +341,22 @@ func compileSimpleSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 
 // -----------------------------------------------------------------------------
 
+func compileContinueStmt(ctx *blockCtx, stmt *ast.Node) {
+	if l := ctx.curflow.ContinueLabel(ctx); l != nil {
+		ctx.cb.Goto(l)
+		return
+	}
+	ctx.cb.Continue(nil)
+}
+
+func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
+	if l := ctx.curflow.EndLabel(ctx); l != nil {
+		ctx.cb.Goto(l)
+		return
+	}
+	ctx.cb.Break(nil)
+}
+
 func compileLabelStmt(ctx *blockCtx, stmt *ast.Node) {
 	l := ctx.getLabel(goNodePos(stmt), stmt.Name)
 	ctx.cb.Label(l)
@@ -311,28 +368,6 @@ func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
 	l := ctx.getLabel(goNodePos(stmt), label)
 	ctx.cb.Goto(l)
 }
-
-// -----------------------------------------------------------------------------
-
-func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
-	if stmt.Complicated {
-		log.Panicln("TODO: compileComplicatedIfStmt")
-	}
-
-	cb := ctx.cb
-	cb.If()
-	compileExpr(ctx, stmt.Inner[0])
-	castToBoolExpr(cb)
-	cb.Then()
-	compileSub(ctx, stmt.Inner[1])
-	if stmt.HasElse {
-		cb.Else()
-		compileSub(ctx, stmt.Inner[2])
-	}
-	cb.End()
-}
-
-// -----------------------------------------------------------------------------
 
 func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 	n := len(stmt.Inner)
@@ -347,20 +382,6 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 
 func getRetType(cb *gox.CodeBuilder) types.Type {
 	return cb.Func().Type().(*types.Signature).Results().At(0).Type()
-}
-
-// -----------------------------------------------------------------------------
-
-func compileCompoundStmt(ctx *blockCtx, cStmt *ast.Node) {
-	if cStmt.Complicated {
-		log.Panicln("TODO: compileComplicatedCompoundStmt")
-	}
-
-	cb := ctx.cb.Block()
-	for _, stmt := range cStmt.Inner {
-		compileStmt(ctx, stmt)
-	}
-	cb.End()
 }
 
 // -----------------------------------------------------------------------------
