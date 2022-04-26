@@ -110,7 +110,7 @@ func execDir(pkgname string, dir string, flags int) (n int, err error) {
 			if (flags & FlagFailFast) != 0 {
 				panic(e)
 			}
-			err = e.(error)
+			err = newError(e)
 		}
 	}()
 	n = -1
@@ -284,6 +284,17 @@ func fatalWith(err error, stdout, stderr io.Writer) {
 	}
 	fmt.Fprintln(os.Stderr, err)
 	panic(err)
+}
+
+func newError(v interface{}) error {
+	switch e := v.(type) {
+	case error:
+		return e
+	case string:
+		return errors.New(e)
+	}
+	fatalf("newError failed: %v", v)
+	return nil
 }
 
 type iBytes interface {
