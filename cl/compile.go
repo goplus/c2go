@@ -82,6 +82,14 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 	switch t := T.(type) {
 	case *types.Basic:
+		/* TODO:
+		if vt.Kind() == types.UntypedInt {
+			if ival, ok := constant.Int64Val(v.CVal); ok && ival == 0 { // nil
+				v.Val, v.Type = &ast.Ident{Name: "nil"}, types.Typ[types.UntypedNil]
+				break
+			}
+		}
+		*/
 		if (t.Info() & types.IsUntyped) != 0 { // untyped
 			return false
 		}

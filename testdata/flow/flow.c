@@ -1,5 +1,15 @@
 #include <stdio.h>
 
+void f(int a) {
+    if (a) {
+        a++;
+        goto next;
+    } else {
+next:
+        printf("Next: %d\n", a);
+    }
+}
+
 int main() {
     int a = sizeof(int);
     int *b = &a;
@@ -31,5 +41,7 @@ done:
     if (b) {
         printf("&a\n");
     }
+    f(0);
+    f(1);
     return 0;
 }

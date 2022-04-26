@@ -142,8 +142,10 @@ func execFile(pkgname string, outfile string, flags int) {
 
 	if (flags & flagChdir) != 0 {
 		dir, _ := filepath.Split(gofile)
-		cwd := chdir(dir)
-		defer os.Chdir(cwd)
+		if dir != "" {
+			cwd := chdir(dir)
+			defer os.Chdir(cwd)
+		}
 	}
 
 	if (flags & FlagRunTest) != 0 {
