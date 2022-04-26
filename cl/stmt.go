@@ -51,6 +51,10 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
+	if stmt.Complicated {
+		log.Panicln("TODO: compileComplicatedDoStmt")
+	}
+
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
 
@@ -108,6 +112,10 @@ func compileSimpleWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
+	if stmt.Complicated {
+		log.Panicln("TODO: compileComplicatedForStmt")
+	}
+
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
 
@@ -296,6 +304,10 @@ func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
+	if stmt.Complicated {
+		log.Panicln("TODO: compileComplicatedIfStmt")
+	}
+
 	cb := ctx.cb
 	cb.If()
 	compileExpr(ctx, stmt.Inner[0])

@@ -165,6 +165,18 @@ func (p *markCtx) mark(ctx *blockCtx, stmt *ast.Node) {
 		}
 	case ast.SwitchStmt:
 		p.markSwitch(ctx, stmt)
+	case ast.ForStmt:
+		ret := p.enterOwner(stmt)
+		defer p.leaveOwner(ret)
+		p.markSub(ctx, stmt.Inner[4])
+	case ast.WhileStmt:
+		ret := p.enterOwner(stmt)
+		defer p.leaveOwner(ret)
+		p.markSub(ctx, stmt.Inner[1])
+	case ast.DoStmt:
+		ret := p.enterOwner(stmt)
+		defer p.leaveOwner(ret)
+		p.markSub(ctx, stmt.Inner[0])
 	case ast.LabelStmt:
 		name := stmt.Name
 		p.reqLabel(name).defineLabel(name, p.current)
@@ -239,7 +251,9 @@ func (p *markCtx) markEnd() {
 }
 
 func (p *markCtx) markComplicated(stmt *ast.Node) {
-	log.Println("markComplicated:", stmt.Kind)
+	if debugMarkComplicated && !stmt.Complicated {
+		log.Println("==> markComplicated", stmt.Kind, *stmt.Range)
+	}
 	stmt.Complicated = true
 	p.complicat = true
 }
