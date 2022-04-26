@@ -2,6 +2,7 @@ package cl
 
 import (
 	"log"
+	"time"
 
 	"github.com/goplus/c2go/clang/ast"
 )
@@ -241,7 +242,13 @@ func (p *markCtx) markComplicated(stmt *ast.Node) {
 	p.complicat = true
 }
 
-func (p *blockCtx) markComplicated(body *ast.Node) bool {
+func (p *blockCtx) markComplicated(name string, body *ast.Node) bool {
+	if debugMarkComplicated {
+		start := time.Now()
+		defer func() {
+			log.Printf("==> Marked %s: %v\n", name, time.Since(start))
+		}()
+	}
 	labels := make(map[string]*labelCtx)
 	marker := &markCtx{labels: labels}
 	marker.mark(p, body)

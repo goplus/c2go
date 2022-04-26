@@ -17,15 +17,18 @@ import (
 
 const (
 	DbgFlagCompileDecl = 1 << iota
-	DbgFlagAll         = DbgFlagCompileDecl
+	DbgFlagMarkComplicated
+	DbgFlagAll = DbgFlagCompileDecl | DbgFlagMarkComplicated
 )
 
 var (
-	debugCompileDecl bool
+	debugCompileDecl     bool
+	debugMarkComplicated bool
 )
 
 func SetDebug(flags int) {
 	debugCompileDecl = (flags & DbgFlagCompileDecl) != 0
+	debugMarkComplicated = (flags & DbgFlagMarkComplicated) != 0
 }
 
 func logFile(ctx *blockCtx, node *ast.Node) {
@@ -222,7 +225,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		if vaParam != nil {
 			cb.Scope().Insert(vaParam)
 		}
-		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(body))
+		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fn.Name, body))
 		compileCompoundStmt(ctx, body)
 		ctx.curfn = nil
 		cb.End()
