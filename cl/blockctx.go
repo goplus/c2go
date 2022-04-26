@@ -175,7 +175,9 @@ func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, nam
 	if inVBlock = cb.InVBlock(); inVBlock {
 		var obj types.Object
 		ret, obj = p.curfn.newAutoVar(pos, typ, name)
-		scope.Insert(gox.NewSubstVar(pos, pkg.Types, name, obj))
+		if scope.Insert(gox.NewSubstVar(pos, pkg.Types, name, obj)) != nil {
+			log.Panicf("newVar: variable %v exists already\n", name)
+		}
 	} else {
 		ret = pkg.NewVarEx(scope, pos, typ, name)
 	}
