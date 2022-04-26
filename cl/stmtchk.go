@@ -198,6 +198,7 @@ func (p *markCtx) markSwitch(ctx *blockCtx, switchStmt *ast.Node) {
 	body := switchStmt.Inner[1]
 	if firstStmtNotCase(body) {
 		p.markComplicated(switchStmt)
+		p.markComplicated(body)
 	}
 	var bodyStmts = body.Inner
 	var caseCtx *blockMarkCtx
@@ -238,6 +239,7 @@ func (p *markCtx) markEnd() {
 }
 
 func (p *markCtx) markComplicated(stmt *ast.Node) {
+	log.Println("markComplicated:", stmt.Kind)
 	stmt.Complicated = true
 	p.complicat = true
 }
