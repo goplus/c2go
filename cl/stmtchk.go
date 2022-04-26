@@ -184,6 +184,8 @@ func (p *markCtx) mark(ctx *blockCtx, stmt *ast.Node) {
 		name := ctx.labelOfGoto(stmt)
 		p.reqLabel(name).useLabel(p.current)
 	case ast.CompoundStmt:
+		ret := p.enterOwner(stmt)
+		defer p.leaveOwner(ret)
 		for _, item := range stmt.Inner {
 			p.mark(ctx, item)
 		}

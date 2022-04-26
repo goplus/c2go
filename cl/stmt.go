@@ -60,7 +60,7 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 
 	cb := ctx.cb.For().None().Then()
 	{
-		compileStmt(ctx, stmt.Inner[0])
+		compileSub(ctx, stmt.Inner[0])
 		cb.If()
 		compileExpr(ctx, stmt.Inner[1])
 		castToBoolExpr(cb)
@@ -69,6 +69,17 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 			End().
 			End()
 	}
+}
+
+func compileSub(ctx *blockCtx, stmt *ast.Node) {
+	switch stmt.Kind {
+	case ast.CompoundStmt:
+		for _, item := range stmt.Inner {
+			compileStmt(ctx, item)
+		}
+		return
+	}
+	compileStmt(ctx, stmt)
 }
 
 // -----------------------------------------------------------------------------
@@ -93,7 +104,7 @@ func compileComplicatedWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	done := loop.EndLabel(ctx)
 	cb.UnaryOp(token.NOT).Then().Goto(done).End()
 
-	compileStmt(ctx, stmt.Inner[1])
+	compileSub(ctx, stmt.Inner[1])
 	cb.Goto(loop.start).Label(done)
 }
 
@@ -105,7 +116,7 @@ func compileSimpleWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	compileExpr(ctx, stmt.Inner[0])
 	castToBoolExpr(cb)
 	cb.Then()
-	compileStmt(ctx, stmt.Inner[1])
+	compileSub(ctx, stmt.Inner[1])
 	cb.End()
 }
 
@@ -133,7 +144,7 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		cb.None()
 	}
 	cb.Then()
-	compileStmt(ctx, stmt.Inner[4])
+	compileSub(ctx, stmt.Inner[4])
 	if postStmt := stmt.Inner[3]; postStmt.Kind != "" {
 		cb.Post()
 		compileStmt(ctx, postStmt)
@@ -190,7 +201,7 @@ func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 		l := sw.nextCaseLabel(ctx)
 		cb.Goto(l)
 	}
-	compileStmt(ctx, body)
+	compileSub(ctx, body)
 	done := sw.EndLabel(ctx)
 	cb.Goto(done)
 	if sw.next != nil {
@@ -313,10 +324,10 @@ func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
 	compileExpr(ctx, stmt.Inner[0])
 	castToBoolExpr(cb)
 	cb.Then()
-	compileStmt(ctx, stmt.Inner[1])
+	compileSub(ctx, stmt.Inner[1])
 	if stmt.HasElse {
 		cb.Else()
-		compileStmt(ctx, stmt.Inner[2])
+		compileSub(ctx, stmt.Inner[2])
 	}
 	cb.End()
 }
@@ -340,10 +351,16 @@ func getRetType(cb *gox.CodeBuilder) types.Type {
 
 // -----------------------------------------------------------------------------
 
-func compileCompoundStmt(ctx *blockCtx, stmts *ast.Node) {
-	for _, stmt := range stmts.Inner {
+func compileCompoundStmt(ctx *blockCtx, cStmt *ast.Node) {
+	if cStmt.Complicated {
+		log.Panicln("TODO: compileComplicatedCompoundStmt")
+	}
+
+	cb := ctx.cb.Block()
+	for _, stmt := range cStmt.Inner {
 		compileStmt(ctx, stmt)
 	}
+	cb.End()
 }
 
 // -----------------------------------------------------------------------------
