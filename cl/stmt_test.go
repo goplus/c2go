@@ -135,6 +135,11 @@ arithmetic_result_is_null:
 	}
 }
 
+func isSimpleSwitch(ctx *blockCtx, switchStmt *ast.Node) bool {
+	ctx.markComplicated("switch", switchStmt)
+	return !switchStmt.Complicated
+}
+
 func checkSimpleSwitch(ctx *blockCtx, node *ast.Node) bool {
 	if node.Kind == ast.SwitchStmt {
 		return isSimpleSwitch(ctx, node)

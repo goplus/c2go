@@ -51,12 +51,16 @@ func compileStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
+	if stmt.Complicated {
+		log.Panicln("TODO: compileComplicatedDoStmt")
+	}
+
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
 
 	cb := ctx.cb.For().None().Then()
 	{
-		compileStmt(ctx, stmt.Inner[0])
+		compileSub(ctx, stmt.Inner[0])
 		cb.If()
 		compileExpr(ctx, stmt.Inner[1])
 		castToBoolExpr(cb)
@@ -67,14 +71,28 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 	}
 }
 
+func compileSub(ctx *blockCtx, stmt *ast.Node) {
+	switch stmt.Kind {
+	case ast.CompoundStmt:
+		for _, item := range stmt.Inner {
+			compileStmt(ctx, item)
+		}
+		return
+	}
+	compileStmt(ctx, stmt)
+}
+
 // -----------------------------------------------------------------------------
 
 func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
-	if _, ok := ctx.curflow.(*switchCtx); !ok { // not in switch stmt
-		compileSimpleWhileStmt(ctx, stmt)
+	if stmt.Complicated {
+		compileComplicatedWhileStmt(ctx, stmt)
 		return
 	}
+	compileSimpleWhileStmt(ctx, stmt)
+}
 
+func compileComplicatedWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	loop := ctx.enterLoop()
 	defer ctx.leave(loop)
 
@@ -86,7 +104,7 @@ func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	done := loop.EndLabel(ctx)
 	cb.UnaryOp(token.NOT).Then().Goto(done).End()
 
-	compileStmt(ctx, stmt.Inner[1])
+	compileSub(ctx, stmt.Inner[1])
 	cb.Goto(loop.start).Label(done)
 }
 
@@ -98,13 +116,17 @@ func compileSimpleWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 	compileExpr(ctx, stmt.Inner[0])
 	castToBoolExpr(cb)
 	cb.Then()
-	compileStmt(ctx, stmt.Inner[1])
+	compileSub(ctx, stmt.Inner[1])
 	cb.End()
 }
 
 // -----------------------------------------------------------------------------
 
 func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
+	if stmt.Complicated {
+		log.Panicln("TODO: compileComplicatedForStmt")
+	}
+
 	flow := ctx.enterFlow()
 	defer ctx.leave(flow)
 
@@ -122,7 +144,7 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		cb.None()
 	}
 	cb.Then()
-	compileStmt(ctx, stmt.Inner[4])
+	compileSub(ctx, stmt.Inner[4])
 	if postStmt := stmt.Inner[3]; postStmt.Kind != "" {
 		cb.Post()
 		compileStmt(ctx, postStmt)
@@ -151,11 +173,14 @@ func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
-	if isSimpleSwitch(ctx, switchStmt) {
-		compileSimpleSwitchStmt(ctx, switchStmt)
+	if switchStmt.Complicated {
+		compileComplicatedSwitchStmt(ctx, switchStmt)
 		return
 	}
+	compileSimpleSwitchStmt(ctx, switchStmt)
+}
 
+func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	sw := ctx.enterSwitch()
 	defer ctx.leave(sw)
 
@@ -176,7 +201,7 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 		l := sw.nextCaseLabel(ctx)
 		cb.Goto(l)
 	}
-	compileStmt(ctx, body)
+	compileSub(ctx, body)
 	done := sw.EndLabel(ctx)
 	cb.Goto(done)
 	if sw.next != nil {
@@ -290,15 +315,19 @@ func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
 // -----------------------------------------------------------------------------
 
 func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
+	if stmt.Complicated {
+		log.Panicln("TODO: compileComplicatedIfStmt")
+	}
+
 	cb := ctx.cb
 	cb.If()
 	compileExpr(ctx, stmt.Inner[0])
 	castToBoolExpr(cb)
 	cb.Then()
-	compileStmt(ctx, stmt.Inner[1])
+	compileSub(ctx, stmt.Inner[1])
 	if stmt.HasElse {
 		cb.Else()
-		compileStmt(ctx, stmt.Inner[2])
+		compileSub(ctx, stmt.Inner[2])
 	}
 	cb.End()
 }
@@ -322,14 +351,16 @@ func getRetType(cb *gox.CodeBuilder) types.Type {
 
 // -----------------------------------------------------------------------------
 
-func compileCompoundStmt(ctx *blockCtx, stmts *ast.Node) {
-	if sw := ctx.getSwitchCtx(); sw != nil {
-		nsOld := sw.enterNamespace()
-		defer sw.leave(nsOld)
+func compileCompoundStmt(ctx *blockCtx, cStmt *ast.Node) {
+	if cStmt.Complicated {
+		log.Panicln("TODO: compileComplicatedCompoundStmt")
 	}
-	for _, stmt := range stmts.Inner {
+
+	cb := ctx.cb.Block()
+	for _, stmt := range cStmt.Inner {
 		compileStmt(ctx, stmt)
 	}
+	cb.End()
 }
 
 // -----------------------------------------------------------------------------

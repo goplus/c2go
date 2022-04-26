@@ -223,13 +223,15 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 		for i := 0; i < n; i++ {
 			compileExpr(ctx, v.Inner[i])
 		}
-		ellipsis := n > 2 && isEllipsis(ctx, cb)
+		var flags gox.InstrFlags
+		var ellipsis = n > 2 && isEllipsis(ctx, cb)
 		if ellipsis {
 			_, o := cb.Scope().LookupParent(valistName, token.NoPos)
 			cb.InternalStack().Pop()
 			cb.Val(o)
+			flags = gox.InstrFlagEllipsis
 		}
-		cb.CallWith(n-1, ellipsis, goNode(v))
+		cb.CallWith(n-1, flags, goNode(v))
 	}
 }
 
