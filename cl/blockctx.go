@@ -51,10 +51,11 @@ func (p *funcCtx) label(cb *gox.CodeBuilder) *gox.Label {
 	return l
 }
 
-func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) *gox.VarDecl {
+func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) (*gox.VarDecl, types.Object) {
 	p.base++
 	realName := name + "_cgo" + strconv.Itoa(p.base)
-	return p.vdefs.New(pos, typ, realName)
+	ret := p.vdefs.New(pos, typ, realName)
+	return ret, ret.Ref(realName)
 }
 
 // -----------------------------------------------------------------------------
@@ -172,8 +173,9 @@ func (p *blockCtx) lookupParent(name string) types.Object {
 func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, name string) (ret *gox.VarDecl, inVBlock bool) {
 	cb, pkg := p.cb, p.pkg
 	if inVBlock = cb.InVBlock(); inVBlock {
-		ret = p.curfn.newAutoVar(pos, typ, name)
-		scope.Insert(gox.NewSubstVar(pos, pkg.Types, name, ret.Ref(name)))
+		var obj types.Object
+		ret, obj = p.curfn.newAutoVar(pos, typ, name)
+		scope.Insert(gox.NewSubstVar(pos, pkg.Types, name, obj))
 	} else {
 		ret = pkg.NewVarEx(scope, pos, typ, name)
 	}
