@@ -55,7 +55,7 @@ func compileDoStmt(ctx *blockCtx, stmt *ast.Node) {
 		log.Panicln("TODO: compileComplicatedDoStmt")
 	}
 
-	flow := ctx.enterFlow()
+	flow := ctx.enterFlow(flowKindLoop)
 	defer ctx.leave(flow)
 
 	cb := ctx.cb.For().None().Then()
@@ -90,7 +90,7 @@ func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
 		return
 	}
 
-	flow := ctx.enterFlow()
+	flow := ctx.enterFlow(flowKindLoop)
 	defer ctx.leave(flow)
 
 	cb := ctx.cb.For()
@@ -150,7 +150,7 @@ func compileIfStmt(ctx *blockCtx, stmt *ast.Node) {
 		return
 	}
 
-	flow := ctx.enterFlow()
+	flow := ctx.enterFlow(flowKindIf)
 	defer ctx.leave(flow)
 
 	cb := ctx.cb.If()
@@ -186,7 +186,7 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		log.Panicln("TODO: compileComplicatedForStmt")
 	}
 
-	flow := ctx.enterFlow()
+	flow := ctx.enterFlow(flowKindLoop)
 	defer ctx.leave(flow)
 
 	cb := ctx.cb.For()
@@ -291,7 +291,7 @@ func firstStmtNotCase(body *ast.Node) bool {
 }
 
 func compileSimpleSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
-	flow := ctx.enterFlow()
+	flow := ctx.enterFlow(flowKindSwitch)
 	defer ctx.leave(flow)
 
 	cb := ctx.cb.Switch()

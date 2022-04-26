@@ -66,8 +66,17 @@ type flowCtx interface { // switch, for
 	ContinueLabel(ctx *blockCtx) *gox.Label
 }
 
+// -----------------------------------------------------------------------------
+
+const (
+	flowKindIf = 1 << iota
+	flowKindSwitch
+	flowKindLoop
+)
+
 type baseFlowCtx struct {
 	parent flowCtx
+	kind   int // flowKindIf|Switch|Loop
 }
 
 func (p *baseFlowCtx) Parent() flowCtx {
@@ -75,11 +84,17 @@ func (p *baseFlowCtx) Parent() flowCtx {
 }
 
 func (p *baseFlowCtx) EndLabel(ctx *blockCtx) *gox.Label {
-	return nil
+	if (p.kind & (flowKindLoop | flowKindSwitch)) != 0 {
+		return nil
+	}
+	return p.parent.EndLabel(ctx)
 }
 
 func (p *baseFlowCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
-	return nil
+	if (p.kind & flowKindLoop) != 0 {
+		return nil
+	}
+	return p.parent.ContinueLabel(ctx)
 }
 
 // -----------------------------------------------------------------------------
@@ -230,8 +245,8 @@ func (p *blockCtx) enterLoop() *loopCtx {
 	return f
 }
 
-func (p *blockCtx) enterFlow() *baseFlowCtx {
-	f := &baseFlowCtx{parent: p.curflow}
+func (p *blockCtx) enterFlow(kind int) *baseFlowCtx {
+	f := &baseFlowCtx{parent: p.curflow, kind: kind}
 	p.curflow = f
 	return f
 }
