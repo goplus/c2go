@@ -12,28 +12,24 @@ import (
 type none = struct{}
 
 type blockMarkCtx struct {
-	parent    *blockMarkCtx
-	owner     *blockMarkCtx
-	ownerStmt *ast.Node
+	parent *blockMarkCtx
+	owner  *ownerStmtCtx
+	name   string
 }
 
 func markComplicatedByDepth(ctx *markCtx, a, b *blockMarkCtx) {
 	aDepth, bDepth := a.depth(), b.depth()
 retry:
 	if aDepth < bDepth {
-		ctx.markComplicated(b.ownerStmt)
-		b = b.owner
+		b = b.owner.markComplicated(ctx)
 		bDepth = b.depth()
 		goto retry
 	} else if bDepth < aDepth {
-		ctx.markComplicated(a.ownerStmt)
-		a = a.owner
+		a = a.owner.markComplicated(ctx)
 		aDepth = a.depth()
 		goto retry
 	} else if a != b {
-		ctx.markComplicated(a.ownerStmt)
-		ctx.markComplicated(b.ownerStmt)
-		a, b = a.owner, b.owner
+		a, b = a.owner.markComplicated(ctx), b.owner.markComplicated(ctx)
 		aDepth, bDepth = a.depth(), b.depth()
 		goto retry
 	}
@@ -41,9 +37,16 @@ retry:
 
 func (at *blockMarkCtx) markComplicated(ctx *markCtx, ref *blockMarkCtx) {
 	if at.isComplicated(ref) {
-		ctx.markComplicated(at.ownerStmt)
+		at.owner.markComplicated(ctx)
 		markComplicatedByDepth(ctx, at, ref)
 	}
+}
+
+func (at *blockMarkCtx) getName() string {
+	if at != nil {
+		return at.name
+	}
+	return "funcBody"
 }
 
 func (at *blockMarkCtx) depth() (n int) {
@@ -58,7 +61,7 @@ func (at *blockMarkCtx) isComplicated(ref *blockMarkCtx) bool {
 	if at == nil {
 		return false
 	}
-	if at.ownerStmt.Complicated {
+	if at.owner.isComplicated() {
 		return true
 	}
 	for ref != nil {
@@ -81,25 +84,44 @@ func (p *labelCtx) defineLabel(name string, at *blockMarkCtx) {
 		log.Panicln("defineLabel: label exists -", name)
 	}
 	p.at, p.defined = at, true
+	if debugMarkComplicated {
+		log.Println("--> label", name, "depth:", at.depth())
+	}
 }
 
-func (p *labelCtx) useLabel(at *blockMarkCtx) {
+func (p *labelCtx) useLabel(name string, at *blockMarkCtx) {
 	if p.refs == nil {
 		p.refs = make(map[*blockMarkCtx]none)
 	}
 	p.refs[at] = none{}
+	if debugMarkComplicated {
+		log.Println("--> goto", name, "from depth:", at.depth())
+	}
 }
 
-type ownerBlockMarkCtx struct {
-	self      *blockMarkCtx
-	owner     *blockMarkCtx
-	ownerStmt *ast.Node
+type ownerStmtCtx struct {
+	parent *blockMarkCtx
+	stmt   *ast.Node
+}
+
+func (p *ownerStmtCtx) isComplicated() bool {
+	if p != nil {
+		return p.stmt.Complicated
+	}
+	return false
+}
+
+func (p *ownerStmtCtx) markComplicated(ctx *markCtx) *blockMarkCtx {
+	if p != nil {
+		ctx.markComplicated(p.stmt)
+		return p.parent
+	}
+	return nil
 }
 
 type markCtx struct {
 	current   *blockMarkCtx
-	owner     *blockMarkCtx
-	ownerStmt *ast.Node
+	owner     *ownerStmtCtx
 	labels    map[string]*labelCtx
 	complicat bool
 }
@@ -113,9 +135,12 @@ func (p *markCtx) reqLabel(name string) *labelCtx {
 	return l
 }
 
-func (p *markCtx) enter() *blockMarkCtx {
-	self := &blockMarkCtx{parent: p.current, owner: p.owner, ownerStmt: p.ownerStmt}
+func (p *markCtx) enter(name string) *blockMarkCtx {
+	self := &blockMarkCtx{parent: p.current, owner: p.owner, name: name}
 	p.current = self
+	if debugMarkComplicated {
+		log.Println("--> enter", name, "depth:", self.depth())
+	}
 	return self
 }
 
@@ -123,20 +148,20 @@ func (p *markCtx) leave(self *blockMarkCtx) {
 	p.current = self.parent
 }
 
-func (p *markCtx) enterOwner(stmt *ast.Node) (ret ownerBlockMarkCtx) {
-	ret.self = p.enter()
-	ret.owner, ret.ownerStmt = p.owner, p.ownerStmt
-	p.owner, p.ownerStmt = ret.self, stmt
+func (p *markCtx) enterOwner(stmt *ast.Node) (old *ownerStmtCtx) {
+	if debugMarkComplicated {
+		log.Println("--> stmt", stmt.Kind, "depth:", p.current.depth())
+	}
+	p.owner, old = &ownerStmtCtx{parent: p.current, stmt: stmt}, p.owner
 	return
 }
 
-func (p *markCtx) leaveOwner(ret ownerBlockMarkCtx) {
-	p.leave(ret.self)
-	p.owner, p.ownerStmt = ret.owner, ret.ownerStmt
+func (p *markCtx) leaveOwner(old *ownerStmtCtx) {
+	p.owner = old
 }
 
-func (p *markCtx) markSub(ctx *blockCtx, stmt *ast.Node) {
-	self := p.enter()
+func (p *markCtx) markSub(ctx *blockCtx, name string, stmt *ast.Node) {
+	self := p.enter(name)
 	defer p.leave(self)
 	p.markBody(ctx, stmt)
 }
@@ -157,55 +182,56 @@ func (p *markCtx) mark(ctx *blockCtx, stmt *ast.Node) {
 	case ast.IfStmt:
 		ret := p.enterOwner(stmt)
 		defer p.leaveOwner(ret)
-		p.markSub(ctx, stmt.Inner[1])
+		p.markSub(ctx, "ifBody", stmt.Inner[1])
 		if stmt.HasElse {
-			p.markSub(ctx, stmt.Inner[2])
+			p.markSub(ctx, "elseBody", stmt.Inner[2])
 		}
 	case ast.SwitchStmt:
 		p.markSwitch(ctx, stmt)
 	case ast.ForStmt:
 		ret := p.enterOwner(stmt)
 		defer p.leaveOwner(ret)
-		p.markSub(ctx, stmt.Inner[4])
+		p.markSub(ctx, "forBody", stmt.Inner[4])
 	case ast.WhileStmt:
 		ret := p.enterOwner(stmt)
 		defer p.leaveOwner(ret)
-		p.markSub(ctx, stmt.Inner[1])
+		p.markSub(ctx, "whileBody", stmt.Inner[1])
 	case ast.DoStmt:
 		ret := p.enterOwner(stmt)
 		defer p.leaveOwner(ret)
-		p.markSub(ctx, stmt.Inner[0])
+		p.markSub(ctx, "doBody", stmt.Inner[0])
 	case ast.LabelStmt:
 		name := stmt.Name
 		p.reqLabel(name).defineLabel(name, p.current)
 	case ast.GotoStmt:
 		name := ctx.labelOfGoto(stmt)
-		p.reqLabel(name).useLabel(p.current)
+		p.reqLabel(name).useLabel(name, p.current)
 	case ast.CompoundStmt:
 		ret := p.enterOwner(stmt)
 		defer p.leaveOwner(ret)
-		for _, item := range stmt.Inner {
-			p.mark(ctx, item)
-		}
+		p.markSub(ctx, "blockBody", stmt)
 	case ast.CaseStmt, ast.DefaultStmt:
 		p.markSwitchComplicated()
 	}
 }
 
 func (p *markCtx) markSwitchComplicated() {
-	owner, stmt := p.owner, p.ownerStmt
+	owner := p.owner
 	for owner != nil {
-		if stmt.Kind == ast.SwitchStmt {
-			p.markComplicated(stmt)
+		if owner.stmt.Kind == ast.SwitchStmt {
+			p.markComplicated(owner.stmt)
 			return
 		}
-		owner, stmt = owner.owner, owner.ownerStmt
+		owner = owner.parent.owner
 	}
 }
 
 func (p *markCtx) markSwitch(ctx *blockCtx, switchStmt *ast.Node) {
 	ret := p.enterOwner(switchStmt)
 	defer p.leaveOwner(ret)
+
+	self := p.enter("switchBody")
+	defer p.leave(self)
 
 	body := switchStmt.Inner[1]
 	if firstStmtNotCase(body) {
@@ -230,7 +256,7 @@ func (p *markCtx) markSwitch(ctx *blockCtx, switchStmt *ast.Node) {
 			p.leave(caseCtx)
 			caseCtx = nil
 		}
-		caseCtx = p.enter()
+		caseCtx = p.enter("caseBody")
 		switch caseBody := stmt.Inner[idx]; caseBody.Kind {
 		case ast.CaseStmt, ast.DefaultStmt:
 			stmt = caseBody

@@ -185,7 +185,7 @@ one:
 }
 `},
 	}
-	sel := "GotoLoop"
+	sel := ""
 	for _, c := range cases {
 		if sel != "" && c.name != sel {
 			continue
@@ -199,6 +199,68 @@ one:
 			}
 		})
 	}
+}
+
+// -----------------------------------------------------------------------------
+
+func TestIsSimpleCompoundStmt(t *testing.T) {
+	cases := []caseSimpleStmt{
+		{name: "Basic", simple: true, code: `
+#include <stdio.h>
+
+void foo(int n) {
+    {
+        goto two;
+        do {
+two:        printf("multiple shots\n");
+            n--;
+        } while (n > 0);
+    }
+}
+`},
+		{name: "GotoLoop", simple: false, code: `
+#include <stdio.h>
+
+void foo(int n) {
+	goto two;
+    {
+        do {
+two:        printf("multiple shots\n");
+            n--;
+        } while (n > 0);
+    }
+}
+`},
+	}
+	sel := "Basic"
+	for _, c := range cases {
+		if sel != "" && c.name != sel {
+			continue
+		}
+		t.Run(c.name, func(t *testing.T) {
+			f, src := parse(c.code, nil)
+			ctx := &blockCtx{src: src}
+			check := checkSimpleCompoundStmt(ctx, f)
+			if check != c.simple {
+				t.Fatal("TestIsSimpleCompoundStmt:", check, ", expect:", c.simple, "code:", c.code)
+			}
+		})
+	}
+}
+
+func checkSimpleCompoundStmt(ctx *blockCtx, node *ast.Node) bool {
+	fn := findNode(node, ast.FunctionDecl, "foo")
+	for _, item := range fn.Inner {
+		if item.Kind == ast.CompoundStmt {
+			ctx.markComplicated("foo", item)
+			for _, v := range item.Inner {
+				if v.Kind == ast.CompoundStmt {
+					return !v.Complicated
+				}
+			}
+		}
+	}
+	panic("unexpected")
 }
 
 // -----------------------------------------------------------------------------
