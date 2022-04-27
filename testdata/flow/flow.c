@@ -1,12 +1,35 @@
 #include <stdio.h>
 
 void f(int a) {
-    if (a) {
+    if (a > 0) {
         a++;
+        goto next;
+    } else if (a) {
+        int b = -3;
+        int c;
+        (void)c;
+        a = b;
         goto next;
     } else {
 next:
         printf("Next: %d\n", a);
+    }
+}
+
+void g(int n) {
+    goto one;
+    {
+        do {
+one:        printf("one shot\n");
+            break;
+        } while (1);
+    }
+    {
+        goto two;
+        do {
+two:        printf("multiple shots\n");
+            n--;
+        } while (n > 0);
     }
 }
 
@@ -43,5 +66,7 @@ done:
     }
     f(0);
     f(1);
+    f(-1);
+    g(2);
     return 0;
 }

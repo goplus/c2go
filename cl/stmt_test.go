@@ -8,15 +8,15 @@ import (
 
 // -----------------------------------------------------------------------------
 
-type caseSimpleSwitch struct {
-	name     string
-	code     string
-	simpleSw bool
+type caseSimpleStmt struct {
+	name   string
+	code   string
+	simple bool
 }
 
 func TestIsSimpleSwitch(t *testing.T) {
-	cases := []caseSimpleSwitch{
-		{name: "Basic", simpleSw: true, code: `
+	cases := []caseSimpleStmt{
+		{name: "Basic", simple: true, code: `
 void foo(int a) {
 	switch (a) {
 	case 1:
@@ -25,7 +25,7 @@ void foo(int a) {
 	}
 }
 `},
-		{name: "GotoInner", simpleSw: true, code: `
+		{name: "GotoInner", simple: true, code: `
 void foo(int a, int b) {
 	switch (a) {
 	default:
@@ -40,7 +40,7 @@ void foo(int a, int b) {
 	}
 }
 `},
-		{name: "GotoAcross", simpleSw: false, code: `
+		{name: "GotoAcross", simple: false, code: `
 void foo(int a, int b) {
 	switch (a) {
 	case 1:
@@ -52,7 +52,7 @@ void foo(int a, int b) {
 	}
 }
 `},
-		{name: "CaseAcross", simpleSw: false, code: `
+		{name: "CaseAcross", simple: false, code: `
 void foo(int a, int b) {
 	switch (a) {
 	case 1:
@@ -65,10 +65,10 @@ void foo(int a, int b) {
 	}
 }
 `},
-		{name: "FirstStmtNotCase", simpleSw: false, code: `
+		{name: "FirstStmtNotCase", simple: false, code: `
 #include <stdio.h>
 
-int main() {
+int foo() {
 	int c = 9;
 	switch (c&3) while((c-=4)>=0) {
 		printf("=> %d\n", c);
@@ -81,7 +81,7 @@ int main() {
 	return 0;
 }
 `},
-		{name: "SqliteN1", simpleSw: true, code: `
+		{name: "SqliteN1", simple: true, code: `
 void foo(int i, int r) {
 	switch( i ){
 		case 4: {
@@ -97,7 +97,7 @@ void foo(int i, int r) {
 	}
 }
 `},
-		{name: "SqliteN2", simpleSw: true, code: `
+		{name: "SqliteN2", simple: true, code: `
 void foo(int op, int iA) {
   switch( op ){
 	case 106: if( iA ) goto fp_math; break;
@@ -127,29 +127,140 @@ arithmetic_result_is_null:
 		t.Run(c.name, func(t *testing.T) {
 			f, src := parse(c.code, nil)
 			ctx := &blockCtx{src: src}
-			check := checkSimpleSwitch(ctx, f)
-			if check != c.simpleSw {
-				t.Fatal("TestSimpleSwitch:", check, ", expect:", c.simpleSw, "code:", c.code)
+			check := checkSimpleStmt(ctx, f, ast.SwitchStmt)
+			if check != c.simple {
+				t.Fatal("TestSimpleSwitch:", check, ", expect:", c.simple, "code:", c.code)
 			}
 		})
 	}
 }
 
-func isSimpleSwitch(ctx *blockCtx, switchStmt *ast.Node) bool {
-	ctx.markComplicated("switch", switchStmt)
-	return !switchStmt.Complicated
-}
-
-func checkSimpleSwitch(ctx *blockCtx, node *ast.Node) bool {
-	if node.Kind == ast.SwitchStmt {
-		return isSimpleSwitch(ctx, node)
-	}
-	for _, item := range node.Inner {
-		if !checkSimpleSwitch(ctx, item) {
-			return false
+func checkSimpleStmt(ctx *blockCtx, node *ast.Node, kind ast.Kind) bool {
+	fn := findNode(node, ast.FunctionDecl, "foo")
+	for _, item := range fn.Inner {
+		if item.Kind == ast.CompoundStmt {
+			ctx.markComplicated(string(kind), item)
+			return !hasComplicated(node, kind)
 		}
 	}
-	return true
+	panic("unexpected")
+}
+
+func hasComplicated(node *ast.Node, kind ast.Kind) bool {
+	if node.Kind == kind {
+		return node.Complicated
+	}
+	for _, item := range node.Inner {
+		if hasComplicated(item, kind) {
+			return true
+		}
+	}
+	return false
+}
+
+// -----------------------------------------------------------------------------
+
+func TestIsSimpleDoStmt(t *testing.T) {
+	cases := []caseSimpleStmt{
+		{name: "Basic", simple: true, code: `
+#include <stdio.h>
+
+void foo(int a) {
+    do {
+		printf("one shot\n");
+		break;
+	} while (1);
+}
+`},
+		{name: "GotoLoop", simple: false, code: `
+#include <stdio.h>
+
+void foo(int a) {
+    goto one;
+    do {
+one:
+        printf("one shot\n");
+        break;
+    } while (1);
+}
+`},
+	}
+	sel := ""
+	for _, c := range cases {
+		if sel != "" && c.name != sel {
+			continue
+		}
+		t.Run(c.name, func(t *testing.T) {
+			f, src := parse(c.code, nil)
+			ctx := &blockCtx{src: src}
+			check := checkSimpleStmt(ctx, f, ast.DoStmt)
+			if check != c.simple {
+				t.Fatal("TestIsSimpleDoStmt:", check, ", expect:", c.simple, "code:", c.code)
+			}
+		})
+	}
+}
+
+// -----------------------------------------------------------------------------
+
+func TestIsSimpleCompoundStmt(t *testing.T) {
+	cases := []caseSimpleStmt{
+		{name: "Basic", simple: true, code: `
+#include <stdio.h>
+
+void foo(int n) {
+    {
+        goto two;
+        do {
+two:        printf("multiple shots\n");
+            n--;
+        } while (n > 0);
+    }
+}
+`},
+		{name: "GotoLoop", simple: false, code: `
+#include <stdio.h>
+
+void foo(int n) {
+	goto two;
+    {
+        do {
+two:        printf("multiple shots\n");
+            n--;
+        } while (n > 0);
+    }
+}
+`},
+	}
+	sel := "Basic"
+	for _, c := range cases {
+		if sel != "" && c.name != sel {
+			continue
+		}
+		t.Run(c.name, func(t *testing.T) {
+			f, src := parse(c.code, nil)
+			ctx := &blockCtx{src: src}
+			check := checkSimpleCompoundStmt(ctx, f)
+			if check != c.simple {
+				t.Fatal("TestIsSimpleCompoundStmt:", check, ", expect:", c.simple, "code:", c.code)
+			}
+		})
+	}
+}
+
+func checkSimpleCompoundStmt(ctx *blockCtx, node *ast.Node) bool {
+	fn := findNode(node, ast.FunctionDecl, "foo")
+	for _, item := range fn.Inner {
+		if item.Kind == ast.CompoundStmt {
+			ctx.markComplicated("foo", item)
+			for _, v := range item.Inner {
+				if v.Kind == ast.CompoundStmt {
+					return !v.Complicated
+				}
+			}
+		}
+	}
+	panic("unexpected")
 }
 
 // -----------------------------------------------------------------------------
