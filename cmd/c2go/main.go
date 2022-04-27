@@ -13,11 +13,12 @@ import (
 var (
 	verbose  = flag.Bool("v", false, "print verbose information")
 	failfast = flag.Bool("ff", false, "fail fast (stop if an error is encountered)")
+	gendeps  = flag.Bool("gendeps", false, "generate dependencies automatically")
 	test     = flag.Bool("test", false, "run test")
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: c2go [-test -ff -v] [pkgname] source.c\n")
+	fmt.Fprintf(os.Stderr, "Usage: c2go [-test -ff -gendeps -v] [pkgname] source.c\n")
 	flag.PrintDefaults()
 }
 
@@ -51,6 +52,9 @@ func main() {
 	}
 	if *failfast {
 		flags |= c2go.FlagFailFast
+	}
+	if *gendeps {
+		flags |= c2go.FlagDepsAutoGen
 	}
 	c2go.Run(pkgname, infile, flags)
 }

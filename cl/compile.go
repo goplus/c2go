@@ -64,7 +64,12 @@ type Config struct {
 	Src []byte
 }
 
-func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.Package, err error) {
+type Package struct {
+	*gox.Package
+	*PkgInfo
+}
+
+func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
 	confGox := &gox.Config{
 		Fset:            conf.Fset,
 		Importer:        conf.Importer,
@@ -74,8 +79,8 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (p *gox.P
 		NewBuiltin:      nil,
 		CanImplicitCast: implicitCast,
 	}
-	p = gox.NewPackage(pkgPath, pkgName, confGox)
-	err = loadFile(p, conf, file)
+	pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
+	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file, confGox)
 	return
 }
 
@@ -113,9 +118,9 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, conf *Config, file *ast.Node) error {
+func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config) (*PkgInfo, error) {
 	if file.Kind != ast.TranslationUnitDecl {
-		return syscall.EINVAL
+		return nil, syscall.EINVAL
 	}
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
@@ -126,7 +131,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) error {
 	}
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
-	return nil
+	return ctx.genPkgInfo(confGox), nil
 }
 
 func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
