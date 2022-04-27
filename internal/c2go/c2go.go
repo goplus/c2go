@@ -23,6 +23,8 @@ const (
 	FlagRunApp = 1 << iota
 	FlagRunTest
 	FlagFailFast
+	FlagDepsAutoGen
+
 	flagChdir
 )
 
@@ -137,11 +139,18 @@ func execFile(pkgname string, outfile string, flags int) {
 	check(err)
 
 	gofile := outfile + ".go"
-	err = gox.WriteFile(gofile, pkg, false)
+	err = gox.WriteFile(gofile, pkg.Package, false)
 	check(err)
 
+	dir, _ := filepath.Split(gofile)
+
+	if (flags & FlagDepsAutoGen) != 0 {
+		depfile := filepath.Join(dir, "c2go_autogen.go")
+		err = pkg.WriteDepFile(depfile)
+		check(err)
+	}
+
 	if (flags & flagChdir) != 0 {
-		dir, _ := filepath.Split(gofile)
 		if dir != "" {
 			cwd := chdir(dir)
 			defer os.Chdir(cwd)

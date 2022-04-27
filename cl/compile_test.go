@@ -120,7 +120,7 @@ func testWith(t *testing.T, name string, fn string, code string, outFunc string)
 		doc, src := parse(code, &json)
 		pkg, err := NewPackage("", "main", doc, &Config{Src: src})
 		check(err)
-		file := gox.ASTFile(pkg, false)
+		file := gox.ASTFile(pkg.Package, false)
 		ret := goast.Node(file)
 		if fn != "" {
 			ret = findFunc(file, fn)
