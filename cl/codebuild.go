@@ -449,6 +449,19 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 				negConst2Uint(ctx, v, typ)
 			}
 		}
+	case *types.Signature:
+		if _, ok := typ.(*types.Signature); ok { // fnptr => fnptr
+			stk.PopN(2)
+			pkg := ctx.pkg.Types
+			fn := types.NewParam(token.NoPos, pkg, "_cgo_fn", vt)
+			ret := types.NewParam(token.NoPos, pkg, "", typ)
+			cb.NewClosure(types.NewTuple(fn), types.NewTuple(ret), false).BodyStart(ctx.pkg).
+				Typ(types.NewPointer(typ)).
+				Typ(ctypes.UnsafePointer).VarRef(fn).UnaryOp(token.AND).Call(1).
+				Call(1).Elem().Return(1).
+				End().Val(v).Call(1)
+			return
+		}
 	}
 	cb.Call(1)
 }
