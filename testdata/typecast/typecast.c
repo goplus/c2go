@@ -9,6 +9,6 @@ void call(void (*f)()) {
 }
 
 int main() {
-    call(f);
+    call((void*)f);
     return 0;
 }

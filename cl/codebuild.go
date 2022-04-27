@@ -448,22 +448,32 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 			if (tt.Info() & types.IsUnsigned) != 0 {
 				negConst2Uint(ctx, v, typ)
 			}
+		case *types.Signature:
+			if vt == ctypes.UnsafePointer { // voidptr => fnptr
+				stk.PopN(2)
+				typeCastFn(cb, typ, v)
+				return
+			}
 		}
 	case *types.Signature:
-		if _, ok := typ.(*types.Signature); ok { // fnptr => fnptr
+		if _, ok := typ.(*types.Signature); ok || typ == ctypes.UnsafePointer { // fnptr => fnptr/voidptr
 			stk.PopN(2)
-			pkg := ctx.pkg.Types
-			fn := types.NewParam(token.NoPos, pkg, "_cgo_fn", vt)
-			ret := types.NewParam(token.NoPos, pkg, "", typ)
-			cb.NewClosure(types.NewTuple(fn), types.NewTuple(ret), false).BodyStart(ctx.pkg).
-				Typ(types.NewPointer(typ)).
-				Typ(ctypes.UnsafePointer).VarRef(fn).UnaryOp(token.AND).Call(1).
-				Call(1).Elem().Return(1).
-				End().Val(v).Call(1)
+			typeCastFn(cb, typ, v)
 			return
 		}
 	}
 	cb.Call(1)
+}
+
+func typeCastFn(cb *gox.CodeBuilder, typ types.Type, v *gox.Element) {
+	pkg := cb.Pkg()
+	fn := types.NewParam(token.NoPos, pkg.Types, "_cgo_fn", v.Type)
+	ret := types.NewParam(token.NoPos, pkg.Types, "", typ)
+	cb.NewClosure(types.NewTuple(fn), types.NewTuple(ret), false).BodyStart(pkg).
+		Typ(types.NewPointer(typ)).
+		Typ(ctypes.UnsafePointer).VarRef(fn).UnaryOp(token.AND).Call(1).
+		Call(1).Elem().Return(1).
+		End().Val(v).Call(1)
 }
 
 func typeCastIndex(ctx *blockCtx, lhs bool) {
