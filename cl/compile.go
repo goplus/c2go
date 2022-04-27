@@ -261,7 +261,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 	} else {
 		f := types.NewFunc(goNodePos(fn), pkg.Types, fn.Name, sig)
-		pkg.Types.Scope().Insert(f)
+		if pkg.Types.Scope().Insert(f) == nil && fn.IsUsed {
+			ctx.extfns = append(ctx.extfns, fn.Name)
+		}
 	}
 }
 

@@ -190,6 +190,7 @@ type blockCtx struct {
 	unnameds map[ast.ID]*types.Named
 	typdecls map[string]*gox.TypeDecl
 	gblvars  map[string]*gox.VarDefs
+	extfns   []string // external functions which are used
 	srcfile  string
 	src      []byte
 	curfn    *funcCtx
