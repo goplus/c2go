@@ -262,8 +262,10 @@ func TestVoid(t *testing.T) {
 	testFunc(t, "testVoidTypedef", `
 void test() {
 	typedef void foo;
+	void* p = (void*)0;
 }
 `, `func test() {
+	var p unsafe.Pointer = unsafe.Pointer(nil)
 }`)
 }
 
