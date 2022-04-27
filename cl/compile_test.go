@@ -110,11 +110,11 @@ func findFunc(file *goast.File, name string) *goast.FuncDecl {
 	return nil
 }
 
-func testFunc(t *testing.T, name string, code string, outFunc string) {
-	testWith(t, name, "test", code, outFunc)
+func testFunc(t *testing.T, name string, code string, outFunc string) Package {
+	return testWith(t, name, "test", code, outFunc)
 }
 
-func testWith(t *testing.T, name string, fn string, code string, outFunc string) {
+func testWith(t *testing.T, name string, fn string, code string, outFunc string) (pkgOut Package) {
 	t.Run(name, func(t *testing.T) {
 		var json []byte
 		doc, src := parse(code, &json)
@@ -133,7 +133,9 @@ func testWith(t *testing.T, name string, fn string, code string, outFunc string)
 				"==> Result:\n%s\n==> Expected:\n%s\n==> AST:\n%s\n",
 				out, outFunc, string(json))
 		}
+		pkgOut = pkg
 	})
+	return
 }
 
 // -----------------------------------------------------------------------------
