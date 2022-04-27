@@ -80,6 +80,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		CanImplicitCast: implicitCast,
 	}
 	pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
+	pkg.Package.SetVarRedeclarable(true)
 	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file, confGox)
 	return
 }
@@ -126,6 +127,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config)
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		typdecls: make(map[string]*gox.TypeDecl),
+		gblvars:  make(map[string]*gox.VarDefs),
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}

@@ -189,6 +189,7 @@ type blockCtx struct {
 	tyValist types.Type
 	unnameds map[ast.ID]*types.Named
 	typdecls map[string]*gox.TypeDecl
+	gblvars  map[string]*gox.VarDefs
 	srcfile  string
 	src      []byte
 	curfn    *funcCtx
@@ -210,7 +211,18 @@ func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, nam
 			log.Panicf("newVar: variable %v exists already\n", name)
 		}
 	} else {
-		ret = pkg.NewVarEx(scope, pos, typ, name)
+		inGlobal := scope == pkg.Types.Scope()
+		if inGlobal {
+			if defs, ok := p.gblvars[name]; ok {
+				defs.Delete(name)
+				delete(p.gblvars, name)
+			}
+		}
+		defs := pkg.NewVarDefs(scope)
+		ret = defs.New(pos, typ, name)
+		if inGlobal {
+			p.gblvars[name] = defs
+		}
 	}
 	return
 }
