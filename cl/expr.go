@@ -153,11 +153,25 @@ func compileArraySubscriptExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 // -----------------------------------------------------------------------------
 
+func getBuiltinFn(v *ast.Node) (fn string, ok bool) {
+	if v.Kind == ast.DeclRefExpr {
+		if decl := v.ReferencedDecl; decl != nil {
+			return decl.Name, true
+		}
+	}
+	return
+}
+
 func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	switch v.CastKind {
 	case ast.LValueToRValue, ast.NoOp:
 		compileExpr(ctx, v.Inner[0])
-	case ast.FunctionToPointerDecay, ast.BuiltinFnToFnPtr:
+	case ast.BuiltinFnToFnPtr:
+		if fn, ok := getBuiltinFn(v.Inner[0]); ok && ctx.pkg.Types.Scope().Lookup(fn) != nil {
+			ctx.extfns[fn] = none{}
+		}
+		fallthrough
+	case ast.FunctionToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 		if e := ctx.cb.Get(-1); ctypes.IsFunc(e.Type) {
 			e.Type = ctypes.NewPointer(e.Type)
