@@ -21,14 +21,19 @@ type PkgInfo struct {
 // -----------------------------------------------------------------------------
 
 func (p *blockCtx) genPkgInfo(confGox *gox.Config) *PkgInfo {
-	var undefinedStructs []string
+	var uds []string
 	for name, tdecl := range p.typdecls {
 		if !tdecl.Inited() {
-			undefinedStructs = append(undefinedStructs, name)
+			uds = append(uds, name)
 		}
 	}
-	sort.Strings(undefinedStructs)
-	return &PkgInfo{UndefinedStructs: undefinedStructs, UsedFuncs: p.extfns, confGox: confGox}
+	sort.Strings(uds)
+	extfns := make([]string, 0, len(p.extfns))
+	for name := range p.extfns {
+		extfns = append(extfns, name)
+	}
+	sort.Strings(extfns)
+	return &PkgInfo{UndefinedStructs: uds, UsedFuncs: extfns, confGox: confGox}
 }
 
 // -----------------------------------------------------------------------------

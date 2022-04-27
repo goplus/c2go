@@ -128,6 +128,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config)
 		unnameds: make(map[ast.ID]*types.Named),
 		typdecls: make(map[string]*gox.TypeDecl),
 		gblvars:  make(map[string]*gox.VarDefs),
+		extfns:   make(map[string]none),
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
@@ -258,11 +259,13 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 				cb.Call(1).Call(1)
 			}
 			cb.EndStmt().End()
+		} else {
+			delete(ctx.extfns, fnName)
 		}
 	} else {
 		f := types.NewFunc(goNodePos(fn), pkg.Types, fn.Name, sig)
 		if pkg.Types.Scope().Insert(f) == nil && fn.IsUsed {
-			ctx.extfns = append(ctx.extfns, fn.Name)
+			ctx.extfns[fn.Name] = none{}
 		}
 	}
 }
