@@ -237,9 +237,7 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 
 func typeCast(ctx *blockCtx, typ types.Type, arg *gox.Element) {
 	if !ctypes.Identical(typ, arg.Type) {
-		if isNegConst(arg) && isUnsigned(typ) {
-			negConst2Uint(ctx, arg, typ)
-		}
+		adjustIntConst(ctx, arg, typ)
 		*arg = *ctx.cb.Typ(typ).Val(arg).Call(1).InternalStack().Pop()
 	}
 }
@@ -463,26 +461,65 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
-func negConst2Uint(ctx *blockCtx, v *gox.Element, typ types.Type) {
+func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
 	if v.CVal == nil {
 		return
 	}
-	if val, ok := constant.Val(v.CVal).(int64); ok && val < 0 {
-		nval := (uint64(1) << (8 * ctx.sizeof(typ))) + uint64(val)
-		v.Val = &ast.BasicLit{Kind: token.INT, Value: strconv.FormatUint(nval, 10)}
-		v.CVal = constant.MakeUint64(nval)
+	if t, ok := typ.(*types.Basic); ok && (t.Info()&types.IsInteger) != 0 { // integer
+		var cval = constant.Val(v.CVal)
+		var ival, iok = cval.(int64)
+		if !iok {
+			bval, bok := cval.(*big.Int)
+			if !bok || !bval.IsUint64() {
+				return
+			}
+		}
+		if iok && ival < 0 {
+			if (t.Info() & types.IsUnsigned) != 0 { // unsigned int
+				nval := (uint64(1) << (8 * ctx.sizeof(typ))) + uint64(ival)
+				v.Val = &ast.BasicLit{Kind: token.INT, Value: strconv.FormatUint(nval, 10)}
+				v.CVal = constant.MakeUint64(nval)
+			}
+		} else if (t.Info() & types.IsUnsigned) == 0 { // int
+			max := (int64(1) << (8*ctx.sizeof(typ) - 1)) - 1
+			if !iok || ival > max {
+				mask := (uint64(1) << (8 * ctx.sizeof(typ))) - 1
+				v.CVal = constant.BinaryOp(
+					constant.BinaryOp(v.CVal, token.AND, constant.MakeUint64(mask)),
+					token.SUB, constant.MakeUint64(mask+1))
+				v.Val = &ast.BasicLit{Kind: token.INT, Value: v.CVal.String()}
+			}
+		}
 	}
+}
+
+func convertibleTo(V, T types.Type) bool {
+	if _, ok := V.(*types.Pointer); ok {
+		if _, ok := T.(*types.Pointer); ok {
+			return false
+		}
+		if T == ctypes.UnsafePointer {
+			return true
+		}
+	} else if V == ctypes.UnsafePointer {
+		if _, ok := T.(*types.Pointer); ok {
+			return true
+		}
+	}
+	return types.ConvertibleTo(V, T)
 }
 
 func typeCastCall(ctx *blockCtx, typ types.Type) {
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	v := stk.Get(-1)
+	if convertibleTo(v.Type, typ) {
+		adjustIntConst(ctx, v, typ)
+		cb.Call(1)
+		return
+	}
 	switch vt := v.Type.(type) {
 	case *types.Pointer:
-		if typ == ctypes.UnsafePointer { // ptr => voidptr
-			break
-		}
 		stk.Pop()
 		if _, ok := typ.(*types.Pointer); ok || typ == tyUintptr { // ptr => ptr|uintptr
 			cb.Typ(ctypes.UnsafePointer).Val(v).Call(1)
@@ -492,27 +529,25 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 	case *types.Basic:
 		switch tt := typ.(type) {
 		case *types.Pointer:
-			if vt == ctypes.UnsafePointer { // voidptr => ptr
-				break
-			}
 			stk.Pop()
-			negConst2Uint(ctx, v, tyUintptr)
-			// int => ptr
+			adjustIntConst(ctx, v, tyUintptr)
 			cb.Typ(ctypes.UnsafePointer).Typ(tyUintptr).Val(v).Call(1).Call(1)
 		case *types.Basic:
-			if vt == ctypes.UnsafePointer {
-				if !types.ConvertibleTo(vt, typ) { // voidptr => int
-					stk.Pop()
-					cb.Typ(tyUintptr).Val(v).Call(1)
-				}
-			} else if (tt.Info() & types.IsUnsigned) != 0 {
-				negConst2Uint(ctx, v, typ)
+			if tt.Kind() == types.UnsafePointer { // int => voidptr
+				typeCast(ctx, tyUintptr, v)
+				break
+			}
+			if vt == ctypes.UnsafePointer { // voidptr => int
+				stk.Pop()
+				cb.Typ(tyUintptr).Val(v).Call(1)
+			} else { // int => int
+				adjustIntConst(ctx, v, typ)
 			}
 		case *types.Signature:
 			switch vt {
 			case types.Typ[types.UntypedInt]: // untyped_int => fnptr
 				vt = tyUintptr
-				negConst2Uint(ctx, v, vt)
+				adjustIntConst(ctx, v, vt)
 				fallthrough
 			case ctypes.UnsafePointer: // voidptr => fnptr
 				stk.PopN(2)
