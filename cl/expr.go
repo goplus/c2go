@@ -558,6 +558,19 @@ func compileAtomicExpr(ctx *blockCtx, v *ast.Node) {
 		compileExpr(ctx, expr)
 	}
 	cb.Call(len(v.Inner))
+	if fn, ok := getCaller(cb); ok {
+		ctx.extfns[fn] = none{}
+	}
+}
+
+func getCaller(cb *gox.CodeBuilder) (string, bool) {
+	v := cb.Get(-1)
+	if e, ok := v.Val.(*goast.CallExpr); ok {
+		if fn, ok := e.Fun.(*goast.Ident); ok {
+			return fn.Name, true
+		}
+	}
+	return "", false
 }
 
 // -----------------------------------------------------------------------------
