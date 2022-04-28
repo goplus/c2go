@@ -382,15 +382,14 @@ func castPtrOrFnPtrType(cb *gox.CodeBuilder, kind int, from, to types.Type, v *g
 	switch kind {
 	case ncKindSignature:
 		castFnPtrType(cb, from, to, v)
+		return
 	case ncKindInvalid: // maybe nil
 		if isZeroConst(v) {
 			cb.Val(nil)
-		} else {
-			log.Panicln("TODO: castPtrOrFnPtrType")
+			return
 		}
-	default:
-		castPtrType(cb, to, v)
 	}
+	castPtrType(cb, to, v)
 }
 
 func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
