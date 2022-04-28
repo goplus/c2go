@@ -227,7 +227,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		ret := types.NewParam(token.NoPos, pkg.Types, "", t)
 		results = types.NewTuple(ret)
 	}
-	sig := gox.NewSignature(nil, types.NewTuple(params...), results, variadic)
+	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
 	if body != nil {
 		fnName, isMain := fn.Name, false
 		if fnName == "main" && (results != nil || params != nil) {

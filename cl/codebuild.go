@@ -513,13 +513,9 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 			}
 		}
 	case *types.Signature: // fnptr => fnptr/voidptr/uintptr
-		if _, ok := typ.(*types.Signature); ok || typ == ctypes.UnsafePointer {
-			stk.PopN(2)
-			castFnPtrType(cb, vt, typ, v)
-			return
-		} else {
-			log.Panicln("TODO: fnptr =>", typ)
-		}
+		stk.PopN(2)
+		castFnPtrType(cb, vt, typ, v)
+		return
 	}
 	cb.Call(1)
 }
