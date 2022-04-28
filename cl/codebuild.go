@@ -296,6 +296,15 @@ func isNegConst(v *gox.Element) bool {
 	return false
 }
 
+func isZeroConst(v *gox.Element) bool {
+	if cval := v.CVal; cval != nil && cval.Kind() == constant.Int {
+		if v, ok := constant.Int64Val(cval); ok {
+			return v == 0
+		}
+	}
+	return false
+}
+
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	src := goNode(v)
 	cb := ctx.cb
@@ -345,16 +354,13 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	}
 	if isCmpOperator(op) {
 		arg1 := stk.Get(-2)
-		if kind := checkNilComparable(arg1.Type); kind != 0 { // ptr <cmp> ptr
-			arg2 := stk.Get(-1)
+		arg2 := stk.Get(-1)
+		kind1 := checkNilComparable(arg1.Type)
+		kind2 := checkNilComparable(arg2.Type)
+		if kind1 != 0 || kind2 != 0 { // ptr <cmp> ptr
 			stk.PopN(2)
-			if kind == ncKindSignature {
-				castFnPtrType(cb, arg1.Type, tyUintptr, arg1)
-				castFnPtrType(cb, arg2.Type, tyUintptr, arg2)
-			} else {
-				castPtrType(cb, tyUintptr, arg1)
-				castPtrType(cb, tyUintptr, arg2)
-			}
+			castPtrOrFnPtrType(cb, kind1, arg1.Type, tyUintptr, arg1)
+			castPtrOrFnPtrType(cb, kind2, arg2.Type, tyUintptr, arg2)
 			cb.BinaryOp(op, src)
 			return
 		}
@@ -370,6 +376,21 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		}
 	}
 	cb.BinaryOp(op, src)
+}
+
+func castPtrOrFnPtrType(cb *gox.CodeBuilder, kind int, from, to types.Type, v *gox.Element) {
+	switch kind {
+	case ncKindSignature:
+		castFnPtrType(cb, from, to, v)
+	case ncKindInvalid: // maybe nil
+		if isZeroConst(v) {
+			cb.Val(nil)
+		} else {
+			log.Panicln("TODO: castPtrOrFnPtrType")
+		}
+	default:
+		castPtrType(cb, to, v)
+	}
 }
 
 func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
