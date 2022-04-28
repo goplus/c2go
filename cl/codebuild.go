@@ -345,11 +345,16 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	}
 	if isCmpOperator(op) {
 		arg1 := stk.Get(-2)
-		if isNilComparable(arg1.Type) { // ptr <cmp> ptr
+		if kind := checkNilComparable(arg1.Type); kind != 0 { // ptr <cmp> ptr
 			arg2 := stk.Get(-1)
 			stk.PopN(2)
-			castPtrType(cb, tyUintptr, arg1)
-			castPtrType(cb, tyUintptr, arg2)
+			if kind == ncKindSignature {
+				castFnPtrType(cb, arg1.Type, tyUintptr, arg1)
+				castFnPtrType(cb, arg2.Type, tyUintptr, arg2)
+			} else {
+				castPtrType(cb, tyUintptr, arg1)
+				castPtrType(cb, tyUintptr, arg2)
+			}
 			cb.BinaryOp(op, src)
 			return
 		}
@@ -451,34 +456,23 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 		case *types.Signature:
 			switch vt {
 			case types.Typ[types.UntypedInt]: // untyped_int => fnptr
-				vt = types.Typ[types.Uintptr]
+				vt = tyUintptr
 				negConst2Uint(ctx, v, vt)
 				fallthrough
 			case ctypes.UnsafePointer: // voidptr => fnptr
 				stk.PopN(2)
-				typeCastFn(cb, vt, typ, v)
+				castFnPtrType(cb, vt, typ, v)
 				return
 			}
 		}
 	case *types.Signature:
 		if _, ok := typ.(*types.Signature); ok || typ == ctypes.UnsafePointer { // fnptr => fnptr/voidptr
 			stk.PopN(2)
-			typeCastFn(cb, vt, typ, v)
+			castFnPtrType(cb, vt, typ, v)
 			return
 		}
 	}
 	cb.Call(1)
-}
-
-func typeCastFn(cb *gox.CodeBuilder, from, to types.Type, v *gox.Element) {
-	pkg := cb.Pkg()
-	fn := types.NewParam(token.NoPos, pkg.Types, "_cgo_fn", from)
-	ret := types.NewParam(token.NoPos, pkg.Types, "", to)
-	cb.NewClosure(types.NewTuple(fn), types.NewTuple(ret), false).BodyStart(pkg).
-		Typ(types.NewPointer(to)).
-		Typ(ctypes.UnsafePointer).VarRef(fn).UnaryOp(token.AND).Call(1).
-		Call(1).Elem().Return(1).
-		End().Val(v).Call(1)
 }
 
 func typeCastIndex(ctx *blockCtx, lhs bool) {
@@ -499,6 +493,17 @@ func typeCastIndex(ctx *blockCtx, lhs bool) {
 	} else {
 		cb.Index(1, false)
 	}
+}
+
+func castFnPtrType(cb *gox.CodeBuilder, from, to types.Type, v *gox.Element) {
+	pkg := cb.Pkg()
+	fn := types.NewParam(token.NoPos, pkg.Types, "_cgo_fn", from)
+	ret := types.NewParam(token.NoPos, pkg.Types, "", to)
+	cb.NewClosure(types.NewTuple(fn), types.NewTuple(ret), false).BodyStart(pkg).
+		Typ(types.NewPointer(to)).
+		Typ(ctypes.UnsafePointer).VarRef(fn).UnaryOp(token.AND).Call(1).
+		Call(1).Elem().Return(1).
+		End().Val(v).Call(1)
 }
 
 func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {

@@ -382,6 +382,31 @@ func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.No
 	log.Panicln("initUnion: init with unexpect type -", t)
 }
 
+const (
+	ncKindInvalid = iota
+	ncKindPointer
+	ncKindUnsafePointer
+	ncKindSignature
+)
+
+func checkNilComparable(typ types.Type) int {
+	switch t := typ.(type) {
+	case *types.Pointer:
+		return ncKindPointer
+	case *types.Basic:
+		if t.Kind() == types.UnsafePointer {
+			return ncKindUnsafePointer
+		}
+	case *types.Signature:
+		return ncKindSignature
+	}
+	return ncKindInvalid
+}
+
+func isNilComparable(typ types.Type) bool {
+	return checkNilComparable(typ) != ncKindInvalid
+}
+
 func isIntegerOrBool(typ types.Type) bool {
 	return isKind(typ, types.IsInteger|types.IsBoolean)
 }
@@ -404,16 +429,6 @@ func isKind(typ types.Type, mask types.BasicInfo) bool {
 func isArrayUnknownLen(typ types.Type) bool {
 	if t, ok := typ.(*types.Array); ok {
 		return t.Len() < 0
-	}
-	return false
-}
-
-func isNilComparable(typ types.Type) bool {
-	switch t := typ.(type) {
-	case *types.Pointer, *types.Signature:
-		return true
-	case *types.Basic:
-		return t.Kind() == types.UnsafePointer
 	}
 	return false
 }
