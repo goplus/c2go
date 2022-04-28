@@ -2,6 +2,8 @@ package types
 
 import (
 	"go/types"
+
+	"github.com/goplus/gox"
 )
 
 // -----------------------------------------------------------------------------
@@ -34,13 +36,8 @@ func MangledName(tag, name string) string {
 
 // -----------------------------------------------------------------------------
 
-type Func struct {
-	*types.Signature
-}
-
-func NewFunc(params, results *types.Tuple, variadic bool) types.Type {
-	sig := types.NewSignature(nil, params, results, variadic)
-	return Func{sig}
+func NewFunc(params, results *types.Tuple, variadic bool) *types.Signature {
+	return gox.NewCSignature(params, results, variadic)
 }
 
 func NewPointer(typ types.Type) types.Type {
@@ -49,27 +46,23 @@ func NewPointer(typ types.Type) types.Type {
 		if t == Void {
 			return types.Typ[types.UnsafePointer]
 		}
-	case Func:
-		return t.Signature
+	case *types.Signature:
+		if gox.IsCSignature(t) {
+			return types.NewSignature(nil, t.Params(), t.Results(), t.Variadic())
+		}
 	}
 	return types.NewPointer(typ)
 }
 
 func IsFunc(typ types.Type) bool {
-	_, ok := typ.(Func)
+	sig, ok := typ.(*types.Signature)
+	if ok {
+		ok = gox.IsCSignature(sig)
+	}
 	return ok
 }
 
 func Identical(typ1, typ2 types.Type) bool {
-	if t1, ok := typ1.(Func); ok {
-		if t2, ok := typ2.(Func); ok {
-			return types.Identical(t1.Signature, t2.Signature)
-		}
-		return false
-	}
-	if _, ok := typ2.(Func); ok {
-		return false
-	}
 	return types.Identical(typ1, typ2)
 }
 

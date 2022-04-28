@@ -7,8 +7,6 @@ import (
 	"log"
 	"strconv"
 
-	ctypes "github.com/goplus/c2go/clang/types"
-
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
 )
@@ -173,9 +171,6 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		fallthrough
 	case ast.FunctionToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
-		if e := ctx.cb.Get(-1); ctypes.IsFunc(e.Type) {
-			e.Type = ctypes.NewPointer(e.Type)
-		}
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 		if cb := ctx.cb; !isEllipsis(ctx, cb) {
@@ -519,10 +514,7 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, flags int) {
 	}
 	if op, ok := unaryOps[v.OpCode]; ok {
 		compileExpr(ctx, v.Inner[0])
-		if op == token.NOT {
-			castToBoolExpr(ctx.cb)
-		}
-		ctx.cb.UnaryOp(op)
+		unaryOp(ctx, op, v)
 		return
 	}
 

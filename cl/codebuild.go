@@ -78,7 +78,7 @@ func decl_builtin(ctx *blockCtx) {
 	scope := pkg.Scope()
 	for fn, proto := range fns {
 		t := toType(ctx, &cast.Type{QualType: proto}, 0)
-		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(ctypes.Func).Signature))
+		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
 	}
 	for _, o := range builtin_overloads {
 		fns := make([]types.Object, len(o.overloads))
@@ -303,6 +303,20 @@ func isZeroConst(v *gox.Element) bool {
 		}
 	}
 	return false
+}
+
+func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
+	switch op {
+	case token.NOT:
+		castToBoolExpr(ctx.cb)
+	case token.AND:
+		arg := ctx.cb.Get(-1)
+		if ctypes.IsFunc(arg.Type) {
+			arg.Type = ctypes.NewPointer(arg.Type)
+			return
+		}
+	}
+	ctx.cb.UnaryOp(op)
 }
 
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
