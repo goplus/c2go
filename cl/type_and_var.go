@@ -389,12 +389,13 @@ const (
 	ncKindSignature
 )
 
-func checkNilComparable(typ types.Type) int {
-	switch t := typ.(type) {
+func checkNilComparable(v *gox.Element) int {
+	switch t := v.Type.(type) {
 	case *types.Pointer:
 		return ncKindPointer
 	case *types.Basic:
-		if t.Kind() == types.UnsafePointer {
+		switch t.Kind() {
+		case types.UnsafePointer:
 			return ncKindUnsafePointer
 		}
 	case *types.Signature:
@@ -404,7 +405,15 @@ func checkNilComparable(typ types.Type) int {
 }
 
 func isNilComparable(typ types.Type) bool {
-	return checkNilComparable(typ) != ncKindInvalid
+	switch t := typ.(type) {
+	case *types.Pointer, *types.Signature:
+		return true
+	case *types.Basic:
+		if t.Kind() == types.UnsafePointer {
+			return true
+		}
+	}
+	return false
 }
 
 func isIntegerOrBool(typ types.Type) bool {

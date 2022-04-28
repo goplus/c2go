@@ -355,9 +355,21 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	if isCmpOperator(op) {
 		arg1 := stk.Get(-2)
 		arg2 := stk.Get(-1)
-		kind1 := checkNilComparable(arg1.Type)
-		kind2 := checkNilComparable(arg2.Type)
-		if kind1 != 0 || kind2 != 0 { // ptr <cmp> ptr
+		kind1 := checkNilComparable(arg1)
+		kind2 := checkNilComparable(arg2)
+		if kind1 != 0 || kind2 != 0 { // ptr <cmp> ptr|nil
+			isNil1 := isZeroConst(arg1)
+			isNil2 := isZeroConst(arg2)
+			if isNil1 || isNil2 { // ptr <cmp> nil
+				if isNil1 {
+					untypedZeroToNil(arg1)
+				}
+				if isNil2 {
+					untypedZeroToNil(arg2)
+				}
+				cb.BinaryOp(op, src)
+				return
+			}
 			stk.PopN(2)
 			castPtrOrFnPtrType(cb, kind1, arg1.Type, tyUintptr, arg1)
 			castPtrOrFnPtrType(cb, kind2, arg2.Type, tyUintptr, arg2)
@@ -378,18 +390,19 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	cb.BinaryOp(op, src)
 }
 
+func untypedZeroToNil(v *gox.Element) {
+	v.Type = types.Typ[types.UntypedNil]
+	v.Val = &ast.Ident{Name: "nil"}
+	v.CVal = nil
+}
+
 func castPtrOrFnPtrType(cb *gox.CodeBuilder, kind int, from, to types.Type, v *gox.Element) {
 	switch kind {
 	case ncKindSignature:
 		castFnPtrType(cb, from, to, v)
-		return
-	case ncKindInvalid: // maybe nil
-		if isZeroConst(v) {
-			cb.Val(nil)
-			return
-		}
+	default:
+		castPtrType(cb, to, v)
 	}
-	castPtrType(cb, to, v)
 }
 
 func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
@@ -485,11 +498,13 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 				return
 			}
 		}
-	case *types.Signature:
-		if _, ok := typ.(*types.Signature); ok || typ == ctypes.UnsafePointer { // fnptr => fnptr/voidptr
+	case *types.Signature: // fnptr => fnptr/voidptr/uintptr
+		if _, ok := typ.(*types.Signature); ok || typ == ctypes.UnsafePointer {
 			stk.PopN(2)
 			castFnPtrType(cb, vt, typ, v)
 			return
+		} else {
+			log.Panicln("TODO: fnptr =>", typ)
 		}
 	}
 	cb.Call(1)
