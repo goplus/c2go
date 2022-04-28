@@ -496,8 +496,13 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 			negConst2Uint(ctx, v, tyUintptr)
 			// int => ptr
 			cb.Typ(ctypes.UnsafePointer).Typ(tyUintptr).Val(v).Call(1).Call(1)
-		case *types.Basic: // int => int
-			if (tt.Info() & types.IsUnsigned) != 0 {
+		case *types.Basic:
+			if vt == ctypes.UnsafePointer {
+				if !types.ConvertibleTo(vt, typ) { // voidptr => int
+					stk.Pop()
+					cb.Typ(tyUintptr).Val(v).Call(1)
+				}
+			} else if (tt.Info() & types.IsUnsigned) != 0 {
 				negConst2Uint(ctx, v, typ)
 			}
 		case *types.Signature:
