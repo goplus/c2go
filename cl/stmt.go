@@ -394,7 +394,7 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 		n = 1
 		compileExpr(ctx, stmt.Inner[0])
 		cb := ctx.cb
-		typeCast(cb, getRetType(cb), cb.Get(-1))
+		typeCast(ctx, getRetType(cb), cb.Get(-1))
 	}
 	ctx.cb.Return(n, goNode(stmt))
 }
