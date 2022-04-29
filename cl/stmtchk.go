@@ -218,8 +218,8 @@ func (p *markCtx) mark(ctx *blockCtx, stmt *ast.Node) {
 func (p *markCtx) markSwitchComplicated() {
 	owner := p.owner
 	for owner != nil {
+		p.markComplicated(owner.stmt)
 		if owner.stmt.Kind == ast.SwitchStmt {
-			p.markComplicated(owner.stmt)
 			return
 		}
 		owner = owner.parent.owner
