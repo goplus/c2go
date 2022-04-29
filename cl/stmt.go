@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"go/constant"
 	"go/token"
 	"go/types"
 	"log"
@@ -93,10 +94,19 @@ func compileComplicatedDoStmt(ctx *blockCtx, stmt *ast.Node) {
 	cb := ctx.cb.If()
 	compileExpr(ctx, stmt.Inner[1])
 	castToBoolExpr(cb)
+	var isTrue bool
+	if cval := cb.Get(-1).CVal; cval != nil {
+		isTrue = constant.BoolVal(cval)
+	}
 	cb.Then().Goto(loop.start).End()
 
 	if loop.done != nil {
 		cb.Label(loop.done)
+	}
+	if isTrue { // do .. while(true)
+		if ret, ok := getRetTypeEx(cb); ok {
+			cb.ZeroLit(ret).Return(1)
+		}
 	}
 }
 
@@ -401,6 +411,14 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 
 func getRetType(cb *gox.CodeBuilder) types.Type {
 	return cb.Func().Type().(*types.Signature).Results().At(0).Type()
+}
+
+func getRetTypeEx(cb *gox.CodeBuilder) (ret types.Type, ok bool) {
+	results := cb.Func().Type().(*types.Signature).Results()
+	if results.Len() == 1 {
+		return results.At(0).Type(), true
+	}
+	return
 }
 
 // -----------------------------------------------------------------------------
