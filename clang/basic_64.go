@@ -5,4 +5,3 @@ package clang
 
 type Long = int64
 type Ulong = uint64
-type SizeT = Ulong
