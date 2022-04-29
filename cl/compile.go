@@ -243,6 +243,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fn.Name, body))
 		compileSub(ctx, body)
+		checkNeedReturn(ctx, body)
 		ctx.curfn = nil
 		cb.End()
 		if isMain {
