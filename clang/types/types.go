@@ -2,6 +2,7 @@ package types
 
 import (
 	"go/types"
+	"unsafe"
 
 	"github.com/goplus/gox"
 )
@@ -14,8 +15,8 @@ var (
 
 	Int     = types.Typ[types.Int32]
 	Uint    = types.Typ[types.Uint32]
-	Long    = types.Typ[types.Int]
-	Ulong   = types.Typ[types.Uint]
+	Long    = types.Typ[uintptr(types.Int32)+unsafe.Sizeof(0)>>5]  // int
+	Ulong   = types.Typ[uintptr(types.Uint32)+unsafe.Sizeof(0)>>5] // uint
 	NotImpl = UnsafePointer
 
 	Enum = types.Typ[types.Int32]
