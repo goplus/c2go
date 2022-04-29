@@ -150,7 +150,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		}
 		switch decl.Kind {
 		case ast.VarDecl:
-			compileVarDecl(ctx, decl)
+			compileVarDecl(ctx, decl, global)
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		case ast.RecordDecl:
