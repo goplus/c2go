@@ -276,7 +276,7 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 		}
 		if inVBlock {
 			varAssign(ctx, scope, typ, decl.Name, initExpr)
-		} else if global && hasFnPtrMember(typ) && false {
+		} else if global && hasFnPtrMember(typ) {
 			pkg := ctx.pkg
 			cb := pkg.NewFunc(nil, "init", nil, nil, false).BodyStart(pkg)
 			varAssign(ctx, scope, typ, decl.Name, initExpr)
