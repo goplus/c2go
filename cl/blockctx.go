@@ -26,7 +26,8 @@ const (
 type funcCtx struct {
 	labels map[string]*gox.Label
 	vdefs  *gox.VarDefs
-	base   int
+	basel  int
+	basev  int
 }
 
 func newFuncCtx(pkg *gox.Package, complicated bool) *funcCtx {
@@ -40,8 +41,8 @@ func newFuncCtx(pkg *gox.Package, complicated bool) *funcCtx {
 }
 
 func (p *funcCtx) newLabel(cb *gox.CodeBuilder) *gox.Label {
-	p.base++
-	name := "_cgol_" + strconv.Itoa(p.base)
+	p.basel++
+	name := "_cgol_" + strconv.Itoa(p.basel)
 	return cb.NewLabel(token.NoPos, name)
 }
 
@@ -52,8 +53,8 @@ func (p *funcCtx) label(cb *gox.CodeBuilder) *gox.Label {
 }
 
 func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) (*gox.VarDecl, types.Object) {
-	p.base++
-	realName := name + "_cgo" + strconv.Itoa(p.base)
+	p.basev++
+	realName := name + "_cgo" + strconv.Itoa(p.basev)
 	ret := p.vdefs.New(pos, typ, realName)
 	return ret, ret.Ref(realName)
 }
