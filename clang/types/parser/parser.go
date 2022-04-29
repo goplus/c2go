@@ -50,11 +50,13 @@ func getRetType(flags int) bool {
 }
 
 type Config struct {
-	Pkg      *types.Package
-	Scope    *types.Scope
-	TyAnonym types.Type
-	TyValist types.Type
-	Flags    int
+	Pkg       *types.Package
+	Scope     *types.Scope
+	TyAnonym  types.Type
+	TyValist  types.Type
+	TyInt128  types.Type
+	TyUint128 types.Type
+	Flags     int
 }
 
 const (
@@ -89,11 +91,10 @@ func ParseType(qualType string, conf *Config) (t types.Type, kind int, err error
 // -----------------------------------------------------------------------------
 
 type parser struct {
-	s      scanner.Scanner
-	pkg    *types.Package
-	scope  *types.Scope
-	anonym types.Type
-	valist types.Type
+	s     scanner.Scanner
+	pkg   *types.Package
+	scope *types.Scope
+	conf  *Config
 
 	tok token.Token
 	lit string
@@ -108,7 +109,7 @@ const (
 )
 
 func newParser(qualType string, conf *Config) *parser {
-	p := &parser{pkg: conf.Pkg, scope: conf.Scope, anonym: conf.TyAnonym, valist: conf.TyValist}
+	p := &parser{pkg: conf.Pkg, scope: conf.Scope, conf: conf}
 	p.old.tok = invalidTok
 	p.s.Init(qualType)
 	return p
@@ -173,54 +174,58 @@ const (
 	flagStructOrUnion
 )
 
-func (p *parser) lookupType(lit string, flags int) (t types.Type, err error) {
+func (p *parser) lookupType(tylit string, flags int) (t types.Type, err error) {
 	structOrUnion := (flags & flagStructOrUnion) != 0
+	_, o := p.scope.LookupParent(tylit, token.NoPos)
+	if o == nil {
+		return nil, &TypeNotFound{Literal: tylit, StructOrUnion: structOrUnion}
+	}
+	t = o.Type()
 	if !structOrUnion && flags != 0 {
-		if (flags & flagComplex) != 0 {
-			switch lit {
-			case "float":
+		tt, ok := t.(*types.Basic)
+		if !ok {
+			if t == p.conf.TyInt128 {
+				switch flags {
+				case flagSigned:
+					return p.conf.TyInt128, nil
+				case flagUnsigned:
+					return p.conf.TyUint128, nil
+				}
+			}
+		} else if (flags & flagComplex) != 0 {
+			switch tt.Kind() {
+			case types.Float32:
 				return types.Typ[types.Complex64], nil
-			case "double":
+			case types.Float64:
 				return types.Typ[types.Complex128], nil
 			}
 		} else {
-			switch lit {
-			case "int":
+			switch tt.Kind() {
+			case types.Int:
 				if t = intTypes[flags&^flagSigned]; t != nil {
 					return
 				}
-			case "char":
+			case types.Int8:
 				switch flags {
 				case flagUnsigned:
 					return types.Typ[types.Uint8], nil
 				case flagSigned:
 					return types.Typ[types.Int8], nil
 				}
-			case "double":
+			case types.Float64:
 				switch flags {
 				case flagLong:
 					return ctypes.LongDouble, nil
-				}
-			case "__int128":
-				switch flags {
-				case flagSigned:
-					return ctypes.Int128, nil
-				case flagUnsigned:
-					return ctypes.Uint128, nil
 				}
 			}
 		}
 		log.Panicln("lookupType: TODO - invalid type")
 		return nil, ErrInvalidType
 	}
-	if lit == "int" {
+	if t == types.Typ[types.Int] {
 		return types.Typ[types.Int32], nil
 	}
-	_, o := p.scope.LookupParent(lit, token.NoPos)
-	if o != nil {
-		return o.Type(), nil
-	}
-	return nil, &TypeNotFound{Literal: lit, StructOrUnion: structOrUnion}
+	return
 }
 
 var intTypes = [...]types.Type{
@@ -362,9 +367,9 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				switch p.tok {
 				case token.IDENT:
 				case token.LPAREN:
-					if t == nil && p.anonym != nil {
+					if t == nil && p.conf.TyAnonym != nil {
 						p.skipUntil(token.RPAREN)
-						t = p.anonym
+						t = p.conf.TyAnonym
 						kind |= KindFAnonymous
 						continue
 					}
@@ -518,7 +523,7 @@ func (p *parser) newFunc(args []*types.Var, results *types.Tuple) types.Type {
 	variadic := false
 	if n := len(args); n > 1 {
 		v := args[n-1]
-		if ctypes.Identical(v.Type(), p.valist) {
+		if ctypes.Identical(v.Type(), p.conf.TyValist) {
 			args[n-1] = types.NewParam(v.Pos(), v.Pkg(), v.Name(), tyVArgs)
 			variadic = true
 		} else {

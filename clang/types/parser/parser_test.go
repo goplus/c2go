@@ -16,7 +16,11 @@ var (
 )
 
 var (
-	tyValist types.Type
+	tyValist    types.Type
+	nameInt128  = types.NewTypeName(token.NoPos, pkg, "__int128", nil)
+	nameUint128 = types.NewTypeName(token.NoPos, pkg, "__uint128", nil)
+	tyInt128    = types.NewNamed(nameInt128, types.Typ[types.String], nil)
+	tyUint128   = types.NewNamed(nameUint128, types.Typ[types.Rune], nil)
 )
 
 func init() {
@@ -24,12 +28,13 @@ func init() {
 	aliasType(scope, pkg, "void", ctypes.Void)
 	aliasType(scope, pkg, "float", types.Typ[types.Float32])
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
-	aliasType(scope, pkg, "__int128", ctypes.Int128)
+	aliasType(scope, pkg, "uint", types.Typ[types.Uint32])
 	aliasType(scope, pkg, ctypes.MangledName("struct", "ConstantString"), tyConstantString)
 
 	valist := types.NewTypeName(token.NoPos, pkg, ctypes.MangledName("struct", "__va_list_tag"), nil)
 	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
 	scope.Insert(valist)
+	scope.Insert(nameInt128)
 	tyValist = types.NewPointer(t)
 }
 
@@ -112,13 +117,14 @@ var cases = []testCase{
 	{qualType: "unsigned int", typ: tyUint},
 	{qualType: "struct ConstantString", typ: tyConstantString},
 	{qualType: "volatile signed int", typ: tyInt},
-	{qualType: "__int128", typ: ctypes.Int128},
+	{qualType: "__int128", typ: tyInt128},
 	{qualType: "signed", typ: tyInt},
 	{qualType: "signed short", typ: tyInt16},
 	{qualType: "signed long", typ: ctypes.Long},
 	{qualType: "unsigned", typ: tyUint},
+	{qualType: "uint", typ: tyUint32},
 	{qualType: "unsigned char", typ: tyUchar},
-	{qualType: "unsigned __int128", typ: ctypes.Uint128},
+	{qualType: "unsigned __int128", typ: tyUint128},
 	{qualType: "unsigned long", typ: ctypes.Ulong},
 	{qualType: "unsigned long long", typ: tyUint64},
 	{qualType: "long double", typ: ctypes.LongDouble},
@@ -163,7 +169,11 @@ func TestCases(t *testing.T) {
 			continue
 		}
 		t.Run(c.qualType, func(t *testing.T) {
-			conf := &Config{Pkg: pkg, Scope: scope, TyAnonym: c.anonym, TyValist: tyValist, Flags: c.flags}
+			conf := &Config{
+				Pkg: pkg, Scope: scope, Flags: c.flags,
+				TyAnonym: c.anonym, TyValist: tyValist,
+				TyInt128: tyInt128, TyUint128: tyUint128,
+			}
 			typ, _, err := ParseType(c.qualType, conf)
 			if err != nil {
 				if errMsgOf(err) != c.err {

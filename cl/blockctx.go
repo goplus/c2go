@@ -187,6 +187,8 @@ type blockCtx struct {
 	cb       *gox.CodeBuilder
 	fset     *token.FileSet
 	tyValist types.Type
+	tyI128   types.Type
+	tyU128   types.Type
 	unnameds map[ast.ID]*types.Named
 	typdecls map[string]*gox.TypeDecl
 	gblvars  map[string]*gox.VarDefs
@@ -455,12 +457,14 @@ func (p *blockCtx) initCTypes() {
 	pkg := p.pkg.Types
 	scope := pkg.Scope()
 	p.tyValist = initValist(scope, pkg)
+	p.tyI128 = ctypes.NotImpl
+	p.tyU128 = ctypes.NotImpl
+	aliasType(scope, pkg, "__int128", p.tyI128)
+	aliasType(scope, pkg, "_Bool", types.Typ[types.Bool])
 	aliasType(scope, pkg, "char", types.Typ[types.Int8])
 	aliasType(scope, pkg, "void", ctypes.Void)
 	aliasType(scope, pkg, "float", types.Typ[types.Float32])
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
-	aliasType(scope, pkg, "__int128", ctypes.Int128)
-	aliasType(scope, pkg, "_Bool", types.Typ[types.Bool])
 	decl_builtin(p)
 }
 

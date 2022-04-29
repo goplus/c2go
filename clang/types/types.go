@@ -21,9 +21,6 @@ var (
 	Enum = types.Typ[types.Int32]
 
 	LongDouble = types.Typ[types.Float64]
-
-	Int128  = NotImpl
-	Uint128 = NotImpl
 )
 
 func NotVoid(t types.Type) bool {
