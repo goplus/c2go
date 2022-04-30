@@ -23,12 +23,12 @@ const builtin_decls = `{
 	"__sync_synchronize": "void ()",
 	"__builtin_bswap32": "uint32 (uint32)",
 	"__builtin_bswap64": "uint64 (uint64)",
-	"__builtin___memset_chk": "void* (void*, int32, uint, uint)",
-	"__builtin___memcpy_chk": "void* (void*, void*, uint, uint)",
-	"__builtin___memmove_chk": "void* (void*, void*, uint, uint)",
-	"__builtin___strlcpy_chk": "uint (char*, char*, uint, uint)",
-	"__builtin___strlcat_chk": "uint (char*, char*, uint, uint)",
-	"__builtin_object_size": "uint (void*, int32)",
+	"__builtin___memset_chk": "void* (void*, int32, size_t, size_t)",
+	"__builtin___memcpy_chk": "void* (void*, void*, size_t, size_t)",
+	"__builtin___memmove_chk": "void* (void*, void*, size_t, size_t)",
+	"__builtin___strlcpy_chk": "size_t (char*, char*, size_t, size_t)",
+	"__builtin___strlcat_chk": "size_t (char*, char*, size_t, size_t)",
+	"__builtin_object_size": "size_t (void*, int32)",
 	"__builtin_fabsf": "float32 (float32)",
 	"__builtin_fabsl": "float64 (float64)",
 	"__builtin_fabs": "float64 (float64)",
@@ -77,7 +77,7 @@ func decl_builtin(ctx *blockCtx) {
 	pkg := ctx.pkg.Types
 	scope := pkg.Scope()
 	for fn, proto := range fns {
-		t := toType(ctx, &cast.Type{QualType: proto}, 0)
+		t := toType(ctx, &cast.Type{QualType: strings.ReplaceAll(proto, "size_t", "unsigned long")}, 0)
 		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
 	}
 	for _, o := range builtin_overloads {

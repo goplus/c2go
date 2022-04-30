@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"unsafe"
+
+	c "github.com/goplus/c2go/clang"
 )
 
 func a_cas(p *int32, t, s int32) int32 {
@@ -38,21 +40,21 @@ func printf(format *int8, args ...interface{}) int32 {
 	return 0
 }
 
-func sliceOf(v unsafe.Pointer, bytes uint) []byte {
+func sliceOf(v unsafe.Pointer, bytes c.SizeT) []byte {
 	return (*[1 << 20]byte)(v)[:bytes]
 }
 
-func memcpy(dst unsafe.Pointer, src unsafe.Pointer, n uint) unsafe.Pointer {
+func memcpy(dst unsafe.Pointer, src unsafe.Pointer, n c.SizeT) unsafe.Pointer {
 	copy(sliceOf(dst, n), sliceOf(src, n))
 	return dst
 }
 
-func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n uint, elem uint) unsafe.Pointer {
+func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n c.SizeT, elem c.SizeT) unsafe.Pointer {
 	copy(sliceOf(dst, n), sliceOf(src, n))
 	return dst
 }
 
-func __builtin_object_size(unsafe.Pointer, int32) uint {
+func __builtin_object_size(unsafe.Pointer, int32) c.SizeT {
 	return 1
 }
 
