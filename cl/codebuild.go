@@ -23,12 +23,12 @@ const builtin_decls = `{
 	"__sync_synchronize": "void ()",
 	"__builtin_bswap32": "uint32 (uint32)",
 	"__builtin_bswap64": "uint64 (uint64)",
-	"__builtin___memset_chk": "void* (void*, int32, uint, uint)",
-	"__builtin___memcpy_chk": "void* (void*, void*, uint, uint)",
-	"__builtin___memmove_chk": "void* (void*, void*, uint, uint)",
-	"__builtin___strlcpy_chk": "uint (char*, char*, uint, uint)",
-	"__builtin___strlcat_chk": "uint (char*, char*, uint, uint)",
-	"__builtin_object_size": "uint (void*, int32)",
+	"__builtin___memset_chk": "void* (void*, int32, size_t, size_t)",
+	"__builtin___memcpy_chk": "void* (void*, void*, size_t, size_t)",
+	"__builtin___memmove_chk": "void* (void*, void*, size_t, size_t)",
+	"__builtin___strlcpy_chk": "size_t (char*, char*, size_t, size_t)",
+	"__builtin___strlcat_chk": "size_t (char*, char*, size_t, size_t)",
+	"__builtin_object_size": "size_t (void*, int32)",
 	"__builtin_fabsf": "float32 (float32)",
 	"__builtin_fabsl": "float64 (float64)",
 	"__builtin_fabs": "float64 (float64)",
@@ -77,8 +77,8 @@ func decl_builtin(ctx *blockCtx) {
 	pkg := ctx.pkg.Types
 	scope := pkg.Scope()
 	for fn, proto := range fns {
-		t := toType(ctx, &cast.Type{QualType: proto}, 0)
-		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(ctypes.Func).Signature))
+		t := toType(ctx, &cast.Type{QualType: strings.ReplaceAll(proto, "size_t", "unsigned long")}, 0)
+		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
 	}
 	for _, o := range builtin_overloads {
 		fns := make([]types.Object, len(o.overloads))
@@ -235,9 +235,10 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 
 // -----------------------------------------------------------------------------
 
-func typeCast(cb *gox.CodeBuilder, typ types.Type, arg *gox.Element) {
+func typeCast(ctx *blockCtx, typ types.Type, arg *gox.Element) {
 	if !ctypes.Identical(typ, arg.Type) {
-		*arg = *cb.Typ(typ).Val(arg).Call(1).InternalStack().Pop()
+		adjustIntConst(ctx, arg, typ)
+		*arg = *ctx.cb.Typ(typ).Val(arg).Call(1).InternalStack().Pop()
 	}
 }
 
@@ -246,7 +247,7 @@ func assign(ctx *blockCtx, src ast.Node) {
 	arg1 := cb.Get(-2)
 	arg2 := cb.Get(-1)
 	arg1Type, _ := gox.DerefType(arg1.Type)
-	typeCast(cb, arg1Type, arg2)
+	typeCast(ctx, arg1Type, arg2)
 	cb.AssignWith(1, 1, src)
 }
 
@@ -279,7 +280,7 @@ func assignOp(ctx *blockCtx, op token.Token, src ast.Node) {
 		fallthrough
 	default:
 		arg2 := stk.Get(-1)
-		typeCast(cb, arg1Type, arg2)
+		typeCast(ctx, arg1Type, arg2)
 	case token.SHL_ASSIGN, token.SHR_ASSIGN:
 		// noop
 	}
@@ -294,6 +295,29 @@ func isNegConst(v *gox.Element) bool {
 		}
 	}
 	return false
+}
+
+func isZeroConst(v *gox.Element) bool {
+	if cval := v.CVal; cval != nil && cval.Kind() == constant.Int {
+		if v, ok := constant.Int64Val(cval); ok {
+			return v == 0
+		}
+	}
+	return false
+}
+
+func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
+	switch op {
+	case token.NOT:
+		castToBoolExpr(ctx.cb)
+	case token.AND:
+		arg := ctx.cb.Get(-1)
+		if ctypes.IsFunc(arg.Type) {
+			arg.Type = ctypes.NewPointer(arg.Type)
+			return
+		}
+	}
+	ctx.cb.UnaryOp(op)
 }
 
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
@@ -345,11 +369,25 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	}
 	if isCmpOperator(op) {
 		arg1 := stk.Get(-2)
-		if isNilComparable(arg1.Type) { // ptr <cmp> ptr
-			arg2 := stk.Get(-1)
+		arg2 := stk.Get(-1)
+		kind1 := checkNilComparable(arg1)
+		kind2 := checkNilComparable(arg2)
+		if kind1 != 0 || kind2 != 0 { // ptr <cmp> ptr|nil
+			isNil1 := isZeroConst(arg1)
+			isNil2 := isZeroConst(arg2)
+			if isNil1 || isNil2 { // ptr <cmp> nil
+				if isNil1 {
+					untypedZeroToNil(arg1)
+				}
+				if isNil2 {
+					untypedZeroToNil(arg2)
+				}
+				cb.BinaryOp(op, src)
+				return
+			}
 			stk.PopN(2)
-			castPtrType(cb, tyUintptr, arg1)
-			castPtrType(cb, tyUintptr, arg2)
+			castPtrOrFnPtrType(cb, kind1, arg1.Type, tyUintptr, arg1)
+			castPtrOrFnPtrType(cb, kind2, arg2.Type, tyUintptr, arg2)
 			cb.BinaryOp(op, src)
 			return
 		}
@@ -365,6 +403,21 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		}
 	}
 	cb.BinaryOp(op, src)
+}
+
+func untypedZeroToNil(v *gox.Element) {
+	v.Type = types.Typ[types.UntypedNil]
+	v.Val = &ast.Ident{Name: "nil"}
+	v.CVal = nil
+}
+
+func castPtrOrFnPtrType(cb *gox.CodeBuilder, kind int, from, to types.Type, v *gox.Element) {
+	switch kind {
+	case ncKindSignature:
+		castFnPtrType(cb, from, to, v)
+	default:
+		castPtrType(cb, to, v)
+	}
 }
 
 func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
@@ -408,26 +461,65 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
-func negConst2Uint(ctx *blockCtx, v *gox.Element, typ types.Type) {
+func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
 	if v.CVal == nil {
 		return
 	}
-	if val, ok := constant.Val(v.CVal).(int64); ok && val < 0 {
-		nval := (uint64(1) << (8 * ctx.sizeof(typ))) + uint64(val)
-		v.Val = &ast.BasicLit{Kind: token.INT, Value: strconv.FormatUint(nval, 10)}
-		v.CVal = constant.MakeUint64(nval)
+	if t, ok := typ.(*types.Basic); ok && (t.Info()&types.IsInteger) != 0 { // integer
+		var cval = constant.Val(v.CVal)
+		var ival, iok = cval.(int64)
+		if !iok {
+			bval, bok := cval.(*big.Int)
+			if !bok || !bval.IsUint64() {
+				return
+			}
+		}
+		if iok && ival < 0 {
+			if (t.Info() & types.IsUnsigned) != 0 { // unsigned int
+				nval := (uint64(1) << (8 * ctx.sizeof(typ))) + uint64(ival)
+				v.Val = &ast.BasicLit{Kind: token.INT, Value: strconv.FormatUint(nval, 10)}
+				v.CVal = constant.MakeUint64(nval)
+			}
+		} else if (t.Info() & types.IsUnsigned) == 0 { // int
+			max := (int64(1) << (8*ctx.sizeof(typ) - 1)) - 1
+			if !iok || ival > max {
+				mask := (uint64(1) << (8 * ctx.sizeof(typ))) - 1
+				v.CVal = constant.BinaryOp(
+					constant.BinaryOp(v.CVal, token.AND, constant.MakeUint64(mask)),
+					token.SUB, constant.MakeUint64(mask+1))
+				v.Val = &ast.BasicLit{Kind: token.INT, Value: v.CVal.String()}
+			}
+		}
 	}
+}
+
+func convertibleTo(V, T types.Type) bool {
+	if _, ok := V.(*types.Pointer); ok {
+		if _, ok := T.(*types.Pointer); ok {
+			return false
+		}
+		if T == ctypes.UnsafePointer {
+			return true
+		}
+	} else if V == ctypes.UnsafePointer {
+		if _, ok := T.(*types.Pointer); ok {
+			return true
+		}
+	}
+	return types.ConvertibleTo(V, T)
 }
 
 func typeCastCall(ctx *blockCtx, typ types.Type) {
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	v := stk.Get(-1)
+	if convertibleTo(v.Type, typ) {
+		adjustIntConst(ctx, v, typ)
+		cb.Call(1)
+		return
+	}
 	switch vt := v.Type.(type) {
 	case *types.Pointer:
-		if typ == ctypes.UnsafePointer { // ptr => voidptr
-			break
-		}
 		stk.Pop()
 		if _, ok := typ.(*types.Pointer); ok || typ == tyUintptr { // ptr => ptr|uintptr
 			cb.Typ(ctypes.UnsafePointer).Val(v).Call(1)
@@ -437,18 +529,36 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 	case *types.Basic:
 		switch tt := typ.(type) {
 		case *types.Pointer:
-			if vt == ctypes.UnsafePointer { // voidptr => ptr
+			stk.Pop()
+			adjustIntConst(ctx, v, tyUintptr)
+			cb.Typ(ctypes.UnsafePointer).Typ(tyUintptr).Val(v).Call(1).Call(1)
+		case *types.Basic:
+			if tt.Kind() == types.UnsafePointer { // int => voidptr
+				typeCast(ctx, tyUintptr, v)
 				break
 			}
-			stk.Pop()
-			negConst2Uint(ctx, v, tyUintptr)
-			// int => ptr
-			cb.Typ(ctypes.UnsafePointer).Typ(tyUintptr).Val(v).Call(1).Call(1)
-		case *types.Basic: // int => int
-			if (tt.Info() & types.IsUnsigned) != 0 {
-				negConst2Uint(ctx, v, typ)
+			if vt == ctypes.UnsafePointer { // voidptr => int
+				stk.Pop()
+				cb.Typ(tyUintptr).Val(v).Call(1)
+			} else { // int => int
+				adjustIntConst(ctx, v, typ)
+			}
+		case *types.Signature:
+			switch vt {
+			case types.Typ[types.UntypedInt]: // untyped_int => fnptr
+				vt = tyUintptr
+				adjustIntConst(ctx, v, vt)
+				fallthrough
+			case ctypes.UnsafePointer: // voidptr => fnptr
+				stk.PopN(2)
+				castFnPtrType(cb, vt, typ, v)
+				return
 			}
 		}
+	case *types.Signature: // fnptr => fnptr/voidptr/uintptr
+		stk.PopN(2)
+		castFnPtrType(cb, vt, typ, v)
+		return
 	}
 	cb.Call(1)
 }
@@ -471,6 +581,17 @@ func typeCastIndex(ctx *blockCtx, lhs bool) {
 	} else {
 		cb.Index(1, false)
 	}
+}
+
+func castFnPtrType(cb *gox.CodeBuilder, from, to types.Type, v *gox.Element) {
+	pkg := cb.Pkg()
+	fn := types.NewParam(token.NoPos, pkg.Types, "_cgo_fn", from)
+	ret := types.NewParam(token.NoPos, pkg.Types, "", to)
+	cb.NewClosure(types.NewTuple(fn), types.NewTuple(ret), false).BodyStart(pkg).
+		Typ(types.NewPointer(to)).
+		Typ(ctypes.UnsafePointer).VarRef(fn).UnaryOp(token.AND).Call(1).
+		Call(1).Elem().Return(1).
+		End().Val(v).Call(1)
 }
 
 func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {

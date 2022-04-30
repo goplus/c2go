@@ -26,7 +26,8 @@ const (
 type funcCtx struct {
 	labels map[string]*gox.Label
 	vdefs  *gox.VarDefs
-	base   int
+	basel  int
+	basev  int
 }
 
 func newFuncCtx(pkg *gox.Package, complicated bool) *funcCtx {
@@ -40,8 +41,8 @@ func newFuncCtx(pkg *gox.Package, complicated bool) *funcCtx {
 }
 
 func (p *funcCtx) newLabel(cb *gox.CodeBuilder) *gox.Label {
-	p.base++
-	name := "_cgol_" + strconv.Itoa(p.base)
+	p.basel++
+	name := "_cgol_" + strconv.Itoa(p.basel)
 	return cb.NewLabel(token.NoPos, name)
 }
 
@@ -52,8 +53,8 @@ func (p *funcCtx) label(cb *gox.CodeBuilder) *gox.Label {
 }
 
 func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) (*gox.VarDecl, types.Object) {
-	p.base++
-	realName := name + "_cgo" + strconv.Itoa(p.base)
+	p.basev++
+	realName := name + "_cgo" + strconv.Itoa(p.basev)
 	ret := p.vdefs.New(pos, typ, realName)
 	return ret, ret.Ref(realName)
 }
@@ -187,8 +188,12 @@ type blockCtx struct {
 	cb       *gox.CodeBuilder
 	fset     *token.FileSet
 	tyValist types.Type
+	tyI128   types.Type
+	tyU128   types.Type
 	unnameds map[ast.ID]*types.Named
 	typdecls map[string]*gox.TypeDecl
+	gblvars  map[string]*gox.VarDefs
+	extfns   map[string]none // external functions which are used
 	srcfile  string
 	src      []byte
 	curfn    *funcCtx
@@ -210,7 +215,18 @@ func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, nam
 			log.Panicf("newVar: variable %v exists already\n", name)
 		}
 	} else {
-		ret = pkg.NewVarEx(scope, pos, typ, name)
+		inGlobal := scope == pkg.Types.Scope()
+		if inGlobal {
+			if defs, ok := p.gblvars[name]; ok {
+				defs.Delete(name)
+				delete(p.gblvars, name)
+			}
+		}
+		defs := pkg.NewVarDefs(scope)
+		ret = defs.New(pos, typ, name)
+		if inGlobal {
+			p.gblvars[name] = defs
+		}
 	}
 	return
 }
@@ -438,16 +454,41 @@ func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
 	return "_cgoa_" + strconv.Itoa(p.base), suAnonymous
 }
 
+/*
 func (p *blockCtx) initCTypes() {
 	pkg := p.pkg.Types
 	scope := pkg.Scope()
 	p.tyValist = initValist(scope, pkg)
-	aliasType(scope, pkg, "char", types.Typ[types.Int8])
+	p.tyI128 = ctypes.NotImpl
+	p.tyU128 = ctypes.NotImpl
+	c := p.pkg.Import("github.com/goplus/c2go/clang")
+
+	aliasType(scope, pkg, "__int128", p.tyI128)
 	aliasType(scope, pkg, "void", ctypes.Void)
+
+	aliasCType(scope, pkg, "char", c, "Char")
+	aliasCType(scope, pkg, "float", c, "Float")
+	aliasCType(scope, pkg, "double", c, "Double")
+	aliasCType(scope, pkg, "_Bool", c, "Bool")
+
+	decl_builtin(p)
+}
+*/
+func (p *blockCtx) initCTypes() {
+	pkg := p.pkg.Types
+	scope := pkg.Scope()
+	p.tyValist = initValist(scope, pkg)
+	p.tyI128 = ctypes.NotImpl
+	p.tyU128 = ctypes.NotImpl
+
+	aliasType(scope, pkg, "__int128", p.tyI128)
+	aliasType(scope, pkg, "void", ctypes.Void)
+
+	aliasType(scope, pkg, "char", types.Typ[types.Int8])
 	aliasType(scope, pkg, "float", types.Typ[types.Float32])
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
-	aliasType(scope, pkg, "__int128", ctypes.Int128)
 	aliasType(scope, pkg, "_Bool", types.Typ[types.Bool])
+
 	decl_builtin(p)
 }
 
@@ -467,6 +508,10 @@ func initValist(scope *types.Scope, pkg *types.Package) types.Type {
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
 	o := types.NewTypeName(token.NoPos, pkg, name, typ)
 	scope.Insert(o)
+}
+
+func aliasCType(scope *types.Scope, pkg *types.Package, name string, c *gox.PkgRef, cname string) {
+	aliasType(scope, pkg, name, c.Ref(cname).Type())
 }
 
 // -----------------------------------------------------------------------------

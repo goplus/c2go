@@ -27,7 +27,10 @@ func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 }
 
 func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int) {
-	conf := &parser.Config{Pkg: ctx.pkg.Types, Scope: scope, TyAnonym: tyAnonym, TyValist: ctx.tyValist, Flags: flags}
+	conf := &parser.Config{
+		Pkg: ctx.pkg.Types, Scope: scope, Flags: flags,
+		TyAnonym: tyAnonym, TyValist: ctx.tyValist, TyInt128: ctx.tyI128, TyUint128: ctx.tyU128,
+	}
 retry:
 	t, kind, err := parser.ParseType(typ.QualType, conf)
 	if err != nil {
@@ -219,7 +222,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav in
 	return iotav + 1
 }
 
-func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
+func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	if debugCompileDecl {
 		log.Println("varDecl", decl.Name, "-", decl.Loc.PresumedLine)
 	}
@@ -240,7 +243,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node) {
 			scope.Insert(types.NewVar(token.NoPos, ctx.pkg.Types, decl.Name, typ))
 			return
 		}
-		newVarAndInit(ctx, scope, typ, decl)
+		newVarAndInit(ctx, scope, typ, decl, global)
 	}
 }
 
@@ -254,10 +257,10 @@ func avoidKeyword(name *string) {
 
 func compileVarWith(ctx *blockCtx, typ types.Type, decl *ast.Node) {
 	scope := ctx.cb.Scope()
-	newVarAndInit(ctx, scope, typ, decl)
+	newVarAndInit(ctx, scope, typ, decl, false)
 }
 
-func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.Node) {
+func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.Node, global bool) {
 	if debugCompileDecl {
 		log.Println("var", decl.Name, typ, "-", decl.Kind)
 	}
@@ -272,10 +275,12 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			return
 		}
 		if inVBlock {
-			addr := gox.Lookup(scope, decl.Name)
-			cb := ctx.cb.VarRef(addr)
-			varInit(ctx, typ, initExpr)
-			cb.Assign(1)
+			varAssign(ctx, scope, typ, decl.Name, initExpr)
+		} else if global && hasFnPtrMember(typ) {
+			pkg := ctx.pkg
+			cb := pkg.NewFunc(nil, "init", nil, nil, false).BodyStart(pkg)
+			varAssign(ctx, scope, typ, decl.Name, initExpr)
+			cb.End()
 		} else {
 			cb := varDecl.InitStart(ctx.pkg)
 			varInit(ctx, typ, initExpr)
@@ -287,6 +292,29 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	}
 }
 
+func hasFnPtrMember(typ types.Type) bool {
+retry:
+	switch t := typ.Underlying().(type) {
+	case *types.Struct:
+		for i, n := 0, t.NumFields(); i < n; i++ {
+			if isFunc(t.Field(i).Type()) {
+				return true
+			}
+		}
+	case *types.Array:
+		typ = t.Elem()
+		goto retry
+	}
+	return false
+}
+
+func varAssign(ctx *blockCtx, scope *types.Scope, typ types.Type, name string, initExpr *ast.Node) {
+	addr := gox.Lookup(scope, name)
+	cb := ctx.cb.VarRef(addr)
+	varInit(ctx, typ, initExpr)
+	cb.Assign(1)
+}
+
 func varInit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
 	if initExpr.Kind == ast.InitListExpr {
 		initLit(ctx, typ, initExpr)
@@ -296,9 +324,6 @@ func varInit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) {
 }
 
 func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) int {
-	if debugCompileDecl {
-		log.Println("initLit", typ, "-", initExpr.Kind)
-	}
 	switch t := typ.(type) {
 	case *types.Array:
 		if !initWithStringLiteral(ctx, typ, initExpr) {
@@ -382,8 +407,46 @@ func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.No
 	log.Panicln("initUnion: init with unexpect type -", t)
 }
 
+const (
+	ncKindInvalid = iota
+	ncKindPointer
+	ncKindUnsafePointer
+	ncKindSignature
+)
+
+func checkNilComparable(v *gox.Element) int {
+	switch t := v.Type.(type) {
+	case *types.Pointer:
+		return ncKindPointer
+	case *types.Basic:
+		switch t.Kind() {
+		case types.UnsafePointer:
+			return ncKindUnsafePointer
+		}
+	case *types.Signature:
+		return ncKindSignature
+	}
+	return ncKindInvalid
+}
+
+func isNilComparable(typ types.Type) bool {
+	switch t := typ.(type) {
+	case *types.Pointer, *types.Signature:
+		return true
+	case *types.Basic:
+		if t.Kind() == types.UnsafePointer {
+			return true
+		}
+	}
+	return false
+}
+
 func isIntegerOrBool(typ types.Type) bool {
 	return isKind(typ, types.IsInteger|types.IsBoolean)
+}
+
+func isUnsigned(typ types.Type) bool {
+	return isKind(typ, types.IsUnsigned)
 }
 
 func isInteger(typ types.Type) bool {
@@ -404,16 +467,6 @@ func isKind(typ types.Type, mask types.BasicInfo) bool {
 func isArrayUnknownLen(typ types.Type) bool {
 	if t, ok := typ.(*types.Array); ok {
 		return t.Len() < 0
-	}
-	return false
-}
-
-func isNilComparable(typ types.Type) bool {
-	switch t := typ.(type) {
-	case *types.Pointer, *types.Signature:
-		return true
-	case *types.Basic:
-		return t.Kind() == types.UnsafePointer
 	}
 	return false
 }

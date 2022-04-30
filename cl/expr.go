@@ -7,8 +7,6 @@ import (
 	"log"
 	"strconv"
 
-	ctypes "github.com/goplus/c2go/clang/types"
-
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
 )
@@ -153,15 +151,26 @@ func compileArraySubscriptExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 // -----------------------------------------------------------------------------
 
+func getBuiltinFn(v *ast.Node) (fn string, ok bool) {
+	if v.Kind == ast.DeclRefExpr {
+		if decl := v.ReferencedDecl; decl != nil {
+			return decl.Name, true
+		}
+	}
+	return
+}
+
 func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	switch v.CastKind {
 	case ast.LValueToRValue, ast.NoOp:
 		compileExpr(ctx, v.Inner[0])
-	case ast.FunctionToPointerDecay, ast.BuiltinFnToFnPtr:
-		compileExpr(ctx, v.Inner[0])
-		if e := ctx.cb.Get(-1); ctypes.IsFunc(e.Type) {
-			e.Type = ctypes.NewPointer(e.Type)
+	case ast.BuiltinFnToFnPtr:
+		if fn, ok := getBuiltinFn(v.Inner[0]); ok && ctx.pkg.Types.Scope().Lookup(fn) != nil {
+			ctx.extfns[fn] = none{}
 		}
+		fallthrough
+	case ast.FunctionToPointerDecay:
+		compileExpr(ctx, v.Inner[0])
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 		if cb := ctx.cb; !isEllipsis(ctx, cb) {
@@ -178,8 +187,8 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 }
 
 func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
-	toVoid := v.CastKind == ast.ToVoid
-	if toVoid { // _ = expr
+	switch v.CastKind {
+	case ast.ToVoid: // _ = expr
 		cb, _ := closureStartT(ctx, types.Typ[types.Int])
 		cb.VarRef(nil)
 		compileExpr(ctx, v.Inner[0])
@@ -188,6 +197,10 @@ func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
 	}
 	t := toType(ctx, v.Type, 0)
 	ctx.cb.Typ(t, src)
+	if v.CastKind == ast.NullToPointer {
+		ctx.cb.Val(nil).Call(1)
+		return
+	}
 	compileExpr(ctx, v.Inner[0])
 	typeCastCall(ctx, t)
 }
@@ -501,10 +514,7 @@ func compileUnaryOperator(ctx *blockCtx, v *ast.Node, flags int) {
 	}
 	if op, ok := unaryOps[v.OpCode]; ok {
 		compileExpr(ctx, v.Inner[0])
-		if op == token.NOT {
-			castToBoolExpr(ctx.cb)
-		}
-		ctx.cb.UnaryOp(op)
+		unaryOp(ctx, op, v)
 		return
 	}
 
@@ -548,6 +558,19 @@ func compileAtomicExpr(ctx *blockCtx, v *ast.Node) {
 		compileExpr(ctx, expr)
 	}
 	cb.Call(len(v.Inner))
+	if fn, ok := getCaller(cb); ok {
+		ctx.extfns[fn] = none{}
+	}
+}
+
+func getCaller(cb *gox.CodeBuilder) (string, bool) {
+	v := cb.Get(-1)
+	if e, ok := v.Val.(*goast.CallExpr); ok {
+		if fn, ok := e.Fun.(*goast.Ident); ok {
+			return fn.Name, true
+		}
+	}
+	return "", false
 }
 
 // -----------------------------------------------------------------------------

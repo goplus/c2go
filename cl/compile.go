@@ -80,6 +80,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		CanImplicitCast: implicitCast,
 	}
 	pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
+	pkg.Package.SetVarRedeclarable(true)
 	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file, confGox)
 	return
 }
@@ -126,6 +127,8 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config)
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		typdecls: make(map[string]*gox.TypeDecl),
+		gblvars:  make(map[string]*gox.VarDefs),
+		extfns:   make(map[string]none),
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
@@ -147,7 +150,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		}
 		switch decl.Kind {
 		case ast.VarDecl:
-			compileVarDecl(ctx, decl)
+			compileVarDecl(ctx, decl, global)
 		case ast.TypedefDecl:
 			compileTypedef(ctx, decl)
 		case ast.RecordDecl:
@@ -224,7 +227,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		ret := types.NewParam(token.NoPos, pkg.Types, "", t)
 		results = types.NewTuple(ret)
 	}
-	sig := gox.NewSignature(nil, types.NewTuple(params...), results, variadic)
+	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
 	if body != nil {
 		fnName, isMain := fn.Name, false
 		if fnName == "main" && (results != nil || params != nil) {
@@ -240,6 +243,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fn.Name, body))
 		compileSub(ctx, body)
+		checkNeedReturn(ctx, body)
 		ctx.curfn = nil
 		cb.End()
 		if isMain {
@@ -256,10 +260,14 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 				cb.Call(1).Call(1)
 			}
 			cb.EndStmt().End()
+		} else {
+			delete(ctx.extfns, fnName)
 		}
 	} else {
 		f := types.NewFunc(goNodePos(fn), pkg.Types, fn.Name, sig)
-		pkg.Types.Scope().Insert(f)
+		if pkg.Types.Scope().Insert(f) == nil && fn.IsUsed {
+			ctx.extfns[fn.Name] = none{}
+		}
 	}
 }
 

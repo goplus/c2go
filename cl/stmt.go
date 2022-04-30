@@ -100,6 +100,20 @@ func compileComplicatedDoStmt(ctx *blockCtx, stmt *ast.Node) {
 	}
 }
 
+func checkNeedReturn(ctx *blockCtx, body *ast.Node) {
+	n := len(body.Inner)
+	if n > 0 {
+		last := body.Inner[n-1]
+		if last.Kind == ast.ReturnStmt {
+			return
+		}
+	}
+	cb := ctx.cb
+	if ret, ok := getRetTypeEx(cb); ok {
+		cb.ZeroLit(ret).Return(1)
+	}
+}
+
 // -----------------------------------------------------------------------------
 
 func compileWhileStmt(ctx *blockCtx, stmt *ast.Node) {
@@ -244,17 +258,21 @@ func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	sw := ctx.enterSwitch()
 	defer ctx.leave(sw)
 
-	const (
-		tagName        = "_cgo_tag"
-		notMatchedName = "_cgo_nm"
-	)
-	cb := ctx.cb.DefineVarStart(token.NoPos, notMatchedName, tagName).Val(true)
 	compileExpr(ctx, switchStmt.Inner[0])
-	cb.EndInit(2)
+	tag := ctx.cb.InternalStack().Pop()
 
-	scope := cb.Scope()
-	sw.notmat = scope.Lookup(notMatchedName)
-	sw.tag = scope.Lookup(tagName)
+	const (
+		tagName        = "_tag"
+		notMatchedName = "_nm"
+	)
+	scope := ctx.cb.Scope()
+	ctx.newVar(scope, token.NoPos, tag.Type, tagName)
+	ctx.newVar(scope, token.NoPos, types.Typ[types.Bool], notMatchedName)
+
+	sw.tag = gox.Lookup(scope, tagName)
+	sw.notmat = gox.Lookup(scope, notMatchedName)
+
+	cb := ctx.cb.VarRef(sw.tag).VarRef(sw.notmat).Val(tag).Val(true).Assign(2)
 
 	body := switchStmt.Inner[1]
 	if firstStmtNotCase(body) {
@@ -394,13 +412,21 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 		n = 1
 		compileExpr(ctx, stmt.Inner[0])
 		cb := ctx.cb
-		typeCast(cb, getRetType(cb), cb.Get(-1))
+		typeCast(ctx, getRetType(cb), cb.Get(-1))
 	}
 	ctx.cb.Return(n, goNode(stmt))
 }
 
 func getRetType(cb *gox.CodeBuilder) types.Type {
 	return cb.Func().Type().(*types.Signature).Results().At(0).Type()
+}
+
+func getRetTypeEx(cb *gox.CodeBuilder) (ret types.Type, ok bool) {
+	results := cb.Func().Type().(*types.Signature).Results()
+	if results.Len() == 1 {
+		return results.At(0).Type(), true
+	}
+	return
 }
 
 // -----------------------------------------------------------------------------
