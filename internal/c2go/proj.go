@@ -88,6 +88,6 @@ func execProjFile(infile, gofile string, conf *c2goConf, flags int) {
 	pkg, err := cl.NewPackage("", conf.Target.Name, doc, &cl.Config{SrcFile: outfile})
 	check(err)
 
-	err = gox.WriteFile(gofile, pkg.Package, false)
+	err = gox.WriteFile(gofile, pkg.Package)
 	check(err)
 }

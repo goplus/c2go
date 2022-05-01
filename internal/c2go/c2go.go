@@ -146,16 +146,19 @@ func execFile(pkgname string, outfile string, flags int) {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
-	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{SrcFile: outfile})
+	needPkgInfo := (flags & FlagDepsAutoGen) != 0
+	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{
+		SrcFile: outfile, NeedPkgInfo: needPkgInfo,
+	})
 	check(err)
 
 	gofile := outfile + ".go"
-	err = gox.WriteFile(gofile, pkg.Package, false)
+	err = gox.WriteFile(gofile, pkg.Package)
 	check(err)
 
 	dir, _ := filepath.Split(gofile)
 
-	if (flags & FlagDepsAutoGen) != 0 {
+	if needPkgInfo {
 		depfile := filepath.Join(dir, "c2go_autogen.go")
 		err = pkg.WriteDepFile(depfile)
 		check(err)
