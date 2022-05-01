@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -88,7 +87,7 @@ func execDirRecursively(dir string, flags int) (last error) {
 	var cfiles int
 	for _, fi := range fis {
 		if fi.IsDir() {
-			pkgDir := path.Join(dir, fi.Name())
+			pkgDir := filepath.Join(dir, fi.Name())
 			if e := execDirRecursively(pkgDir, flags); e != nil {
 				last = e
 			}
