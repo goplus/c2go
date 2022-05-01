@@ -118,7 +118,7 @@ func testWith(t *testing.T, name string, fn string, code string, outFunc string)
 	t.Run(name, func(t *testing.T) {
 		var json []byte
 		doc, src := parse(code, &json)
-		pkg, err := NewPackage("", "main", doc, &Config{Src: src})
+		pkg, err := NewPackage("", "main", doc, &Config{Src: src, NeedPkgInfo: true})
 		check(err)
 		file := gox.ASTFile(pkg.Package)
 		ret := goast.Node(file)

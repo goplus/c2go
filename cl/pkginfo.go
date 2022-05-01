@@ -46,6 +46,9 @@ func (p Package) InitDependencies() {
 	if p.PkgInfo == nil {
 		panic("Please set conf.NeedPkgInfo = true")
 	}
+	if _, ok := p.File(depsFile); ok {
+		return
+	}
 
 	pkg := p.Package
 	old, _ := pkg.SetCurFile(depsFile, true)
