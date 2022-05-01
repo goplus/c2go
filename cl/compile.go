@@ -34,7 +34,7 @@ func SetDebug(flags int) {
 func logFile(ctx *blockCtx, node *ast.Node) {
 	if f := node.Loc.PresumedFile; f != "" {
 		if debugCompileDecl {
-			log.Println("==>", f)
+			log.Println("==>", f, "line:", node.Loc.PresumedLine)
 		}
 	}
 }
@@ -62,6 +62,9 @@ type Config struct {
 
 	// Src specifies source code of SrcFile. Will read from SrcFile if nil.
 	Src []byte
+
+	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
+	NeedPkgInfo bool
 }
 
 type Package struct {
@@ -119,7 +122,7 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config) (*PkgInfo, error) {
+func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config) (pi *PkgInfo, err error) {
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
@@ -134,7 +137,10 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config)
 	}
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
-	return ctx.genPkgInfo(confGox), nil
+	if conf.NeedPkgInfo {
+		pi = ctx.genPkgInfo(confGox)
+	}
+	return
 }
 
 func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {

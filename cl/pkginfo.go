@@ -15,7 +15,7 @@ type PkgInfo struct {
 	UndefinedStructs []string
 	UsedFuncs        []string
 
-	confGox *gox.Config
+	typdecls map[string]*gox.TypeDecl
 }
 
 // -----------------------------------------------------------------------------
@@ -33,23 +33,31 @@ func (p *blockCtx) genPkgInfo(confGox *gox.Config) *PkgInfo {
 		extfns = append(extfns, name)
 	}
 	sort.Strings(extfns)
-	return &PkgInfo{UndefinedStructs: uds, UsedFuncs: extfns, confGox: confGox}
+	return &PkgInfo{UndefinedStructs: uds, UsedFuncs: extfns, typdecls: p.typdecls}
 }
 
 // -----------------------------------------------------------------------------
 
-func (p Package) Dependencies() *gox.Package {
-	pkg := gox.NewPackage("", p.Types.Name(), p.confGox)
-	scope := p.Types.Scope()
-	me, old := *pkg.Types, *p.Types
-	pkg.Types = p.Types
-	*p.Types = me
-	defer func() {
-		*p.Types = old
-	}()
+const (
+	depsFile = "deps"
+)
+
+func (p Package) InitDependencies() {
+	if p.PkgInfo == nil {
+		panic("Please set conf.NeedPkgInfo = true")
+	}
+	if _, ok := p.File(depsFile); ok {
+		return
+	}
+
+	pkg := p.Package
+	old, _ := pkg.SetCurFile(depsFile, true)
+	defer pkg.RestoreCurFile(old)
+
+	scope := pkg.Types.Scope()
 	empty := types.NewStruct(nil, nil)
 	for _, us := range p.UndefinedStructs {
-		pkg.NewType(us).InitType(pkg, empty)
+		p.typdecls[us].InitType(pkg, empty)
 	}
 	vPanic := types.Universe.Lookup("panic")
 	for _, uf := range p.UsedFuncs {
@@ -59,17 +67,16 @@ func (p Package) Dependencies() *gox.Package {
 			Val(vPanic).Val("notimpl").Call(1).EndStmt().
 			End()
 	}
-	return pkg
 }
 
 func (p Package) WriteDepTo(dst io.Writer) error {
-	pkg := p.Dependencies()
-	return gox.WriteTo(dst, pkg, false)
+	p.InitDependencies()
+	return gox.WriteTo(dst, p.Package, depsFile)
 }
 
 func (p Package) WriteDepFile(file string) error {
-	pkg := p.Dependencies()
-	return gox.WriteFile(file, pkg, false)
+	p.InitDependencies()
+	return gox.WriteFile(file, p.Package, depsFile)
 }
 
 // -----------------------------------------------------------------------------

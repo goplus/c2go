@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -35,6 +34,13 @@ func isDir(name string) bool {
 	return false
 }
 
+func isFile(name string) bool {
+	if fi, err := os.Lstat(name); err == nil {
+		return !fi.IsDir()
+	}
+	return false
+}
+
 func Run(pkgname, infile string, flags int) {
 	outfile := infile
 	switch filepath.Ext(infile) {
@@ -49,6 +55,11 @@ func Run(pkgname, infile string, flags int) {
 			err := execDirRecursively(infile, flags)
 			check(err)
 		} else if isDir(infile) {
+			projfile := filepath.Join(infile, "c2go.cfg")
+			if isFile(projfile) {
+				execProj(projfile, flags)
+				return
+			}
 			n, err := execDir(pkgname, infile, flags)
 			check(err)
 			switch n {
@@ -76,7 +87,7 @@ func execDirRecursively(dir string, flags int) (last error) {
 	var cfiles int
 	for _, fi := range fis {
 		if fi.IsDir() {
-			pkgDir := path.Join(dir, fi.Name())
+			pkgDir := filepath.Join(dir, fi.Name())
 			if e := execDirRecursively(pkgDir, flags); e != nil {
 				last = e
 			}
@@ -135,16 +146,19 @@ func execFile(pkgname string, outfile string, flags int) {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
-	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{SrcFile: outfile})
+	needPkgInfo := (flags & FlagDepsAutoGen) != 0
+	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{
+		SrcFile: outfile, NeedPkgInfo: needPkgInfo,
+	})
 	check(err)
 
 	gofile := outfile + ".go"
-	err = gox.WriteFile(gofile, pkg.Package, false)
+	err = gox.WriteFile(gofile, pkg.Package)
 	check(err)
 
 	dir, _ := filepath.Split(gofile)
 
-	if (flags & FlagDepsAutoGen) != 0 {
+	if needPkgInfo {
 		depfile := filepath.Join(dir, "c2go_autogen.go")
 		err = pkg.WriteDepFile(depfile)
 		check(err)
