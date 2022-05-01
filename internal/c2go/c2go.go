@@ -35,6 +35,13 @@ func isDir(name string) bool {
 	return false
 }
 
+func isFile(name string) bool {
+	if fi, err := os.Lstat(name); err == nil {
+		return !fi.IsDir()
+	}
+	return false
+}
+
 func Run(pkgname, infile string, flags int) {
 	outfile := infile
 	switch filepath.Ext(infile) {
@@ -49,6 +56,11 @@ func Run(pkgname, infile string, flags int) {
 			err := execDirRecursively(infile, flags)
 			check(err)
 		} else if isDir(infile) {
+			projfile := filepath.Join(infile, "c2go.cfg")
+			if isFile(projfile) {
+				execProj(projfile, flags)
+				return
+			}
 			n, err := execDir(pkgname, infile, flags)
 			check(err)
 			switch n {
