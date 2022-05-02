@@ -31,14 +31,6 @@ func SetDebug(flags int) {
 	debugMarkComplicated = (flags & DbgFlagMarkComplicated) != 0
 }
 
-func logFile(ctx *blockCtx, node *ast.Node) {
-	if f := node.Loc.PresumedFile; f != "" {
-		if debugCompileDecl {
-			log.Println("==>", f, "line:", node.Loc.PresumedLine)
-		}
-	}
-}
-
 func goNode(node *ast.Node) goast.Node {
 	return nil // TODO:
 }
@@ -63,6 +55,9 @@ type Config struct {
 	// Src specifies source code of SrcFile. Will read from SrcFile if nil.
 	Src []byte
 
+	// MultiCFiles specifies if there are multiple C source files to process or not.
+	MultiCFiles bool
+
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
 }
@@ -71,6 +66,10 @@ type Package struct {
 	*gox.Package
 	*PkgInfo
 }
+
+const (
+	headerGoFile = "c2go_header.go"
+)
 
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
 	confGox := &gox.Config{
@@ -81,6 +80,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		NodeInterpreter: nil,
 		NewBuiltin:      nil,
 		CanImplicitCast: implicitCast,
+		DefaultGoFile:   headerGoFile,
 	}
 	pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
 	pkg.Package.SetVarRedeclarable(true)
@@ -135,6 +135,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config)
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
+	ctx.initMultiFileCtl(conf.MultiCFiles)
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
@@ -149,8 +150,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 	for i := 0; i < n; i++ {
 		decl := node.Inner[i]
 		if global {
-			logFile(ctx, decl)
-			if decl.IsImplicit {
+			if shouldSkipFile(ctx, decl) || decl.IsImplicit {
 				continue
 			}
 		}

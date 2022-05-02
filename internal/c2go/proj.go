@@ -65,13 +65,12 @@ func execProjDir(dir string, conf *c2goConf, flags int) {
 		}
 		if strings.HasSuffix(fi.Name(), ".c") {
 			pkgFile := filepath.Join(dir, fname)
-			targetFile := filepath.Join(conf.Target.Dir, fname+".i.go")
-			execProjFile(pkgFile, targetFile, conf, flags)
+			execProjFile(pkgFile, conf, flags)
 		}
 	}
 }
 
-func execProjFile(infile, gofile string, conf *c2goConf, flags int) {
+func execProjFile(infile string, conf *c2goConf, flags int) {
 	fmt.Printf("==> Compiling %s ...\n", infile)
 
 	outfile := infile + ".i"
@@ -85,9 +84,14 @@ func execProjFile(infile, gofile string, conf *c2goConf, flags int) {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
-	pkg, err := cl.NewPackage("", conf.Target.Name, doc, &cl.Config{SrcFile: outfile})
+	pkg, err := cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
+		SrcFile:     outfile,
+		MultiCFiles: true,
+	})
 	check(err)
 
-	err = gox.WriteFile(gofile, pkg.Package)
-	check(err)
+	pkg.ForEachFile(func(fname string, file *gox.File) {
+		err = gox.WriteFile(filepath.Join(conf.Target.Dir, fname), pkg.Package, fname)
+		check(err)
+	})
 }

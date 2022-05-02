@@ -199,6 +199,7 @@ type blockCtx struct {
 	curfn    *funcCtx
 	curflow  flowCtx
 	base     int // anonymous struct/union
+	multiFileCtl
 }
 
 func (p *blockCtx) lookupParent(name string) types.Object {
