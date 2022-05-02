@@ -18,7 +18,6 @@ go.work*
 *.json
 *.i.go
 *.c.go
-c2go_header.go
 
 # Dependency directories (remove the comment below to include it)
 # vendor/

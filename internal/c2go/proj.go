@@ -51,12 +51,13 @@ func execProj(projfile string, flags int) {
 
 	base, _ := filepath.Split(projfile)
 	for _, dir := range conf.Source.Dir {
-		execProjDir(filepath.Join(base, dir), &conf, flags)
+		execProjDir(resolvePath(base, dir), &conf, flags)
 	}
 
 	if pkg := conf.Reused.Pkg(); pkg != nil {
 		pkg.ForEachFile(func(fname string, file *gox.File) {
-			err = gox.WriteFile(filepath.Join(conf.Target.Dir, fname), pkg, fname)
+			dir := resolvePath(base, conf.Target.Dir)
+			err = gox.WriteFile(filepath.Join(dir, fname), pkg, fname)
 			check(err)
 		})
 		cmd := exec.Command("go", "build", ".")
@@ -108,4 +109,11 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		Reused:  &conf.Reused,
 	})
 	check(err)
+}
+
+func resolvePath(base string, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(base, path)
 }

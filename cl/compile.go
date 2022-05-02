@@ -82,7 +82,7 @@ type Package struct {
 }
 
 const (
-	headerGoFile = "c2go_header.go"
+	headerGoFile = "c2go_header.i.go"
 )
 
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
