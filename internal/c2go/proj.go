@@ -3,6 +3,7 @@ package c2go
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -47,9 +48,24 @@ func execProj(projfile string, flags int) {
 	if len(conf.Source.Dir) == 0 {
 		conf.Source.Dir = []string{"."}
 	}
+
 	base, _ := filepath.Split(projfile)
 	for _, dir := range conf.Source.Dir {
 		execProjDir(filepath.Join(base, dir), &conf, flags)
+	}
+
+	if pkg := conf.Reused.Pkg(); pkg != nil {
+		pkg.ForEachFile(func(fname string, file *gox.File) {
+			err = gox.WriteFile(filepath.Join(conf.Target.Dir, fname), pkg, fname)
+			check(err)
+		})
+		cmd := exec.Command("go", "build", ".")
+		cmd.Dir = base
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		check(cmd.Run())
+	} else {
+		fatalf("empty project: no *.c files in this directory.\n")
 	}
 }
 
@@ -87,14 +103,9 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	doc, _, err := parser.ParseFile(outfile, 0)
 	check(err)
 
-	pkg, err := cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
+	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
 		SrcFile: outfile,
 		Reused:  &conf.Reused,
 	})
 	check(err)
-
-	pkg.ForEachFile(func(fname string, file *gox.File) {
-		err = gox.WriteFile(filepath.Join(conf.Target.Dir, fname), pkg.Package, fname)
-		check(err)
-	})
 }

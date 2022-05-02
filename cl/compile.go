@@ -47,6 +47,11 @@ type Reused struct {
 	base   int
 }
 
+// Pkg returns the shared package instance.
+func (p *Reused) Pkg() *gox.Package {
+	return p.pkg
+}
+
 type Config struct {
 	// Fset provides source position information for syntax trees and types.
 	// If Fset is nil, Load will use a new fileset, but preserve Fset's value.
@@ -60,6 +65,9 @@ type Config struct {
 
 	// Src specifies source code of SrcFile. Will read from SrcFile if nil.
 	Src []byte
+
+	// Public specifies all public C names and their corresponding Go names.
+	Public map[string]string
 
 	// Reused specifies to reuse the Package instance between processing multiple C source files.
 	*Reused
