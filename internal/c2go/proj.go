@@ -71,7 +71,7 @@ func execProj(projfile string, flags int) {
 	if conf.Target.Name == "" {
 		conf.Target.Name = "main"
 	}
-	if len(conf.Source.Dirs) == 0 {
+	if len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0 {
 		conf.Source.Dirs = []string{"."}
 	}
 
