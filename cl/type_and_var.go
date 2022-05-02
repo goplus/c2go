@@ -139,10 +139,26 @@ func checkAnonymous(ctx *blockCtx, scope *types.Scope, typ types.Type, v *ast.No
 
 // -----------------------------------------------------------------------------
 
-func compileTypedef(ctx *blockCtx, decl *ast.Node) {
+func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 	name, qualType := decl.Name, decl.Type.QualType
 	if debugCompileDecl {
-		log.Println("typedef", name, "-", qualType, decl.Loc.PresumedLine)
+		log.Println("typedef", name, "-", qualType)
+	}
+	if global && ctx.checkExists(name) {
+		if len(decl.Inner) > 0 { // check to delete unnamed types
+			item := decl.Inner[0]
+			if item.Kind == "ElaboratedType" {
+				if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" && owned.Kind != ast.EnumDecl {
+					id := owned.ID
+					if typ, ok := ctx.unnameds[id]; ok {
+						if t, decled := ctx.typdecls[typ.Obj().Name()]; decled {
+							t.Delete()
+						}
+					}
+				}
+			}
+		}
+		return
 	}
 	if len(decl.Inner) > 0 {
 		item := decl.Inner[0]
