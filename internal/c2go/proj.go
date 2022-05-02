@@ -21,7 +21,8 @@ type c2goTarget struct {
 }
 
 type c2goSource struct {
-	Dir []string `json:"dir"`
+	Dirs  []string `json:"dirs"`
+	Files []string `json:"files"`
 }
 
 type c2goConf struct {
@@ -70,8 +71,8 @@ func execProj(projfile string, flags int) {
 	if conf.Target.Name == "" {
 		conf.Target.Name = "main"
 	}
-	if len(conf.Source.Dir) == 0 {
-		conf.Source.Dir = []string{"."}
+	if len(conf.Source.Dirs) == 0 {
+		conf.Source.Dirs = []string{"."}
 	}
 
 	base, _ := filepath.Split(projfile)
@@ -79,8 +80,11 @@ func execProj(projfile string, flags int) {
 	pubfile := base + "c2go.pub"
 	conf.public = loadPubFile(pubfile)
 
-	for _, dir := range conf.Source.Dir {
+	for _, dir := range conf.Source.Dirs {
 		execProjDir(resolvePath(base, dir), &conf, flags)
+	}
+	for _, file := range conf.Source.Files {
+		execProjFile(resolvePath(base, file), &conf, flags)
 	}
 
 	if pkg := conf.Reused.Pkg(); pkg != nil {
