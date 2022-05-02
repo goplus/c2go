@@ -28,7 +28,7 @@ func main() {
 	var file = flag.Arg(0)
 	var err error
 	if *dump {
-		doc, _, e := parser.DumpAST(file)
+		doc, _, e := parser.DumpAST(file, nil)
 		if e == nil {
 			os.Stdout.Write(doc)
 			return

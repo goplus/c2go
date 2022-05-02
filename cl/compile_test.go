@@ -50,7 +50,7 @@ func parse(code string, json *[]byte) (doc *ast.Node, src []byte) {
 	src, err = os.ReadFile(outfile)
 	check(err)
 
-	doc, _, err = parser.ParseFileEx(outfile, 0, json)
+	doc, _, err = parser.ParseFileEx(outfile, 0, &parser.Config{Json: json})
 	check(err)
 	os.Remove(outfile)
 	return
