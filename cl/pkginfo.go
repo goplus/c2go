@@ -20,7 +20,7 @@ type PkgInfo struct {
 
 // -----------------------------------------------------------------------------
 
-func (p *blockCtx) genPkgInfo(confGox *gox.Config) *PkgInfo {
+func (p *blockCtx) genPkgInfo() *PkgInfo {
 	var uds []string
 	for name, tdecl := range p.typdecls {
 		if !tdecl.Inited() {

@@ -139,10 +139,13 @@ func checkAnonymous(ctx *blockCtx, scope *types.Scope, typ types.Type, v *ast.No
 
 // -----------------------------------------------------------------------------
 
-func compileTypedef(ctx *blockCtx, decl *ast.Node) {
+func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 	name, qualType := decl.Name, decl.Type.QualType
 	if debugCompileDecl {
-		log.Println("typedef", name, "-", qualType, decl.Loc.PresumedLine)
+		log.Println("typedef", name, "-", qualType)
+	}
+	if global && ctx.checkExists(name) {
+		return
 	}
 	if len(decl.Inner) > 0 {
 		item := decl.Inner[0]

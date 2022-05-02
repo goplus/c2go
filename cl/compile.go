@@ -41,6 +41,12 @@ func goNodePos(node *ast.Node) token.Pos {
 
 // -----------------------------------------------------------------------------
 
+type Reused struct {
+	pkg    *gox.Package
+	exists map[string]none
+	base   int
+}
+
 type Config struct {
 	// Fset provides source position information for syntax trees and types.
 	// If Fset is nil, Load will use a new fileset, but preserve Fset's value.
@@ -55,8 +61,8 @@ type Config struct {
 	// Src specifies source code of SrcFile. Will read from SrcFile if nil.
 	Src []byte
 
-	// MultiCFiles specifies if there are multiple C source files to process or not.
-	MultiCFiles bool
+	// Reused specifies to reuse the Package instance between processing multiple C source files.
+	*Reused
 
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
@@ -72,19 +78,26 @@ const (
 )
 
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
-	confGox := &gox.Config{
-		Fset:            conf.Fset,
-		Importer:        conf.Importer,
-		LoadNamed:       nil,
-		HandleErr:       nil,
-		NodeInterpreter: nil,
-		NewBuiltin:      nil,
-		CanImplicitCast: implicitCast,
-		DefaultGoFile:   headerGoFile,
+	if reused := conf.Reused; reused != nil && reused.pkg != nil {
+		pkg.Package = reused.pkg
+	} else {
+		confGox := &gox.Config{
+			Fset:            conf.Fset,
+			Importer:        conf.Importer,
+			LoadNamed:       nil,
+			HandleErr:       nil,
+			NodeInterpreter: nil,
+			NewBuiltin:      nil,
+			CanImplicitCast: implicitCast,
+			DefaultGoFile:   headerGoFile,
+		}
+		pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
+		if reused != nil {
+			reused.pkg = pkg.Package
+		}
 	}
-	pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
 	pkg.Package.SetVarRedeclarable(true)
-	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file, confGox)
+	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file)
 	return
 }
 
@@ -122,7 +135,7 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config) (pi *PkgInfo, err error) {
+func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err error) {
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
@@ -135,11 +148,11 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, confGox *gox.Config)
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
-	ctx.initMultiFileCtl(conf.MultiCFiles)
+	ctx.initMultiFileCtl(conf)
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
-		pi = ctx.genPkgInfo(confGox)
+		pi = ctx.genPkgInfo()
 	}
 	return
 }
@@ -150,7 +163,8 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 	for i := 0; i < n; i++ {
 		decl := node.Inner[i]
 		if global {
-			if shouldSkipFile(ctx, decl) || decl.IsImplicit {
+			ctx.logFile(decl)
+			if decl.IsImplicit {
 				continue
 			}
 		}
@@ -158,13 +172,16 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		case ast.VarDecl:
 			compileVarDecl(ctx, decl, global)
 		case ast.TypedefDecl:
-			compileTypedef(ctx, decl)
+			compileTypedef(ctx, decl, global)
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
+			if global && suKind != suAnonymous && ctx.checkExists(name) {
+				continue
+			}
 			typ := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
 				break
-			} else {
+			} else { // TODO: remove unused struct if checkExists = true
 				ctx.unnameds[decl.ID] = typ
 			}
 			for i+1 < n {

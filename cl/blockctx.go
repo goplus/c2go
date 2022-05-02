@@ -198,7 +198,6 @@ type blockCtx struct {
 	src      []byte
 	curfn    *funcCtx
 	curflow  flowCtx
-	base     int // anonymous struct/union
 	multiFileCtl
 }
 
@@ -440,19 +439,6 @@ type bfType struct {
 
 func (p *bfType) String() string {
 	return fmt.Sprintf("bfType{t: %v, bf: %v, first: %v}", p.Type, p.BitField, p.first)
-}
-
-const (
-	suNormal = iota
-	suAnonymous
-)
-
-func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
-	if name := v.Name; name != "" {
-		return ctypes.MangledName(tag, name), suNormal
-	}
-	p.base++
-	return "_cgoa_" + strconv.Itoa(p.base), suAnonymous
 }
 
 /*

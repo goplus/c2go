@@ -27,6 +27,8 @@ type c2goConf struct {
 	Target  c2goTarget `json:"target"`
 	Source  c2goSource `json:"source"`
 	Include []string   `json:"include"`
+
+	cl.Reused `json:"-"`
 }
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -85,8 +87,8 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	check(err)
 
 	pkg, err := cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
-		SrcFile:     outfile,
-		MultiCFiles: true,
+		SrcFile: outfile,
+		Reused:  &conf.Reused,
 	})
 	check(err)
 
