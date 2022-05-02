@@ -153,6 +153,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 		typdecls: make(map[string]*gox.TypeDecl),
 		gblvars:  make(map[string]*gox.VarDefs),
 		extfns:   make(map[string]none),
+		public:   conf.Public,
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
@@ -263,6 +264,14 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		fnName, isMain := fn.Name, false
 		if fnName == "main" && (results != nil || params != nil) {
 			fnName, isMain = "_cgo_main", true
+		} else {
+			if goName, ok := ctx.public[fnName]; ok {
+				if goName != "" {
+					fnName = goName
+				} else {
+					fnName = title(fnName)
+				}
+			}
 		}
 		f, err := pkg.NewFuncWith(goNodePos(fn), fnName, sig, nil)
 		if err != nil {
@@ -300,6 +309,14 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ctx.extfns[fn.Name] = none{}
 		}
 	}
+}
+
+func title(name string) string {
+	if r := name[0]; 'a' <= r && r <= 'z' {
+		r -= 'a' - 'A'
+		return string(r) + name[1:]
+	}
+	return name
 }
 
 const (
