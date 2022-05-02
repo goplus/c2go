@@ -26,7 +26,11 @@ func (p *ParseError) Error() string {
 
 // -----------------------------------------------------------------------------
 
-func DumpAST(filename string) (result []byte, warning []byte, err error) {
+type Config struct {
+	Json *[]byte
+}
+
+func DumpAST(filename string, conf *Config) (result []byte, warning []byte, err error) {
 	stdout := NewPagedWriter()
 	stderr := new(bytes.Buffer)
 	cmd := exec.Command(
@@ -45,13 +49,13 @@ func DumpAST(filename string) (result []byte, warning []byte, err error) {
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func ParseFileEx(filename string, mode Mode, ret *[]byte) (file *ast.Node, warning []byte, err error) {
-	out, warning, err := DumpAST(filename)
+func ParseFileEx(filename string, mode Mode, conf *Config) (file *ast.Node, warning []byte, err error) {
+	out, warning, err := DumpAST(filename, conf)
 	if err != nil {
 		return
 	}
-	if ret != nil {
-		*ret = out
+	if conf != nil && conf.Json != nil {
+		*conf.Json = out
 	}
 	file = new(ast.Node)
 	err = json.Unmarshal(out, file)
