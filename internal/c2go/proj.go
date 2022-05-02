@@ -29,6 +29,8 @@ type c2goConf struct {
 	Target  c2goTarget `json:"target"`
 	Source  c2goSource `json:"source"`
 	Include []string   `json:"include"`
+	Define  []string   `json:"define"`
+	Flags   []string   `json:"flags"`
 
 	public    map[string]string `json:"-"`
 	cl.Reused `json:"-"`
@@ -127,9 +129,11 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	fmt.Printf("==> Compiling %s ...\n", infile)
 
 	outfile := infile + ".i"
-	if !isFile(outfile) {
+	if (flags&FlagForcePreprocess) != 0 || !isFile(outfile) {
 		err := preprocessor.Do(infile, outfile, &preprocessor.Config{
 			IncludeDirs: conf.Include,
+			Defines:     conf.Define,
+			Flags:       conf.Flags,
 		})
 		check(err)
 	}

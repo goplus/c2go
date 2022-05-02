@@ -23,6 +23,7 @@ const (
 	FlagRunTest
 	FlagFailFast
 	FlagDepsAutoGen
+	FlagForcePreprocess
 
 	flagChdir
 )
