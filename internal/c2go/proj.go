@@ -29,10 +29,35 @@ type c2goConf struct {
 	Source  c2goSource `json:"source"`
 	Include []string   `json:"include"`
 
+	public    map[string]string `json:"-"`
 	cl.Reused `json:"-"`
 }
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+func loadPubFile(pubfile string) map[string]string {
+	b, err := os.ReadFile(pubfile)
+	check(err)
+
+	text := string(b)
+	lines := strings.Split(text, "\n")
+	ret := make(map[string]string, len(lines))
+	for i, line := range lines {
+		flds := strings.Fields(line)
+		goName := ""
+		switch len(flds) {
+		case 1:
+		case 2:
+			goName = flds[1]
+		case 0:
+			continue
+		default:
+			fatalf("line %d: too many fields - %s\n", i+1, line)
+		}
+		ret[flds[0]] = goName
+	}
+	return ret
+}
 
 func execProj(projfile string, flags int) {
 	b, err := os.ReadFile(projfile)
@@ -50,6 +75,10 @@ func execProj(projfile string, flags int) {
 	}
 
 	base, _ := filepath.Split(projfile)
+
+	pubfile := base + "c2go.pub"
+	conf.public = loadPubFile(pubfile)
+
 	for _, dir := range conf.Source.Dir {
 		execProjDir(resolvePath(base, dir), &conf, flags)
 	}
@@ -106,6 +135,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
 		SrcFile: outfile,
+		Public:  conf.public,
 		Reused:  &conf.Reused,
 	})
 	check(err)
