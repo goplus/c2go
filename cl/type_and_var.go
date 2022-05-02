@@ -145,6 +145,19 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 		log.Println("typedef", name, "-", qualType)
 	}
 	if global && ctx.checkExists(name) {
+		if len(decl.Inner) > 0 { // check to delete unnamed types
+			item := decl.Inner[0]
+			if item.Kind == "ElaboratedType" {
+				if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" && owned.Kind != ast.EnumDecl {
+					id := owned.ID
+					if typ, ok := ctx.unnameds[id]; ok {
+						if t, decled := ctx.typdecls[typ.Obj().Name()]; decled {
+							t.Delete()
+						}
+					}
+				}
+			}
+		}
 		return
 	}
 	if len(decl.Inner) > 0 {
