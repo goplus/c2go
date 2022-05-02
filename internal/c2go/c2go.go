@@ -82,6 +82,14 @@ func execDirRecursively(dir string, flags int) (last error) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
+
+	projfile := filepath.Join(dir, "c2go.cfg")
+	if isFile(projfile) {
+		fmt.Printf("==> Compiling %s ...\n", dir)
+		execProj(projfile, flags)
+		return
+	}
+
 	fis, last := os.ReadDir(dir)
 	check(last)
 	var cfiles int

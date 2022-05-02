@@ -47,8 +47,9 @@ func execProj(projfile string, flags int) {
 	if len(conf.Source.Dir) == 0 {
 		conf.Source.Dir = []string{"."}
 	}
+	base, _ := filepath.Split(projfile)
 	for _, dir := range conf.Source.Dir {
-		execProjDir(dir, &conf, flags)
+		execProjDir(filepath.Join(base, dir), &conf, flags)
 	}
 }
 
