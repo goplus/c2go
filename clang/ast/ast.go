@@ -76,6 +76,8 @@ const (
 	WarnUnusedResultAttr     Kind = "WarnUnusedResultAttr"
 	AllocSizeAttr            Kind = "AllocSizeAttr"
 	AlignedAttr              Kind = "AlignedAttr"
+	VisibilityAttr           Kind = "VisibilityAttr"
+	C11NoReturnAttr          Kind = "C11NoReturnAttr"
 	FunctionProtoType        Kind = "FunctionProtoType"
 	FunctionDecl             Kind = "FunctionDecl"
 	ParmVarDecl              Kind = "ParmVarDecl"
