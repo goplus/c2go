@@ -3,6 +3,7 @@ package cl
 import (
 	"bytes"
 	"go/format"
+	"go/token"
 	"go/types"
 	"log"
 	"os"
@@ -146,6 +147,25 @@ void test(int var) {
 }
 `, `func test(var_ int32) {
 }`)
+}
+
+// -----------------------------------------------------------------------------
+
+func TestNodeInterp(t *testing.T) {
+	fset := token.NewFileSet()
+	ctx := &blockCtx{
+		fsetSrc: fset,
+		src: []byte(`
+void test(int var) {
+}
+`)}
+	ctx.file = fset.AddFile(ctx.srcfile, fileBase, 1<<30)
+	interp := &nodeInterp{ctx: ctx}
+	rg := &ast.Range{}
+	src, pos := interp.LoadExpr(&node{Range: rg})
+	if src != "\n" || pos.String() != "1:1" {
+		t.Fatal("interp.LoadExpr:", src, pos)
+	}
 }
 
 // -----------------------------------------------------------------------------
