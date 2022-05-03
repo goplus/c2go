@@ -469,6 +469,10 @@ func isInteger(typ types.Type) bool {
 	return isKind(typ, types.IsInteger)
 }
 
+func isUntyped(typ types.Type) bool {
+	return isKind(typ, types.IsUntyped)
+}
+
 func isBool(typ types.Type) bool {
 	return isKind(typ, types.IsBoolean)
 }

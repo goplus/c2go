@@ -388,6 +388,14 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			cb.BinaryOp(op, src)
 			return
 		}
+	} else if !isShiftOpertor(op) {
+		isUnt1 := isUntyped(arg1.Type)
+		isUnt2 := isUntyped(arg2.Type)
+		if isUnt1 && !isUnt2 {
+			adjustIntConst(ctx, arg1, arg2.Type)
+		} else if isUnt2 && !isUnt1 {
+			adjustIntConst(ctx, arg2, arg1.Type)
+		}
 	}
 	t := toType(ctx, v.Type, 0)
 	if isInteger(t) { // bool => int
