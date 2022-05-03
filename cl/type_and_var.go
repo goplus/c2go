@@ -363,7 +363,6 @@ func initLit(ctx *blockCtx, typ types.Type, initExpr *ast.Node) int {
 
 func arrayLit(ctx *blockCtx, t *types.Array, decl *ast.Node) {
 	var inits []*ast.Node
-	var elem = t.Elem()
 	if len(decl.ArrayFiller) > 0 {
 		idx := 0
 		if decl.ArrayFiller[idx].Kind == ast.ImplicitValueInitExpr {
@@ -373,6 +372,7 @@ func arrayLit(ctx *blockCtx, t *types.Array, decl *ast.Node) {
 	} else {
 		inits = decl.Inner
 	}
+	elem := t.Elem()
 	for _, initExpr := range inits {
 		initLit(ctx, elem, initExpr)
 	}

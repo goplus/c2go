@@ -58,9 +58,10 @@ var (
 	tyUint64         = types.Typ[types.Uint64]
 	tyInt            = ctypes.Int
 	tyInt100         = types.NewArray(tyInt, 100)
-	tyInt100_3       = types.NewArray(tyInt100, 3)
+	tyInt3           = types.NewArray(tyInt, 3)
+	tyInt3_100       = types.NewArray(tyInt3, 100)
+	tyPInt3_100      = types.NewPointer(tyInt3_100)
 	tyPInt100        = types.NewPointer(tyInt100)
-	tyPInt100_3      = types.NewPointer(tyInt100_3)
 	tyUint           = ctypes.Uint
 	tyString         = types.Typ[types.String]
 	tyCharPtr        = types.NewPointer(tyChar)
@@ -147,8 +148,9 @@ var cases = []testCase{
 	{qualType: "char []", flags: FlagIsExtern, typ: types.NewArray(tyChar, -1)},
 	{qualType: "char []", flags: FlagIsTypedef, typ: types.NewArray(tyChar, -1)},
 	{qualType: "char []", flags: FlagIsParam, typ: tyCharPtr},
+	{qualType: "int [100][3]", typ: tyInt3_100},
+	{qualType: "int (*)[100][3]", typ: tyPInt3_100},
 	{qualType: "int (*)[100]", typ: tyPInt100},
-	{qualType: "int (*)[100][3]", typ: tyPInt100_3},
 	{qualType: "int (*const [2])(void *)", typ: types.NewArray(newFn(typesVoidPtr, typesInt), 2)},
 	{qualType: "char *", typ: tyCharPtr},
 	{qualType: "void", typ: ctypes.Void},

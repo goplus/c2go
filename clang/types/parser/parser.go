@@ -241,9 +241,6 @@ var intTypes = [...]types.Type{
 }
 
 func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
-	if t == nil {
-		return nil, p.newError("array to nil")
-	}
 	var n int64
 	var err error
 	p.next()
@@ -264,9 +261,7 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 	default:
 		return nil, p.newError("array length not an integer")
 	}
-	if (inFlags & FlagIsParam) != 0 {
-		t = ctypes.NewPointer(t)
-	} else if n >= 0 || (inFlags&(FlagIsExtern|FlagIsTypedef)) != 0 {
+	if n >= 0 || (inFlags&(FlagIsExtern|FlagIsTypedef|FlagIsParam)) != 0 {
 		t = types.NewArray(t, n)
 	} else {
 		return nil, p.newError("define array without length")
@@ -275,15 +270,18 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 }
 
 func (p *parser) parseArrays(t types.Type, inFlags int) (ret types.Type, err error) {
+	if t == nil {
+		return nil, p.newError("array to nil")
+	}
+	var tyArr types.Type
 	for {
-		if ret, err = p.parseArray(t, inFlags); err != nil {
+		if tyArr, err = p.parseArray(tyArr, inFlags); err != nil {
 			return
 		}
 		if p.peek() != token.LBRACK {
-			return
+			return newArraysEx(t, tyArr, inFlags), nil
 		}
 		p.next()
-		t = ret
 	}
 }
 
@@ -492,12 +490,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				t = p.newFunc(args, results)
 			}
 			t = newPointers(t, nstar)
-		nextArr:
-			if arr, ok := tyArr.(*types.Array); ok {
-				t = types.NewArray(t, arr.Len())
-				tyArr = arr.Elem()
-				goto nextArr
-			}
+			t = newArrays(t, tyArr)
 		case token.RPAREN:
 			if t == nil {
 				t = ctypes.Void
@@ -535,6 +528,26 @@ func (p *parser) newFunc(args []*types.Var, results *types.Tuple) types.Type {
 
 func isPtr(tok token.Token) bool {
 	return tok == token.MUL || tok == token.XOR // * or ^
+}
+
+func newArrays(t types.Type, tyArr types.Type) types.Type {
+retry:
+	if arr, ok := tyArr.(*types.Array); ok {
+		t = types.NewArray(t, arr.Len())
+		tyArr = arr.Elem()
+		goto retry
+	}
+	return t
+}
+
+func newArraysEx(t types.Type, tyArr types.Type, inFlags int) types.Type {
+	t = newArrays(t, tyArr)
+	if arr, ok := t.(*types.Array); ok {
+		if (inFlags & FlagIsParam) != 0 {
+			t = ctypes.NewPointer(arr.Elem())
+		}
+	}
+	return t
 }
 
 func newPointers(t types.Type, nstar int) types.Type {

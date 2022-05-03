@@ -94,10 +94,10 @@ Run/Test multiple examples:
 ### Initialization
 
 - [x] Basic: `T a = expr`
-- [x] Array: `T[] a = { expr1, expr2, ... }`, `T[N] a = { expr1, expr2, ... }`
+- [x] Array: `T a[] = { expr1, expr2, ... }`, `T a[N] = { expr1, expr2, ... }`
 - [x] Struct: `struct T a = { expr1, expr2, ... }`, `struct T a = { .a = expr1, .b = expr2, ... }`
 - [x] Union: `union T a = { expr }, union T a = { .a = expr }`
-- [x] Array in Struct: `struct { T[N] a; ... } v = { { expr1, expr2, ... }, ... }`, `struct { T[N] a; ... } v = { { [0].a = expr1, [1].a = expr2, ... }, ... }`
+- [x] Array in Struct: `struct { T a[N]; ... } v = { { expr1, expr2, ... }, ... }`, `struct { T a[N]; ... } v = { { [0].a = expr1, [1].a = expr2, ... }, ... }`
 
 ### Control structures
 
