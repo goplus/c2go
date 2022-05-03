@@ -318,6 +318,10 @@ func isCmpOperator(op token.Token) bool {
 	return op >= token.EQL && op <= token.GEQ
 }
 
+func isShiftOpertor(op token.Token) bool {
+	return op == token.SHL || op == token.SHR
+}
+
 var (
 	binaryOps = map[ast.OpCode]token.Token{
 		"+": token.ADD,
