@@ -24,6 +24,7 @@ const (
 	FlagFailFast
 	FlagDepsAutoGen
 	FlagForcePreprocess
+	FlagDumpJson
 
 	flagChdir
 )
@@ -152,8 +153,16 @@ func execDir(pkgname string, dir string, flags int) (n int, err error) {
 }
 
 func execFile(pkgname string, outfile string, flags int) {
-	doc, _, err := parser.ParseFile(outfile, 0)
+	var json []byte
+	doc, _, err := parser.ParseFileEx(outfile, 0, &parser.Config{
+		Json:   &json,
+		Stderr: true,
+	})
 	check(err)
+
+	if (flags & FlagDumpJson) != 0 {
+		os.WriteFile(strings.TrimSuffix(outfile, ".i")+".json", json, 0666)
+	}
 
 	needPkgInfo := (flags & FlagDepsAutoGen) != 0
 	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{
