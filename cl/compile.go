@@ -121,7 +121,7 @@ type Package struct {
 }
 
 const (
-	fileBase     = 1 << 24
+	fileBase     = 1
 	headerGoFile = "c2go_header.i.go"
 )
 
