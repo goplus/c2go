@@ -167,6 +167,7 @@ void test(int var) {
 	if src != "\n" || pos.String() != "1:1" {
 		t.Fatal("interp.LoadExpr:", src, pos)
 	}
+	interp.Caller(v)
 	if ret := interp.Position(v.Pos()); ret != pos {
 		t.Fatal("interp.Position:", ret, "expected:", pos)
 	}
