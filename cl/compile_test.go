@@ -162,9 +162,13 @@ void test(int var) {
 	ctx.file = fset.AddFile(ctx.srcfile, fileBase, 1<<30)
 	interp := &nodeInterp{ctx: ctx}
 	rg := &ast.Range{}
-	src, pos := interp.LoadExpr(&node{Range: rg})
+	v := &node{Range: rg}
+	src, pos := interp.LoadExpr(v)
 	if src != "\n" || pos.String() != "1:1" {
 		t.Fatal("interp.LoadExpr:", src, pos)
+	}
+	if ret := interp.Position(v.Pos()); ret != pos {
+		t.Fatal("interp.Position:", ret, "expected:", pos)
 	}
 }
 
