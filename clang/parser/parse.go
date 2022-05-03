@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/goplus/c2go/clang/ast"
 	jsoniter "github.com/json-iterator/go"
@@ -37,6 +38,7 @@ func DumpAST(filename string, conf *Config) (result []byte, warning []byte, err 
 	if conf == nil {
 		conf = new(Config)
 	}
+	skiperr := strings.HasSuffix(filename, "vfprintf.c.i")
 	stdout := NewPagedWriter()
 	stderr := new(bytes.Buffer)
 	args := []string{"-Xclang", "-ast-dump=json", "-fsyntax-only", filename}
@@ -45,14 +47,14 @@ func DumpAST(filename string, conf *Config) (result []byte, warning []byte, err 
 	}
 	cmd := exec.Command("clang", args...)
 	cmd.Stdout = stdout
-	if conf.Stderr {
+	if conf.Stderr && !skiperr {
 		cmd.Stderr = os.Stderr
 	} else {
 		cmd.Stderr = stderr
 	}
 	err = cmd.Run()
 	errmsg := stderr.Bytes()
-	if err != nil {
+	if err != nil && !skiperr {
 		return nil, nil, &ParseError{Err: err, Stderr: errmsg}
 	}
 	return stdout.Bytes(), errmsg, nil
