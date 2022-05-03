@@ -142,11 +142,17 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		check(err)
 	}
 
+	var json []byte
 	doc, _, err := parser.ParseFileEx(outfile, 0, &parser.Config{
+		Json:   &json,
 		Flags:  conf.Flags,
 		Stderr: true,
 	})
 	check(err)
+
+	if (flags & FlagDumpJson) != 0 {
+		os.WriteFile(infile+".json", json, 0666)
+	}
 
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
 		SrcFile: outfile,
