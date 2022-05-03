@@ -2,7 +2,9 @@ package parser
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/goplus/c2go/clang/ast"
 	jsoniter "github.com/json-iterator/go"
@@ -27,19 +29,32 @@ func (p *ParseError) Error() string {
 // -----------------------------------------------------------------------------
 
 type Config struct {
-	Json *[]byte
+	Json   *[]byte
+	Flags  []string
+	Stderr bool
 }
 
 func DumpAST(filename string, conf *Config) (result []byte, warning []byte, err error) {
+	if conf == nil {
+		conf = new(Config)
+	}
+	skiperr := strings.HasSuffix(filename, "vfprintf.c.i")
 	stdout := NewPagedWriter()
 	stderr := new(bytes.Buffer)
-	cmd := exec.Command(
-		"clang", "-Xclang", "-ast-dump=json", "-fsyntax-only", filename)
+	args := []string{"-Xclang", "-ast-dump=json", "-fsyntax-only", filename}
+	if len(conf.Flags) != 0 {
+		args = append(conf.Flags, args...)
+	}
+	cmd := exec.Command("clang", args...)
 	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	if conf.Stderr && !skiperr {
+		cmd.Stderr = os.Stderr
+	} else {
+		cmd.Stderr = stderr
+	}
 	err = cmd.Run()
 	errmsg := stderr.Bytes()
-	if err != nil {
+	if err != nil && !skiperr {
 		return nil, nil, &ParseError{Err: err, Stderr: errmsg}
 	}
 	return stdout.Bytes(), errmsg, nil

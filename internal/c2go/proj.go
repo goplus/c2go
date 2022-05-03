@@ -26,11 +26,13 @@ type c2goSource struct {
 }
 
 type c2goConf struct {
-	Target  c2goTarget `json:"target"`
-	Source  c2goSource `json:"source"`
-	Include []string   `json:"include"`
-	Define  []string   `json:"define"`
-	Flags   []string   `json:"flags"`
+	Target   c2goTarget `json:"target"`
+	Source   c2goSource `json:"source"`
+	Include  []string   `json:"include"`
+	Define   []string   `json:"define"`
+	Flags    []string   `json:"flags"`
+	PPFlag   string     `json:"pp"` // default: -E
+	Compiler string     `json:"cc"`
 
 	public    map[string]string `json:"-"`
 	cl.Reused `json:"-"`
@@ -134,11 +136,16 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 			IncludeDirs: conf.Include,
 			Defines:     conf.Define,
 			Flags:       conf.Flags,
+			PPFlag:      conf.PPFlag,
+			Compiler:    conf.Compiler,
 		})
 		check(err)
 	}
 
-	doc, _, err := parser.ParseFile(outfile, 0)
+	doc, _, err := parser.ParseFileEx(outfile, 0, &parser.Config{
+		Flags:  conf.Flags,
+		Stderr: true,
+	})
 	check(err)
 
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
