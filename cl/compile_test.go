@@ -88,7 +88,7 @@ func newTestEnv(code string) *testEnv {
 	doc, src := parse(code, &json)
 	p := gox.NewPackage("", "main", nil)
 	ctx := &blockCtx{
-		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
+		pkg: p, cb: p.CB(), fsetSrc: p.Fset, src: src,
 		unnameds: make(map[ast.ID]*types.Named),
 		typdecls: make(map[string]*gox.TypeDecl),
 	}

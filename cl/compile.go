@@ -58,12 +58,11 @@ func goNodePos(v *ast.Node) token.Pos {
 // -----------------------------------------------------------------------------
 
 type nodeInterp struct {
-	fset *token.FileSet
-	ctx  *blockCtx
+	ctx *blockCtx
 }
 
 func (p *nodeInterp) Position(start token.Pos) token.Position {
-	return p.fset.Position(start)
+	return p.ctx.fsetSrc.Position(start)
 }
 
 func (p *nodeInterp) Caller(v goast.Node) string {
@@ -74,11 +73,12 @@ func (p *nodeInterp) Caller(v goast.Node) string {
 }
 
 func (p *nodeInterp) LoadExpr(v goast.Node) (src string, pos token.Position) {
-	p.ctx.initFileLines()
+	ctx := p.ctx
+	ctx.initFileLines()
 	start := v.Pos()
-	pos = p.fset.Position(start)
+	pos = ctx.fsetSrc.Position(start)
 	n := int(v.End() - start)
-	src = string(p.ctx.src[pos.Offset : pos.Offset+n])
+	src = string(ctx.src[pos.Offset : pos.Offset+n])
 	return
 }
 
@@ -96,10 +96,6 @@ func (p *Reused) Pkg() *gox.Package {
 }
 
 type Config struct {
-	// Fset provides source position information for syntax trees and types.
-	// If Fset is nil, Load will use a new fileset, but preserve Fset's value.
-	Fset *token.FileSet
-
 	// An Importer resolves import paths to Packages.
 	Importer types.Importer
 
@@ -135,7 +131,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		pkg.Package = reused.pkg
 	} else {
 		confGox := &gox.Config{
-			Fset:            conf.Fset,
+			Fset:            nil,
 			Importer:        conf.Importer,
 			LoadNamed:       nil,
 			HandleErr:       nil,
@@ -192,8 +188,9 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, interp *nodeInterp) 
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
+	fset := token.NewFileSet()
 	ctx := &blockCtx{
-		pkg: p, cb: p.CB(), fset: p.Fset,
+		pkg: p, cb: p.CB(), fsetSrc: fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		typdecls: make(map[string]*gox.TypeDecl),
 		gblvars:  make(map[string]*gox.VarDefs),
@@ -202,8 +199,8 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, interp *nodeInterp) 
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
-	interp.fset, interp.ctx = p.Fset, ctx
-	ctx.file = p.Fset.AddFile(conf.SrcFile, fileBase, 1<<30)
+	interp.ctx = ctx
+	ctx.file = fset.AddFile(conf.SrcFile, fileBase, 1<<30)
 	ctx.initMultiFileCtl(conf)
 	ctx.initCTypes()
 	compileDeclStmt(ctx, file, true)

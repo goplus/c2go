@@ -186,7 +186,7 @@ func (p *loopCtx) labelStart(ctx *blockCtx) {
 type blockCtx struct {
 	pkg      *gox.Package
 	cb       *gox.CodeBuilder
-	fset     *token.FileSet
+	fsetSrc  *token.FileSet
 	tyValist types.Type
 	tyI128   types.Type
 	tyU128   types.Type
