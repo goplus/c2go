@@ -324,18 +324,17 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	src := goNode(v)
 	cb := ctx.cb
 	stk := cb.InternalStack()
+	arg1 := stk.Get(-2)
+	arg2 := stk.Get(-1)
 	switch op {
 	case token.SUB, token.ADD: // ptr-ptr, ptr-n, ptr+n, n+ptr
-		arg1 := stk.Get(-2)
 		if op == token.ADD && isIntegerOrBool(arg1.Type) { // n+ptr
-			arg2 := stk.Get(-1)
 			if _, ok := arg2.Type.(*types.Pointer); ok {
 				*arg1, *arg2 = *arg2, *arg1 // => ptr+n
 			}
 		}
 		if t1, ok := arg1.Type.(*types.Pointer); ok {
 			elemSize := ctx.sizeof(t1.Elem())
-			arg2 := stk.Get(-1)
 			if isNegConst(arg2) { // fix: can't convert -1 to uintptr
 				cb.UnaryOp(token.SUB)
 				arg2 = stk.Get(-1)
@@ -368,8 +367,6 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		}
 	}
 	if isCmpOperator(op) {
-		arg1 := stk.Get(-2)
-		arg2 := stk.Get(-1)
 		kind1 := checkNilComparable(arg1)
 		kind2 := checkNilComparable(arg2)
 		if kind1 != 0 || kind2 != 0 { // ptr <cmp> ptr|nil
