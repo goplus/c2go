@@ -15,7 +15,6 @@ import (
 	"github.com/goplus/c2go/cl"
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/preprocessor"
-	"github.com/goplus/gox"
 )
 
 const (
@@ -171,14 +170,13 @@ func execFile(pkgname string, outfile string, flags int) {
 	check(err)
 
 	gofile := outfile + ".go"
-	err = gox.WriteFile(gofile, pkg.Package)
+	err = pkg.WriteFile(gofile)
 	check(err)
 
 	dir, _ := filepath.Split(gofile)
 
 	if needPkgInfo {
-		depfile := filepath.Join(dir, "c2go_autogen.go")
-		err = pkg.WriteDepFile(depfile)
+		err = pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
 		check(err)
 	}
 
