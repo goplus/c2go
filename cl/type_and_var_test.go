@@ -321,12 +321,16 @@ void test() {
 	__builtin_va_list a;
 }
 `, `func test() {
+	var a []interface {
+	}
 }`)
 	testFunc(t, "testValistTypedef", `
 void test() {
 	typedef __builtin_va_list foo;
 }
 `, `func test() {
+	type foo = []interface {
+	}
 }`)
 }
 
