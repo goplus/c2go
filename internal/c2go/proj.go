@@ -91,10 +91,10 @@ func execProj(projfile string, flags int) {
 		execProjFile(resolvePath(base, file), &conf, flags)
 	}
 
-	if pkg := conf.Reused.Pkg(); pkg != nil {
+	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
 		pkg.ForEachFile(func(fname string, file *gox.File) {
 			dir := resolvePath(base, conf.Target.Dir)
-			err = gox.WriteFile(filepath.Join(dir, fname), pkg, fname)
+			err = gox.WriteFile(filepath.Join(dir, fname), pkg.Package, fname)
 			check(err)
 		})
 		cmd := exec.Command("go", "build", ".")
