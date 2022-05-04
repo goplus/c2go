@@ -317,13 +317,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		if fnName == "main" && (results != nil || params != nil) {
 			fnName, isMain = "_cgo_main", true
 		} else {
-			if goName, ok := ctx.public[fnName]; ok {
-				if goName != "" {
-					fnName = goName
-				} else {
-					fnName = title(fnName)
-				}
-			}
+			ctx.getPubName(&fnName)
 		}
 		f, err := pkg.NewFuncWith(ctx.goNodePos(fn), fnName, sig, nil)
 		if err != nil {
@@ -358,6 +352,18 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ctx.extfns[fn.Name] = none{}
 		}
 	}
+}
+
+func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
+	goName, ok := p.public[*pfnName]
+	if ok {
+		if goName != "" {
+			*pfnName = goName
+		} else {
+			*pfnName = title(*pfnName)
+		}
+	}
+	return
 }
 
 func title(name string) string {
