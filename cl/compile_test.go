@@ -91,8 +91,8 @@ func newTestEnv(code string) *testEnv {
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
 		unnameds: make(map[ast.ID]*types.Named),
-		typdecls: make(map[string]*gox.TypeDecl),
 	}
+	ctx.typdecls = make(map[string]*gox.TypeDecl)
 	ctx.initCTypes()
 	return &testEnv{doc: doc, pkg: p, ctx: ctx, json: json}
 }

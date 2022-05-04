@@ -90,9 +90,10 @@ func (p *nodeInterp) LoadExpr(v goast.Node) (code string, pos token.Position) {
 // -----------------------------------------------------------------------------
 
 type Reused struct {
-	pkg    *gox.Package
-	exists map[string]none
-	base   int
+	pkg      *gox.Package
+	typdecls map[string]*gox.TypeDecl
+	exists   map[string]none
+	base     int
 }
 
 // Pkg returns the shared package instance.
@@ -200,7 +201,6 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
-		typdecls: make(map[string]*gox.TypeDecl),
 		gblvars:  make(map[string]*gox.VarDefs),
 		extfns:   make(map[string]none),
 		public:   conf.Public,
