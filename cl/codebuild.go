@@ -427,13 +427,20 @@ func castPtrOrFnPtrType(cb *gox.CodeBuilder, kind int, from, to types.Type, v *g
 
 func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
 	n := len(s)
+	eos := true
 	if typ == nil {
 		typ = types.NewArray(types.Typ[types.Int8], int64(n+1))
+	} else if t, ok := typ.(*types.Array); ok {
+		eos = int(t.Len()) > n
 	}
 	for i := 0; i < n; i++ {
 		cb.Val(rune(s[i]))
 	}
-	cb.Val(rune(0)).ArrayLit(typ, n+1)
+	if eos {
+		cb.Val(rune(0)).ArrayLit(typ, n+1)
+	} else {
+		cb.ArrayLit(typ, n)
+	}
 }
 
 func arrayToElemPtr(cb *gox.CodeBuilder) {
