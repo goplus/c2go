@@ -16,7 +16,6 @@ var (
 )
 
 var (
-	tyValist    types.Type
 	nameInt128  = types.NewTypeName(token.NoPos, pkg, "__int128", nil)
 	nameUint128 = types.NewTypeName(token.NoPos, pkg, "__uint128", nil)
 	tyInt128    = types.NewNamed(nameInt128, types.Typ[types.String], nil)
@@ -31,14 +30,9 @@ func init() {
 	aliasType(scope, pkg, "uint", types.Typ[types.Uint32])
 	aliasType(scope, pkg, ctypes.MangledName("struct", "ConstantString"), tyConstantString)
 	aliasType(scope, pkg, ctypes.MangledName("union", "arg"), tyArg)
+	aliasType(scope, pkg, "va_list", ctypes.Valist)
 
-	valist := types.NewTypeName(token.NoPos, pkg, ctypes.MangledName("struct", "__va_list_tag"), nil)
-	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
-	scope.Insert(valist)
 	scope.Insert(nameInt128)
-	tyValist = types.NewPointer(t)
-
-	aliasType(scope, pkg, "va_list", tyValist)
 }
 
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
@@ -142,6 +136,7 @@ var cases = []testCase{
 	{qualType: "_Complex long double", typ: types.Typ[types.Complex128]},
 	{qualType: "int (*)(void)", typ: newFn(nil, typesInt)},
 	{qualType: "int (void)", typ: newFnProto(nil, typesInt, false)},
+	{qualType: "void (void) __attribute__((noreturn))", typ: newFnProto(nil, nil, false)},
 	{qualType: "void (*)(void *)", typ: newFn(typesVoidPtr, nil)},
 	{qualType: "void (^ _Nonnull)(void)", typ: newFn(nil, nil)},
 	{qualType: "void (int, ...)", typ: newFnProto(typesIntVA, nil, true)},
@@ -149,7 +144,7 @@ var cases = []testCase{
 	{qualType: "va_list *", typ: types.NewPointer(types.NewSlice(tyEmptyInterface))},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)(int, ...)", typ: newFnv(typesIntVA, typesInt)},
-	{qualType: "int (*)(int, struct __va_list_tag*)", typ: newFnv(typesIntVA, typesInt)},
+	{qualType: "int (*)(int, struct __va_list_tag*)", typ: newFn(typesIntVA, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
@@ -183,8 +178,7 @@ func TestCases(t *testing.T) {
 		t.Run(c.qualType, func(t *testing.T) {
 			conf := &Config{
 				Pkg: pkg, Scope: scope, Flags: c.flags,
-				TyAnonym: c.anonym, TyValist: tyValist,
-				TyInt128: tyInt128, TyUint128: tyUint128,
+				TyAnonym: c.anonym, TyInt128: tyInt128, TyUint128: tyUint128,
 			}
 			typ, _, err := ParseType(c.qualType, conf)
 			if err != nil {

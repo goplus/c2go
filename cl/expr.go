@@ -7,6 +7,8 @@ import (
 	"log"
 	"strconv"
 
+	ctypes "github.com/goplus/c2go/clang/types"
+
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
 )
@@ -173,7 +175,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		compileExpr(ctx, v.Inner[0])
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
-		if cb := ctx.cb; !isEllipsis(ctx, cb) {
+		if cb := ctx.cb; !isValist(cb.Get(-1).Type) {
 			arrayToElemPtr(cb)
 		}
 	case ast.IntegralCast, ast.FloatingCast, ast.BitCast, ast.IntegralToFloating,
@@ -225,19 +227,24 @@ func compileDeclRefExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 
 func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 	if n := len(v.Inner); n > 0 {
+		cb := ctx.cb
 		if fn := v.Inner[0]; isBuiltinFn(fn) {
 			item := fn.Inner[0]
 			switch name := item.ReferencedDecl.Name; name {
-			case "__builtin_va_start", "__builtin_va_end":
+			case "__builtin_va_start":
+				_, args := cb.Scope().LookupParent(valistName, token.NoPos)
+				compileValistLHS(ctx, v.Inner[1])
+				cb.Val(args).Assign(1)
+				return
+			case "__builtin_va_end":
 				return
 			}
 		}
-		cb := ctx.cb
 		for i := 0; i < n; i++ {
 			compileExpr(ctx, v.Inner[i])
 		}
 		var flags gox.InstrFlags
-		var ellipsis = n > 2 && isEllipsis(ctx, cb)
+		var ellipsis = n > 2 && isVariadic(cb.Get(-n).Type) && isValist(cb.Get(-1).Type)
 		if ellipsis {
 			_, o := cb.Scope().LookupParent(valistName, token.NoPos)
 			cb.InternalStack().Pop()
@@ -248,8 +255,23 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 	}
 }
 
-func isEllipsis(ctx *blockCtx, cb *gox.CodeBuilder) bool {
-	return ctx.isValistType(cb.Get(-1).Type)
+func compileValistLHS(ctx *blockCtx, ap *ast.Node) *ast.Node {
+	if ap.Kind == ast.ImplicitCastExpr {
+		ap = ap.Inner[0]
+	}
+	compileExprLHS(ctx, ap)
+	return ap
+}
+
+func isVariadic(typ types.Type) bool {
+	if t, ok := typ.(*types.Signature); ok {
+		return t.Variadic()
+	}
+	return false
+}
+
+func isValist(typ types.Type) bool {
+	return typ == ctypes.Valist
 }
 
 func isBuiltinFn(fn *ast.Node) bool {

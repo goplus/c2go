@@ -209,6 +209,7 @@ type Node struct {
 	HasElse              bool          `json:"hasElse,omitempty"`
 	CompleteDefinition   bool          `json:"completeDefinition,omitempty"`
 	Complicated          bool          `json:"-"` // complicated statement
+	Variadic             bool          `json:"variadic,omitempty"`
 	Name                 string        `json:"name,omitempty"`
 	MangledName          string        `json:"mangledName,omitempty"`
 	Type                 *Type         `json:"type,omitempty"`
