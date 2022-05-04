@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-void vprintn2(int n, va_list ap) {
+void vprintn2(int n, va_list ap1) {
 	int i;
 	char *s;
+	va_list ap;
+	__builtin_va_copy(ap, ap1);
 	for (i = 0; i < n; i++) {
 		s = va_arg(ap, char*);
 		printf("%s\n", s);
