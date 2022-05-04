@@ -49,7 +49,6 @@ type struct___sFILEX struct{}
 type struct__IO_marker struct{}
 type struct__IO_codecvt struct{}
 type struct__IO_wide_data struct{}
-type struct__IO_FILE struct{}
 
 var (
 	stdout    *FILE
