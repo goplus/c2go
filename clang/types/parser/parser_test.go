@@ -30,12 +30,15 @@ func init() {
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
 	aliasType(scope, pkg, "uint", types.Typ[types.Uint32])
 	aliasType(scope, pkg, ctypes.MangledName("struct", "ConstantString"), tyConstantString)
+	aliasType(scope, pkg, ctypes.MangledName("union", "arg"), tyArg)
 
 	valist := types.NewTypeName(token.NoPos, pkg, ctypes.MangledName("struct", "__va_list_tag"), nil)
 	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
 	scope.Insert(valist)
 	scope.Insert(nameInt128)
 	tyValist = types.NewPointer(t)
+
+	aliasType(scope, pkg, "va_list", tyValist)
 }
 
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
@@ -45,6 +48,7 @@ func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Ty
 
 var (
 	tnameConstantString = types.NewTypeName(token.NoPos, pkg, "ConstantString", nil)
+	tnameArg            = types.NewTypeName(token.NoPos, pkg, "UnionArg", nil)
 )
 
 var (
@@ -67,6 +71,7 @@ var (
 	tyCharPtr        = types.NewPointer(tyChar)
 	tyCharPtrPtr     = types.NewPointer(tyCharPtr)
 	tyConstantString = types.NewNamed(tnameConstantString, tyString, nil)
+	tyArg            = types.NewNamed(tnameArg, tyString, nil)
 	tyEmptyInterface = types.NewInterfaceType(nil, nil)
 )
 
@@ -75,11 +80,13 @@ var (
 	paramVoidPtr    = types.NewParam(token.NoPos, pkg, "", ctypes.UnsafePointer)
 	paramCharPtrPtr = types.NewParam(token.NoPos, pkg, "", tyCharPtrPtr)
 	paramAnySlice   = types.NewParam(token.NoPos, pkg, "", types.NewSlice(tyEmptyInterface))
+	paramPAnySlice  = types.NewParam(token.NoPos, pkg, "", types.NewPointer(types.NewSlice(tyEmptyInterface)))
 )
 
 var (
 	typesInt     = types.NewTuple(paramInt)
 	typesIntVA   = types.NewTuple(paramInt, paramAnySlice)
+	typesIntPVA  = types.NewTuple(paramInt, paramPAnySlice)
 	typesVoidPtr = types.NewTuple(paramVoidPtr)
 	typesPICC    = types.NewTuple(paramVoidPtr, paramInt, paramCharPtrPtr, paramCharPtrPtr)
 )
@@ -117,6 +124,7 @@ var cases = []testCase{
 	{qualType: "int", typ: tyInt},
 	{qualType: "unsigned int", typ: tyUint},
 	{qualType: "struct ConstantString", typ: tyConstantString},
+	{qualType: "union arg", typ: tyArg},
 	{qualType: "volatile signed int", typ: tyInt},
 	{qualType: "__int128", typ: tyInt128},
 	{qualType: "signed", typ: tyInt},
@@ -137,6 +145,8 @@ var cases = []testCase{
 	{qualType: "void (*)(void *)", typ: newFn(typesVoidPtr, nil)},
 	{qualType: "void (^ _Nonnull)(void)", typ: newFn(nil, nil)},
 	{qualType: "void (int, ...)", typ: newFnProto(typesIntVA, nil, true)},
+	{qualType: "void (int, va_list*)", typ: newFn(typesIntPVA, nil)},
+	{qualType: "va_list *", typ: types.NewPointer(types.NewSlice(tyEmptyInterface))},
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)(int, ...)", typ: newFnv(typesIntVA, typesInt)},
 	{qualType: "int (*)(int, struct __va_list_tag*)", typ: newFnv(typesIntVA, typesInt)},

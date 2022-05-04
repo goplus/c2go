@@ -405,7 +405,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			if t == nil {
 				return nil, 0, p.newError("pointer to nil")
 			}
-			t = ctypes.NewPointer(t)
+			t = p.newPointer(t)
 		case token.LBRACK: // [
 			if t, err = p.parseArrays(t, inFlags); err != nil {
 				return
@@ -477,7 +477,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			default:
 				return nil, 0, p.newError("unexpected " + p.tok.String())
 			}
-			t = newPointers(t, nstarRet)
+			t = p.newPointers(t, nstarRet)
 			if isFn {
 				if getRetType(inFlags) {
 					p.tok = token.EOF
@@ -489,7 +489,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				}
 				t = p.newFunc(args, results)
 			}
-			t = newPointers(t, nstar)
+			t = p.newPointers(t, nstar)
 			t = newArrays(t, tyArr)
 		case token.RPAREN:
 			if t == nil {
@@ -516,14 +516,34 @@ func (p *parser) newFunc(args []*types.Var, results *types.Tuple) types.Type {
 	variadic := false
 	if n := len(args); n > 1 {
 		v := args[n-1]
-		if ctypes.Identical(v.Type(), p.conf.TyValist) {
-			args[n-1] = types.NewParam(v.Pos(), v.Pkg(), v.Name(), tyVArgs)
-			variadic = true
-		} else {
-			variadic = v.Type() == tyVArgs
+		switch t := v.Type().(type) {
+		case *types.Slice:
+			variadic = (t == tyVArgs)
+		case *types.Pointer:
+			if ctypes.Identical(t, p.conf.TyValist) {
+				args[n-1] = types.NewParam(v.Pos(), v.Pkg(), v.Name(), tyVArgs)
+				variadic = true
+			}
 		}
 	}
 	return ctypes.NewFunc(types.NewTuple(args...), results, variadic)
+}
+
+func (p *parser) newPointers(t types.Type, nstar int) types.Type {
+	for nstar > 0 {
+		t = p.newPointer(t)
+		nstar--
+	}
+	return t
+}
+
+func (p *parser) newPointer(typ types.Type) types.Type {
+	if t, ok := typ.(*types.Pointer); ok {
+		if ctypes.Identical(t, p.conf.TyValist) {
+			return types.NewPointer(tyVArgs)
+		}
+	}
+	return ctypes.NewPointer(typ)
 }
 
 func isPtr(tok token.Token) bool {
@@ -546,14 +566,6 @@ func newArraysEx(t types.Type, tyArr types.Type, inFlags int) types.Type {
 		if (inFlags & FlagIsParam) != 0 {
 			t = ctypes.NewPointer(arr.Elem())
 		}
-	}
-	return t
-}
-
-func newPointers(t types.Type, nstar int) types.Type {
-	for nstar > 0 {
-		t = ctypes.NewPointer(t)
-		nstar--
 	}
 	return t
 }
