@@ -6,7 +6,6 @@ import (
 	"go/types"
 	"log"
 	"strconv"
-	"strings"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 
@@ -17,10 +16,6 @@ import (
 
 // -----------------------------------------------------------------------------
 
-func isVariadicFn(typ *ast.Type) bool {
-	return strings.HasSuffix(typ.QualType, "...)")
-}
-
 func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 	t, _ := toTypeEx(ctx, ctx.cb.Scope(), nil, typ, flags)
 	return t
@@ -29,7 +24,7 @@ func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int) {
 	conf := &parser.Config{
 		Pkg: ctx.pkg.Types, Scope: scope, Flags: flags,
-		TyAnonym: tyAnonym, TyValist: ctx.tyValist, TyInt128: ctx.tyI128, TyUint128: ctx.tyU128,
+		TyAnonym: tyAnonym, TyInt128: ctx.tyI128, TyUint128: ctx.tyU128,
 	}
 retry:
 	t, kind, err := parser.ParseType(typ.QualType, conf)
@@ -160,6 +155,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 		}
 		return
 	}
+	scope := ctx.cb.Scope()
 	if len(decl.Inner) > 0 {
 		item := decl.Inner[0]
 		if item.Kind == "ElaboratedType" {
@@ -170,7 +166,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 				}
 				id := owned.ID
 				if typ, ok := ctx.unnameds[id]; ok {
-					aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
+					aliasType(scope, ctx.pkg.Types, name, typ)
 					return
 				}
 				log.Panicln("compileTypedef: unknown id =", id)
@@ -178,9 +174,16 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 		}
 	}
 	typ := toType(ctx, decl.Type, parser.FlagIsTypedef)
-	if ctx.isValistType(typ) || isArrayUnknownLen(typ) || typ == ctypes.Void {
-		aliasType(ctx.cb.Scope(), ctx.pkg.Types, name, typ)
+	if isArrayUnknownLen(typ) || typ == ctypes.Void {
+		aliasType(scope, ctx.pkg.Types, name, typ)
 		return
+	}
+	if global {
+		if old := scope.Lookup(name); old != nil {
+			if types.Identical(typ, old.Type()) {
+				return
+			}
+		}
 	}
 	ctx.cb.AliasType(name, typ, goNodePos(decl))
 }
@@ -253,10 +256,6 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		scope.Insert(types.NewVar(goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
 	} else {
 		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
-			return
-		}
-		if ctx.isValistType(typ) { // skip valist variable
-			scope.Insert(types.NewVar(token.NoPos, ctx.pkg.Types, decl.Name, typ))
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl, global)

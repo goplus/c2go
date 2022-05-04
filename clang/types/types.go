@@ -1,6 +1,7 @@
 package types
 
 import (
+	"go/token"
 	"go/types"
 	"unsafe"
 
@@ -33,6 +34,19 @@ func MangledName(tag, name string) string {
 
 // -----------------------------------------------------------------------------
 
+var (
+	ValistTag types.Type
+	Valist    types.Type = types.NewSlice(gox.TyEmptyInterface)
+)
+
+func init() {
+	vaTag := types.NewTypeName(token.NoPos, types.Unsafe, MangledName("struct", "__va_list_tag"), nil)
+	ValistTag = types.NewNamed(vaTag, types.NewStruct(nil, nil), nil)
+	types.Universe.Insert(vaTag)
+}
+
+// -----------------------------------------------------------------------------
+
 func NewFunc(params, results *types.Tuple, variadic bool) *types.Signature {
 	return gox.NewCSignature(params, results, variadic)
 }
@@ -46,6 +60,10 @@ func NewPointer(typ types.Type) types.Type {
 	case *types.Signature:
 		if gox.IsCSignature(t) {
 			return types.NewSignature(nil, t.Params(), t.Results(), t.Variadic())
+		}
+	case *types.Named:
+		if typ == ValistTag {
+			return Valist
 		}
 	}
 	return types.NewPointer(typ)

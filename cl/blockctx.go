@@ -187,7 +187,6 @@ type blockCtx struct {
 	pkg      *gox.Package
 	cb       *gox.CodeBuilder
 	fsetSrc  *token.FileSet
-	tyValist types.Type
 	tyI128   types.Type
 	tyU128   types.Type
 	unnameds map[ast.ID]*types.Named
@@ -201,7 +200,6 @@ type blockCtx struct {
 	curfn    *funcCtx
 	curflow  flowCtx
 	multiFileCtl
-	initLines bool
 }
 
 func (p *blockCtx) lookupParent(name string) types.Object {
@@ -278,19 +276,16 @@ func (p *blockCtx) leave(cur flowCtx) {
 }
 
 func (p *blockCtx) initFileLines() {
-	if !p.initLines {
-		p.file.SetLinesForContent(p.getSource())
-		p.initLines = true
-	}
+	p.file.SetLinesForContent(p.initSource())
 }
 
-func (p *blockCtx) getSource() []byte {
-	if v := p.src; v != nil {
-		return v
+func (p *blockCtx) initSource() []byte {
+	if p.src != nil {
+		return p.src
 	}
 	b, err := os.ReadFile(p.srcfile)
 	if err != nil {
-		log.Panicln("getSource:", err)
+		log.Panicln("initSource:", err)
 	}
 	p.src = b
 	return b
@@ -310,7 +305,7 @@ func (p *blockCtx) getLabel(pos token.Pos, name string) *gox.Label {
 }
 
 func (p *blockCtx) labelOfGoto(v *ast.Node) string {
-	src := p.getSource()
+	src := p.src
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
 	op := string(src[off : off+n])
@@ -322,7 +317,7 @@ func (p *blockCtx) labelOfGoto(v *ast.Node) string {
 }
 
 func (p *blockCtx) paramsOfOfsetof(v *ast.Node) (string, string) {
-	src := p.getSource()
+	src := p.src
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
 	op := string(src[off : off+n])
@@ -338,7 +333,7 @@ func paramsOf(v []byte) string {
 }
 
 func (p *blockCtx) paramOfSizeof(v *ast.Node) string {
-	src := p.getSource()
+	src := p.src
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
 	op := string(src[off : off+n])
@@ -349,7 +344,7 @@ func (p *blockCtx) paramOfSizeof(v *ast.Node) string {
 }
 
 func (p *blockCtx) getInstr(v *ast.Node) string {
-	src := p.getSource()
+	src := p.src
 	off := v.Range.Begin.Offset
 	n := int64(v.Range.Begin.TokLen)
 	return string(src[off : off+n])
@@ -455,7 +450,6 @@ func (p *bfType) String() string {
 func (p *blockCtx) initCTypes() {
 	pkg := p.pkg.Types
 	scope := pkg.Scope()
-	p.tyValist = initValist(scope, pkg)
 	p.tyI128 = ctypes.NotImpl
 	p.tyU128 = ctypes.NotImpl
 	c := p.pkg.Import("github.com/goplus/c2go/clang")
@@ -474,7 +468,6 @@ func (p *blockCtx) initCTypes() {
 func (p *blockCtx) initCTypes() {
 	pkg := p.pkg.Types
 	scope := pkg.Scope()
-	p.tyValist = initValist(scope, pkg)
 	p.tyI128 = ctypes.NotImpl
 	p.tyU128 = ctypes.NotImpl
 
@@ -486,20 +479,9 @@ func (p *blockCtx) initCTypes() {
 	aliasType(scope, pkg, "double", types.Typ[types.Float64])
 	aliasType(scope, pkg, "_Bool", types.Typ[types.Bool])
 
+	aliasType(scope, pkg, "__builtin_va_list", ctypes.Valist)
+
 	decl_builtin(p)
-}
-
-func (p *blockCtx) isValistType(t types.Type) bool {
-	return ctypes.Identical(t, p.tyValist)
-}
-
-func initValist(scope *types.Scope, pkg *types.Package) types.Type {
-	valist := types.NewTypeName(token.NoPos, pkg, ctypes.MangledName("struct", "__va_list_tag"), nil)
-	t := types.NewNamed(valist, types.Typ[types.Int8], nil)
-	scope.Insert(valist)
-	tyValist := types.NewPointer(t)
-	aliasType(scope, pkg, "__builtin_va_list", tyValist)
-	return tyValist
 }
 
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {

@@ -74,7 +74,6 @@ func (p *nodeInterp) Caller(v goast.Node) string {
 
 func (p *nodeInterp) LoadExpr(v goast.Node) (src string, pos token.Position) {
 	ctx := p.ctx
-	ctx.initFileLines()
 	start := v.Pos()
 	pos = ctx.fsetSrc.Position(start)
 	n := int(v.End() - start)
@@ -203,6 +202,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node, interp *nodeInterp) 
 	ctx.file = fset.AddFile(conf.SrcFile, fileBase, 1<<30)
 	ctx.initMultiFileCtl(conf)
 	ctx.initCTypes()
+	ctx.initFileLines()
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
 		pi = ctx.genPkgInfo()
@@ -267,10 +267,10 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	if debugCompileDecl {
 		log.Println("func", fn.Name, "-", fnType.QualType, fn.Loc.PresumedLine)
 	}
-	var variadic, hasName bool
+	var hasName bool
 	var params []*types.Var
-	var results *types.Tuple
 	var body *ast.Node
+	var results *types.Tuple
 	for _, item := range fn.Inner {
 		switch item.Kind {
 		case ast.ParmVarDecl:
@@ -291,17 +291,13 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Panicln("compileFunc: unknown kind =", item.Kind)
 		}
 	}
-	var vaParam *types.Var
-	if variadic = isVariadicFn(fnType); variadic {
+	variadic := fn.Variadic
+	if variadic {
 		params = append(params, newVariadicParam(ctx, hasName))
-	} else {
-		vaParam = checkVariadic(ctx, params, hasName)
-		variadic = vaParam != nil
 	}
 	pkg := ctx.pkg
-	if t := toType(ctx, fnType, parser.FlagGetRetType); ctypes.NotVoid(t) {
-		ret := types.NewParam(token.NoPos, pkg.Types, "", t)
-		results = types.NewTuple(ret)
+	if tyRet := toType(ctx, fnType, parser.FlagGetRetType); ctypes.NotVoid(tyRet) {
+		results = types.NewTuple(pkg.NewParam(token.NoPos, "", tyRet))
 	}
 	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
 	if body != nil {
@@ -322,9 +318,6 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			log.Panicln("compileFunc:", err)
 		}
 		cb := f.BodyStart(pkg)
-		if vaParam != nil {
-			cb.Scope().Insert(vaParam)
-		}
 		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fn.Name, body))
 		compileSub(ctx, body)
 		checkNeedReturn(ctx, body)
@@ -369,19 +362,22 @@ const (
 
 func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
 	pkg := ctx.pkg
+	ap := expr.Inner[0]
 	typ := toType(ctx, expr.Type, 0)
+	args := pkg.NewParam(token.NoPos, valistName, ctypes.Valist)
 	ret := pkg.NewParam(token.NoPos, "_cgo_ret", typ)
-	cb := ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg)
-	_, args := cb.Scope().LookupParent(valistName, token.NoPos)
+	cb := ctx.cb.NewClosure(types.NewTuple(args), types.NewTuple(ret), false).BodyStart(pkg)
 	//
-	// func() (_cgo_ret T) {
+	// func(__cgo_args []any) (_cgo_ret T) {
 	//    _cgo_ret = __cgo_args[0].(typ)
-	//    __cgo_args = __cgo_args[1:]
+	//    ap = __cgo_args[1:]
 	//    return
-	// }()
-	cb.VarRef(ret).Val(args).Val(0).Index(1, false).TypeAssert(typ, false).Assign(1).
-		VarRef(args).Val(args).Val(1).None().Slice(false).Assign(1).
-		Return(0).End().Call(0)
+	// }(ap)
+	cb.VarRef(ret).Val(args).Val(0).Index(1, false).TypeAssert(typ, false).Assign(1)
+	ap = compileValistLHS(ctx, ap)
+	cb.Val(args).Val(1).None().Slice(false).Assign(1).Return(0).End()
+	compileExpr(ctx, ap)
+	cb.Call(1)
 }
 
 func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
@@ -389,24 +385,13 @@ func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
 	if hasName {
 		name = valistName
 	}
-	return types.NewParam(token.NoPos, ctx.pkg.Types, name, types.NewSlice(gox.TyEmptyInterface))
+	return types.NewParam(token.NoPos, ctx.pkg.Types, name, ctypes.Valist)
 }
 
 func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 	typ := toType(ctx, decl.Type, parser.FlagIsParam)
 	avoidKeyword(&decl.Name)
 	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
-}
-
-func checkVariadic(ctx *blockCtx, params []*types.Var, hasName bool) (ret *types.Var) {
-	n := len(params)
-	if n > 0 {
-		if last := params[n-1]; ctx.isValistType(last.Type()) {
-			ret, params[n-1] = last, newVariadicParam(ctx, hasName)
-			return
-		}
-	}
-	return nil
 }
 
 // -----------------------------------------------------------------------------

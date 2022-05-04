@@ -53,7 +53,6 @@ type Config struct {
 	Pkg       *types.Package
 	Scope     *types.Scope
 	TyAnonym  types.Type
-	TyValist  types.Type
 	TyInt128  types.Type
 	TyUint128 types.Type
 	Flags     int
@@ -62,6 +61,7 @@ type Config struct {
 const (
 	KindFConst = 1 << iota
 	KindFAnonymous
+	KindFVariadic
 )
 
 // qualType can be:
@@ -290,31 +290,31 @@ func (p *parser) parseFunc(pkg *types.Package, t types.Type, inFlags int) (ret t
 	if ctypes.NotVoid(t) {
 		results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
 	}
-	args, err := p.parseArgs(pkg)
+	args, variadic, err := p.parseArgs(pkg)
 	if err != nil {
 		return
 	}
-	return p.newFunc(args, results), nil
+	return ctypes.NewFunc(types.NewTuple(args...), results, variadic), nil
 }
 
-func (p *parser) parseArgs(pkg *types.Package) ([]*types.Var, error) {
-	var args []*types.Var
+func (p *parser) parseArgs(pkg *types.Package) (args []*types.Var, variadic bool, err error) {
 	for {
-		arg, _, e := p.parse(FlagIsParam)
+		arg, kind, e := p.parse(FlagIsParam)
 		if e != nil {
-			return nil, e
+			return nil, false, e
 		}
 		if ctypes.NotVoid(arg) {
 			args = append(args, types.NewParam(token.NoPos, pkg, "", arg))
 		}
 		if p.tok != token.COMMA {
+			variadic = (kind & KindFVariadic) != 0
 			break
 		}
 	}
 	if p.tok != token.RPAREN { // )
-		return nil, p.newError("expect )")
+		return nil, false, p.newError("expect )")
 	}
-	return args, nil
+	return
 }
 
 func (p *parser) parseStars() (nstar int) {
@@ -412,6 +412,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			}
 		case token.LPAREN: // (
 			if t == nil {
+				log.Panicln("TODO")
 				return nil, 0, p.newError("no function return type")
 			}
 			var nstar = p.parseStars()
@@ -419,13 +420,14 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			var tyArr types.Type
 			var pkg, isFn = p.pkg, false
 			var args []*types.Var
+			var variadic bool
 			if nstar == 0 {
 				if getRetType(inFlags) {
 					err = nil
 					p.tok = token.EOF
 					return
 				}
-				if args, err = p.parseArgs(pkg); err != nil {
+				if args, variadic, err = p.parseArgs(pkg); err != nil {
 					return
 				}
 				isFn = true
@@ -441,7 +443,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 							p.expect(token.RPAREN) // )
 							p.expect(token.LPAREN) // (
 						}
-						if args, err = p.parseArgs(pkg); err != nil {
+						if args, variadic, err = p.parseArgs(pkg); err != nil {
 							return
 						}
 						isFn = true
@@ -474,6 +476,13 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 					return
 				}
 			case token.EOF:
+			case token.IDENT:
+				if p.lit == "__attribute__" {
+					p.tok, p.lit = token.EOF, ""
+					p.unget(token.EOF, "")
+					break
+				}
+				fallthrough
 			default:
 				return nil, 0, p.newError("unexpected " + p.tok.String())
 			}
@@ -487,7 +496,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				if ctypes.NotVoid(t) {
 					results = types.NewTuple(types.NewParam(token.NoPos, pkg, "", t))
 				}
-				t = p.newFunc(args, results)
+				t = ctypes.NewFunc(types.NewTuple(args...), results, variadic)
 			}
 			t = newPointers(t, nstar)
 			t = newArrays(t, tyArr)
@@ -505,25 +514,20 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			if t != nil {
 				return nil, 0, p.newError("illegal syntax: multiple types?")
 			}
-			t = tyVArgs
+			t = ctypes.Valist
+			kind |= KindFVariadic
 		default:
 			log.Panicln("c.types.ParseType: unknown -", p.tok, p.lit)
 		}
 	}
 }
 
-func (p *parser) newFunc(args []*types.Var, results *types.Tuple) types.Type {
-	variadic := false
-	if n := len(args); n > 1 {
-		v := args[n-1]
-		if ctypes.Identical(v.Type(), p.conf.TyValist) {
-			args[n-1] = types.NewParam(v.Pos(), v.Pkg(), v.Name(), tyVArgs)
-			variadic = true
-		} else {
-			variadic = v.Type() == tyVArgs
-		}
+func newPointers(t types.Type, nstar int) types.Type {
+	for nstar > 0 {
+		t = ctypes.NewPointer(t)
+		nstar--
 	}
-	return ctypes.NewFunc(types.NewTuple(args...), results, variadic)
+	return t
 }
 
 func isPtr(tok token.Token) bool {
@@ -549,17 +553,5 @@ func newArraysEx(t types.Type, tyArr types.Type, inFlags int) types.Type {
 	}
 	return t
 }
-
-func newPointers(t types.Type, nstar int) types.Type {
-	for nstar > 0 {
-		t = ctypes.NewPointer(t)
-		nstar--
-	}
-	return t
-}
-
-var (
-	tyVArgs = types.NewSlice(types.NewInterfaceType(nil, nil))
-)
 
 // -----------------------------------------------------------------------------
