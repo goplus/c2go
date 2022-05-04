@@ -460,6 +460,10 @@ func isIntegerOrBool(typ types.Type) bool {
 	return isKind(typ, types.IsInteger|types.IsBoolean)
 }
 
+func isNumber(typ types.Type) bool {
+	return isKind(typ, types.IsInteger|types.IsFloat)
+}
+
 func isUnsigned(typ types.Type) bool {
 	return isKind(typ, types.IsUnsigned)
 }
