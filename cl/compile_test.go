@@ -161,7 +161,8 @@ void test(int var) {
 `)}
 	ctx.file = fset.AddFile(ctx.srcfile, -1, 1<<30)
 	interp := &nodeInterp{fset: fset}
-	v := &node{ctx: ctx}
+	base := token.Pos(ctx.file.Base())
+	v := &node{ctx: ctx, pos: base, end: base}
 	src, pos := interp.LoadExpr(v)
 	if src != "" || pos.String() != "1:1" {
 		t.Fatal("interp.LoadExpr:", src, pos)
