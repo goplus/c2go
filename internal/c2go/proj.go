@@ -97,7 +97,7 @@ func execProj(projfile string, flags int) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
 		dir := resolvePath(base, conf.Target.Dir)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
-			err = gox.WriteFile(filepath.Join(dir, fname), pkg.Package, fname)
+			err = pkg.WriteFile(filepath.Join(dir, fname), fname)
 			check(err)
 		})
 		if conf.needPkgInfo {
