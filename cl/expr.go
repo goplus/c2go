@@ -238,6 +238,11 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 				return
 			case "__builtin_va_end":
 				return
+			case "__builtin_va_copy":
+				compileValistLHS(ctx, v.Inner[1])
+				compileExpr(ctx, v.Inner[2])
+				cb.Assign(1)
+				return
 			}
 		}
 		for i := 0; i < n; i++ {

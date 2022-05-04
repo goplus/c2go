@@ -453,7 +453,7 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 
 func castToBoolExpr(cb *gox.CodeBuilder) {
 	elem := cb.InternalStack().Get(-1)
-	if t := elem.Type; isInteger(t) {
+	if t := elem.Type; isNumber(t) {
 		cb.Val(0).BinaryOp(token.NEQ)
 	} else if isNilComparable(t) {
 		cb.Val(nil).BinaryOp(token.NEQ)
