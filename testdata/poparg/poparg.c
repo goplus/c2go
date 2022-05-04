@@ -1,8 +1,9 @@
 #include <stdarg.h>
-#include <string.h>
 
 typedef signed long long intmax_t;
 typedef unsigned long long uintmax_t;
+typedef unsigned long uintptr_t;
+typedef unsigned long size_t;
 typedef int ptrdiff_t;
 
 union arg
