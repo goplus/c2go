@@ -46,7 +46,7 @@ func (p *node) End() token.Pos {
 }
 
 func (ctx *blockCtx) goNode(v *ast.Node) goast.Node {
-	if rg := v.Range; rg != nil {
+	if rg := v.Range; rg != nil && ctx.file != nil {
 		base := ctx.file.Base()
 		pos := token.Pos(int(rg.Begin.Offset) + base)
 		end := token.Pos(int(rg.End.Offset) + rg.End.TokLen + base)
@@ -56,7 +56,7 @@ func (ctx *blockCtx) goNode(v *ast.Node) goast.Node {
 }
 
 func (ctx *blockCtx) goNodePos(v *ast.Node) token.Pos {
-	if rg := v.Range; rg != nil {
+	if rg := v.Range; rg != nil && ctx.file != nil {
 		base := ctx.file.Base()
 		return token.Pos(int(rg.Begin.Offset) + base)
 	}
