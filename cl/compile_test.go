@@ -164,7 +164,7 @@ void test(int var) {
 	rg := &ast.Range{}
 	v := &node{Range: rg}
 	src, pos := interp.LoadExpr(v)
-	if src != "\n" || pos.String() != "1:1" {
+	if src != "" || pos.String() != "1:1" {
 		t.Fatal("interp.LoadExpr:", src, pos)
 	}
 	interp.Caller(v)

@@ -38,7 +38,8 @@ func (p *node) Pos() token.Pos {
 }
 
 func (p *node) End() token.Pos {
-	return token.Pos(p.Range.End.Offset) + (fileBase + 1)
+	end := p.Range.End
+	return token.Pos(int(end.Offset)+end.TokLen) + fileBase
 }
 
 func goNode(v *ast.Node) goast.Node {
@@ -228,13 +229,13 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			compileTypedef(ctx, decl, global)
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			if global && suKind != suAnonymous && ctx.checkExists(name) {
+			if global && suKind != suAnonymous && decl.CompleteDefinition && ctx.checkExists(name) {
 				continue
 			}
 			typ := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
 				break
-			} else { // TODO: remove unused struct if checkExists = true
+			} else {
 				ctx.unnameds[decl.ID] = typ
 			}
 			for i+1 < n {
