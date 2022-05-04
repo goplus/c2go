@@ -25,9 +25,9 @@ Run/Test multiple examples:
 
 ## What's our plan?
 
-- First, support most of the syntax of C. Stage: `Done Almost`, see [Supported C syntax](#supported-c-syntax).
+- First, support most of the syntax of C. Stage: `Done Almost`, see [supported C syntax](#supported-c-syntax).
 - Second, compile `sqlite3` to fix c2go bugs and get list of its dependent C standard libary fuctions. Stage: `Done`, see [github.com/goplus/sqlite](https://github.com/goplus/sqlite) and [its dependent fuctions](https://github.com/goplus/sqlite/blob/main/c2go_autogen.go).
-- Third, support most of C standard libaries (especially that used by `sqlite3`), and can import them by Go+. Stage: `Doing`.
+- Third, support most of C standard libaries (especially that used by `sqlite3`), and can import them by Go+. Stage: `Doing`, see [detailed progress here](https://github.com/goplus/libc#whats-our-plan).
 - Last, support all custom libraries, especially those well-known open source libraries. Stage: `Planning`.
 
 
