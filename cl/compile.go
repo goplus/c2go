@@ -38,7 +38,8 @@ func (p *node) Pos() token.Pos {
 }
 
 func (p *node) End() token.Pos {
-	return token.Pos(p.Range.End.Offset) + (fileBase + 1)
+	end := p.Range.End
+	return token.Pos(int(end.Offset)+end.TokLen) + fileBase
 }
 
 func goNode(v *ast.Node) goast.Node {
