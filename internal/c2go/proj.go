@@ -34,8 +34,10 @@ type c2goConf struct {
 	PPFlag   string     `json:"pp"` // default: -E
 	Compiler string     `json:"cc"`
 
-	public    map[string]string `json:"-"`
 	cl.Reused `json:"-"`
+
+	public      map[string]string `json:"-"`
+	needPkgInfo bool              `json:"-"`
 }
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -83,6 +85,7 @@ func execProj(projfile string, flags int) {
 
 	pubfile := base + "c2go.pub"
 	conf.public = loadPubFile(pubfile)
+	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
 
 	for _, dir := range conf.Source.Dirs {
 		execProjDir(resolvePath(base, dir), &conf, flags)
@@ -92,11 +95,15 @@ func execProj(projfile string, flags int) {
 	}
 
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
+		dir := resolvePath(base, conf.Target.Dir)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
-			dir := resolvePath(base, conf.Target.Dir)
 			err = gox.WriteFile(filepath.Join(dir, fname), pkg.Package, fname)
 			check(err)
 		})
+		if conf.needPkgInfo {
+			err = pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
+			check(err)
+		}
 		cmd := exec.Command("go", "build", ".")
 		cmd.Dir = base
 		cmd.Stdout = os.Stdout
@@ -155,9 +162,10 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	}
 
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
-		SrcFile: outfile,
-		Public:  conf.public,
-		Reused:  &conf.Reused,
+		SrcFile:     outfile,
+		Public:      conf.public,
+		NeedPkgInfo: conf.needPkgInfo,
+		Reused:      &conf.Reused,
 	})
 	check(err)
 }
