@@ -321,7 +321,7 @@ func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 }
 
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
-	src := goNode(v)
+	src := ctx.goNode(v)
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	arg1 := stk.Get(-2)

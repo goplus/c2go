@@ -186,7 +186,7 @@ func (p *loopCtx) labelStart(ctx *blockCtx) {
 type blockCtx struct {
 	pkg      *gox.Package
 	cb       *gox.CodeBuilder
-	fsetSrc  *token.FileSet
+	fset     *token.FileSet
 	tyI128   types.Type
 	tyU128   types.Type
 	unnameds map[ast.ID]*types.Named
@@ -275,8 +275,10 @@ func (p *blockCtx) leave(cur flowCtx) {
 	p.curflow = cur.Parent()
 }
 
-func (p *blockCtx) initFileLines() {
-	p.file.SetLinesForContent(p.initSource())
+func (p *blockCtx) initFile() {
+	src := p.initSource()
+	p.file = p.fset.AddFile(p.srcfile, -1, len(src))
+	p.file.SetLinesForContent(src)
 }
 
 func (p *blockCtx) initSource() []byte {
