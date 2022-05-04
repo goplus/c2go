@@ -51,7 +51,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.ParenExpr, ast.ConstantExpr:
 		compileExprEx(ctx, expr.Inner[0], prompt, flags)
 	case ast.CStyleCastExpr:
-		compileTypeCast(ctx, expr, goNode(expr))
+		compileTypeCast(ctx, expr, ctx.goNode(expr))
 	case ast.ArraySubscriptExpr:
 		compileArraySubscriptExpr(ctx, expr, (flags&flagLHS) != 0)
 	case ast.UnaryExprOrTypeTraitExpr:
@@ -82,11 +82,11 @@ func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
 }
 
 func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
-	ctx.cb.Val(&goast.BasicLit{Kind: kind, Value: expr.Value.(string)}, goNode(expr))
+	ctx.cb.Val(&goast.BasicLit{Kind: kind, Value: expr.Value.(string)}, ctx.goNode(expr))
 }
 
 func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
-	ctx.cb.Val(rune(expr.Value.(float64)), goNode(expr))
+	ctx.cb.Val(rune(expr.Value.(float64)), ctx.goNode(expr))
 }
 
 func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
@@ -256,7 +256,7 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 			cb.Val(o)
 			flags = gox.InstrFlagEllipsis
 		}
-		cb.CallWith(n-1, flags, goNode(v))
+		cb.CallWith(n-1, flags, ctx.goNode(v))
 	}
 }
 
@@ -292,7 +292,7 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	if name == "" { // anonymous
 		return
 	}
-	src := goNode(v)
+	src := ctx.goNode(v)
 	if lhs {
 		ctx.cb.MemberRef(name, src)
 	} else {
@@ -320,7 +320,7 @@ func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 		compileExpr(ctx, v.Inner[1])
 		if isBoolOp {
 			castToBoolExpr(ctx.cb)
-			ctx.cb.BinaryOp(op, goNode(v))
+			ctx.cb.BinaryOp(op, ctx.goNode(v))
 		} else {
 			binaryOp(ctx, op, v)
 		}
@@ -414,7 +414,7 @@ const (
 func compileSimpleAssignExpr(ctx *blockCtx, v *ast.Node) {
 	compileExprLHS(ctx, v.Inner[0])
 	compileExpr(ctx, v.Inner[1])
-	assign(ctx, goNode(v.Inner[1]))
+	assign(ctx, ctx.goNode(v.Inner[1]))
 }
 
 func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
@@ -423,7 +423,7 @@ func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
 	addr := cb.Scope().Lookup(addrVarName)
 	cb.Val(addr).ElemRef()
 	compileExpr(ctx, v.Inner[1])
-	assign(ctx, goNode(v.Inner[1]))
+	assign(ctx, ctx.goNode(v.Inner[1]))
 
 	cb.Val(addr).Elem().Return(1).End().Call(0)
 }
@@ -431,7 +431,7 @@ func compileAssignExpr(ctx *blockCtx, v *ast.Node) {
 func compileSimpleAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
 	compileExprLHS(ctx, v.Inner[0])
 	compileExpr(ctx, v.Inner[1])
-	assignOp(ctx, op, goNode(v.Inner[1]))
+	assignOp(ctx, op, ctx.goNode(v.Inner[1]))
 }
 
 func compileAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
@@ -440,7 +440,7 @@ func compileAssignOpExpr(ctx *blockCtx, op token.Token, v *ast.Node) {
 	addr := cb.Scope().Lookup(addrVarName)
 	cb.Val(addr).ElemRef()
 	compileExpr(ctx, v.Inner[1])
-	assignOp(ctx, op, goNode(v.Inner[1]))
+	assignOp(ctx, op, ctx.goNode(v.Inner[1]))
 
 	cb.Val(addr).Elem().Return(1).End().Call(0)
 }
@@ -524,7 +524,7 @@ func compileConditionalOperator(ctx *blockCtx, v *ast.Node) {
 func compileStarExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	cb := ctx.cb
 	compileExpr(ctx, v.Inner[0])
-	src := goNode(v)
+	src := ctx.goNode(v)
 	if lhs {
 		cb.ElemRef(src)
 	} else {

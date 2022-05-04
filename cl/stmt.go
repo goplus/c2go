@@ -395,14 +395,14 @@ func compileBreakStmt(ctx *blockCtx, stmt *ast.Node) {
 }
 
 func compileLabelStmt(ctx *blockCtx, stmt *ast.Node) {
-	l := ctx.getLabel(goNodePos(stmt), stmt.Name)
+	l := ctx.getLabel(ctx.goNodePos(stmt), stmt.Name)
 	ctx.cb.Label(l)
 	compileStmt(ctx, stmt.Inner[0])
 }
 
 func compileGotoStmt(ctx *blockCtx, stmt *ast.Node) {
 	label := ctx.labelOfGoto(stmt)
-	l := ctx.getLabel(goNodePos(stmt), label)
+	l := ctx.getLabel(ctx.goNodePos(stmt), label)
 	ctx.cb.Goto(l)
 }
 
@@ -414,7 +414,7 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 		cb := ctx.cb
 		typeCast(ctx, getRetType(cb), cb.Get(-1))
 	}
-	ctx.cb.Return(n, goNode(stmt))
+	ctx.cb.Return(n, ctx.goNode(stmt))
 }
 
 func getRetType(cb *gox.CodeBuilder) types.Type {

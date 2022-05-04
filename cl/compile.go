@@ -31,27 +31,34 @@ func SetDebug(flags int) {
 	debugMarkComplicated = (flags & DbgFlagMarkComplicated) != 0
 }
 
-type node ast.Node
+type node struct {
+	pos token.Pos
+	end token.Pos
+	ctx *blockCtx
+}
 
 func (p *node) Pos() token.Pos {
-	return token.Pos(p.Range.Begin.Offset) + fileBase
+	return p.pos
 }
 
 func (p *node) End() token.Pos {
-	end := p.Range.End
-	return token.Pos(int(end.Offset)+end.TokLen) + fileBase
+	return p.end
 }
 
-func goNode(v *ast.Node) goast.Node {
-	if v.Range != nil {
-		return (*node)(v)
+func (ctx *blockCtx) goNode(v *ast.Node) goast.Node {
+	if rg := v.Range; rg != nil && ctx.file != nil {
+		base := ctx.file.Base()
+		pos := token.Pos(int(rg.Begin.Offset) + base)
+		end := token.Pos(int(rg.End.Offset) + rg.End.TokLen + base)
+		return &node{pos: pos, end: end, ctx: ctx}
 	}
 	return nil
 }
 
-func goNodePos(v *ast.Node) token.Pos {
-	if v.Range != nil {
-		return token.Pos(v.Range.Begin.Offset) + fileBase
+func (ctx *blockCtx) goNodePos(v *ast.Node) token.Pos {
+	if rg := v.Range; rg != nil && ctx.file != nil {
+		base := ctx.file.Base()
+		return token.Pos(int(rg.Begin.Offset) + base)
 	}
 	return token.NoPos
 }
@@ -59,35 +66,34 @@ func goNodePos(v *ast.Node) token.Pos {
 // -----------------------------------------------------------------------------
 
 type nodeInterp struct {
-	ctx *blockCtx
+	fset *token.FileSet
 }
 
 func (p *nodeInterp) Position(start token.Pos) token.Position {
-	return p.ctx.fsetSrc.Position(start)
+	return p.fset.Position(start)
 }
 
 func (p *nodeInterp) Caller(v goast.Node) string {
-	if v.(*node).Kind == ast.CallExpr {
-		log.Panicln("TODO: nodeInterp.Caller")
-	}
 	return "the function call"
 }
 
-func (p *nodeInterp) LoadExpr(v goast.Node) (src string, pos token.Position) {
-	ctx := p.ctx
-	start := v.Pos()
-	pos = ctx.fsetSrc.Position(start)
-	n := int(v.End() - start)
-	src = string(ctx.src[pos.Offset : pos.Offset+n])
+func (p *nodeInterp) LoadExpr(v goast.Node) (code string, pos token.Position) {
+	src := v.(*node)
+	ctx := src.ctx
+	start := src.Pos()
+	n := int(src.End() - start)
+	pos = ctx.file.Position(start)
+	code = string(ctx.src[pos.Offset : pos.Offset+n])
 	return
 }
 
 // -----------------------------------------------------------------------------
 
 type Reused struct {
-	pkg    *gox.Package
-	exists map[string]none
-	base   int
+	pkg      *gox.Package
+	typdecls map[string]*gox.TypeDecl
+	exists   map[string]none
+	base     int
 }
 
 // Pkg returns the shared package instance.
@@ -96,6 +102,10 @@ func (p *Reused) Pkg() *gox.Package {
 }
 
 type Config struct {
+	// Fset provides source position information for syntax trees and types.
+	// If Fset is nil, Load will use a new fileset, but preserve Fset's value.
+	Fset *token.FileSet
+
 	// An Importer resolves import paths to Packages.
 	Importer types.Importer
 
@@ -121,17 +131,16 @@ type Package struct {
 }
 
 const (
-	fileBase     = 1
 	headerGoFile = "c2go_header.i.go"
 )
 
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
-	interp := &nodeInterp{}
 	if reused := conf.Reused; reused != nil && reused.pkg != nil {
 		pkg.Package = reused.pkg
 	} else {
+		interp := &nodeInterp{}
 		confGox := &gox.Config{
-			Fset:            nil,
+			Fset:            conf.Fset,
 			Importer:        conf.Importer,
 			LoadNamed:       nil,
 			HandleErr:       nil,
@@ -141,12 +150,13 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 			DefaultGoFile:   headerGoFile,
 		}
 		pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
+		interp.fset = pkg.Fset
 		if reused != nil {
 			reused.pkg = pkg.Package
 		}
 	}
-	pkg.Package.SetVarRedeclarable(true)
-	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file, interp)
+	pkg.SetVarRedeclarable(true)
+	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file)
 	return
 }
 
@@ -184,26 +194,22 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, conf *Config, file *ast.Node, interp *nodeInterp) (pi *PkgInfo, err error) {
+func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err error) {
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
-	fset := token.NewFileSet()
 	ctx := &blockCtx{
-		pkg: p, cb: p.CB(), fsetSrc: fset,
+		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
-		typdecls: make(map[string]*gox.TypeDecl),
 		gblvars:  make(map[string]*gox.VarDefs),
 		extfns:   make(map[string]none),
 		public:   conf.Public,
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
-	interp.ctx = ctx
-	ctx.file = fset.AddFile(conf.SrcFile, fileBase, 1<<30)
 	ctx.initMultiFileCtl(conf)
 	ctx.initCTypes()
-	ctx.initFileLines()
+	ctx.initFile()
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
 		pi = ctx.genPkgInfo()
@@ -314,7 +320,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 				}
 			}
 		}
-		f, err := pkg.NewFuncWith(goNodePos(fn), fnName, sig, nil)
+		f, err := pkg.NewFuncWith(ctx.goNodePos(fn), fnName, sig, nil)
 		if err != nil {
 			log.Panicln("compileFunc:", err)
 		}
@@ -342,7 +348,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			delete(ctx.extfns, fnName)
 		}
 	} else {
-		f := types.NewFunc(goNodePos(fn), pkg.Types, fn.Name, sig)
+		f := types.NewFunc(ctx.goNodePos(fn), pkg.Types, fn.Name, sig)
 		if pkg.Types.Scope().Insert(f) == nil && fn.IsUsed {
 			ctx.extfns[fn.Name] = none{}
 		}
@@ -392,7 +398,7 @@ func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
 func newParam(ctx *blockCtx, decl *ast.Node) *types.Var {
 	typ := toType(ctx, decl.Type, parser.FlagIsParam)
 	avoidKeyword(&decl.Name)
-	return types.NewParam(goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
+	return types.NewParam(ctx.goNodePos(decl), ctx.pkg.Types, decl.Name, typ)
 }
 
 // -----------------------------------------------------------------------------

@@ -55,7 +55,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
 				b.BitField(ctx, typ, decl.Name, int(bits))
 			} else {
-				b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
+				b.Field(ctx, ctx.goNodePos(decl), typ, decl.Name, false)
 			}
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
@@ -67,10 +67,10 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 				next := struc.Inner[i+1]
 				if next.Kind == ast.FieldDecl {
 					if next.IsImplicit {
-						b.Field(ctx, goNodePos(decl), typ, name, true)
+						b.Field(ctx, ctx.goNodePos(decl), typ, name, true)
 						i++
 					} else if ret, ok := checkAnonymous(ctx, scope, typ, next); ok {
-						b.Field(ctx, goNodePos(next), ret, next.Name, false)
+						b.Field(ctx, ctx.goNodePos(next), ret, next.Name, false)
 						i++
 						continue
 					}
@@ -97,7 +97,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
 			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
-			b.Field(ctx, goNodePos(decl), typ, decl.Name, false)
+			b.Field(ctx, ctx.goNodePos(decl), typ, decl.Name, false)
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
 			typ := compileStructOrUnion(ctx, name, decl)
@@ -108,10 +108,10 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
 				next := unio.Inner[i+1]
 				if next.Kind == ast.FieldDecl {
 					if next.IsImplicit {
-						b.Field(ctx, goNodePos(decl), typ, name, true)
+						b.Field(ctx, ctx.goNodePos(decl), typ, name, true)
 						i++
 					} else if ret, ok := checkAnonymous(ctx, scope, typ, next); ok {
-						b.Field(ctx, goNodePos(next), ret, next.Name, false)
+						b.Field(ctx, ctx.goNodePos(next), ret, next.Name, false)
 						i++
 						continue
 					}
@@ -161,7 +161,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 		if item.Kind == "ElaboratedType" {
 			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
 				if owned.Kind == ast.EnumDecl {
-					ctx.cb.AliasType(name, ctypes.Enum, goNodePos(decl))
+					ctx.cb.AliasType(name, ctypes.Enum, ctx.goNodePos(decl))
 					return
 				}
 				id := owned.ID
@@ -185,7 +185,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 			}
 		}
 	}
-	ctx.cb.AliasType(name, typ, goNodePos(decl))
+	ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
 }
 
 func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Named {
@@ -194,7 +194,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 	}
 	t, decled := ctx.typdecls[name]
 	if !decled {
-		t = ctx.cb.NewType(name, goNodePos(decl))
+		t = ctx.cb.NewType(name, ctx.goNodePos(decl))
 		ctx.typdecls[name] = t
 	}
 	if decl.CompleteDefinition {
@@ -237,7 +237,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav in
 		}
 		return 1
 	}
-	cdecl.New(fn, iotav, goNodePos(v), ctypes.Enum, v.Name)
+	cdecl.New(fn, iotav, ctx.goNodePos(v), ctypes.Enum, v.Name)
 	return iotav + 1
 }
 
@@ -253,7 +253,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, flags)
 	avoidKeyword(&decl.Name)
 	if flags == parser.FlagIsExtern {
-		scope.Insert(types.NewVar(goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
+		scope.Insert(types.NewVar(ctx.goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
 	} else {
 		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
 			return
@@ -279,7 +279,7 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 	if debugCompileDecl {
 		log.Println("var", decl.Name, typ, "-", decl.Kind)
 	}
-	varDecl, inVBlock := ctx.newVar(scope, goNodePos(decl), typ, decl.Name)
+	varDecl, inVBlock := ctx.newVar(scope, ctx.goNodePos(decl), typ, decl.Name)
 	if len(decl.Inner) > 0 {
 		initExpr := decl.Inner[0]
 		if ufs, ok := checkUnion(ctx, typ); ok {

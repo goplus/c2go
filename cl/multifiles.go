@@ -5,26 +5,34 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/goplus/c2go/clang/ast"
 	ctypes "github.com/goplus/c2go/clang/types"
+
+	"github.com/goplus/c2go/clang/ast"
+	"github.com/goplus/gox"
 )
 
 type multiFileCtl struct {
-	exists   map[string]none
-	base     *int // anonymous struct/union
+	typdecls map[string]*gox.TypeDecl
+	exists   map[string]none // only valid on hasMulti
+	base     *int            // anonymous struct/union
 	hasMulti bool
-	inHeader bool
+	inHeader bool // only valid on hasMulti
 }
 
 func (p *multiFileCtl) initMultiFileCtl(conf *Config) {
 	if reused := conf.Reused; reused != nil {
+		if reused.typdecls == nil {
+			reused.typdecls = make(map[string]*gox.TypeDecl)
+		}
 		if reused.exists == nil {
 			reused.exists = make(map[string]none)
 		}
+		p.typdecls = reused.typdecls
 		p.exists = reused.exists
 		p.base = &reused.base
 		p.hasMulti = true
 	} else {
+		p.typdecls = make(map[string]*gox.TypeDecl)
 		p.base = new(int)
 	}
 }

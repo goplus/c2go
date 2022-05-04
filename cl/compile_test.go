@@ -89,10 +89,10 @@ func newTestEnv(code string) *testEnv {
 	doc, src := parse(code, &json)
 	p := gox.NewPackage("", "main", nil)
 	ctx := &blockCtx{
-		pkg: p, cb: p.CB(), fsetSrc: p.Fset, src: src,
+		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
 		unnameds: make(map[ast.ID]*types.Named),
-		typdecls: make(map[string]*gox.TypeDecl),
 	}
+	ctx.typdecls = make(map[string]*gox.TypeDecl)
 	ctx.initCTypes()
 	return &testEnv{doc: doc, pkg: p, ctx: ctx, json: json}
 }
@@ -154,15 +154,15 @@ void test(int var) {
 func TestNodeInterp(t *testing.T) {
 	fset := token.NewFileSet()
 	ctx := &blockCtx{
-		fsetSrc: fset,
+		fset: fset,
 		src: []byte(`
 void test(int var) {
 }
 `)}
-	ctx.file = fset.AddFile(ctx.srcfile, fileBase, 1<<30)
-	interp := &nodeInterp{ctx: ctx}
-	rg := &ast.Range{}
-	v := &node{Range: rg}
+	ctx.file = fset.AddFile(ctx.srcfile, -1, 1<<30)
+	interp := &nodeInterp{fset: fset}
+	base := token.Pos(ctx.file.Base())
+	v := &node{ctx: ctx, pos: base, end: base}
 	src, pos := interp.LoadExpr(v)
 	if src != "" || pos.String() != "1:1" {
 		t.Fatal("interp.LoadExpr:", src, pos)
