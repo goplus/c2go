@@ -12,27 +12,34 @@ import (
 )
 
 type multiFileCtl struct {
-	typdecls map[string]*gox.TypeDecl
+	PkgInfo
 	exists   map[string]none // only valid on hasMulti
 	base     *int            // anonymous struct/union
 	hasMulti bool
 	inHeader bool // only valid on hasMulti
 }
 
-func (p *multiFileCtl) initMultiFileCtl(conf *Config) {
+func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 	if reused := conf.Reused; reused != nil {
-		if reused.typdecls == nil {
-			reused.typdecls = make(map[string]*gox.TypeDecl)
+		pi := reused.pkg.pi
+		if pi == nil {
+			pi = new(PkgInfo)
+			pi.typdecls = make(map[string]*gox.TypeDecl)
+			pi.extfns = make(map[string]none)
+			reused.pkg.pi = pi
+			reused.pkg.Package = pkg
 		}
+		p.typdecls = pi.typdecls
+		p.extfns = pi.extfns
 		if reused.exists == nil {
 			reused.exists = make(map[string]none)
 		}
-		p.typdecls = reused.typdecls
 		p.exists = reused.exists
 		p.base = &reused.base
 		p.hasMulti = true
 	} else {
 		p.typdecls = make(map[string]*gox.TypeDecl)
+		p.extfns = make(map[string]none)
 		p.base = new(int)
 	}
 }

@@ -192,7 +192,6 @@ type blockCtx struct {
 	unnameds map[ast.ID]*types.Named
 	gblvars  map[string]*gox.VarDefs
 	public   map[string]string
-	extfns   map[string]none // external functions which are used
 	srcfile  string
 	src      []byte
 	file     *token.File

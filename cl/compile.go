@@ -89,15 +89,29 @@ func (p *nodeInterp) LoadExpr(v goast.Node) (code string, pos token.Position) {
 
 // -----------------------------------------------------------------------------
 
-type Reused struct {
-	pkg      *gox.Package
+type PkgInfo struct {
 	typdecls map[string]*gox.TypeDecl
-	exists   map[string]none
-	base     int
+	extfns   map[string]none // external functions which are used
+}
+
+type Package struct {
+	*gox.Package
+	pi *PkgInfo
+}
+
+// IsValid returns is this package instance valid or not.
+func (p Package) IsValid() bool {
+	return p.Package != nil
+}
+
+type Reused struct {
+	pkg    Package
+	exists map[string]none
+	base   int
 }
 
 // Pkg returns the shared package instance.
-func (p *Reused) Pkg() *gox.Package {
+func (p *Reused) Pkg() Package {
 	return p.pkg
 }
 
@@ -125,18 +139,13 @@ type Config struct {
 	NeedPkgInfo bool
 }
 
-type Package struct {
-	*gox.Package
-	*PkgInfo
-}
-
 const (
 	headerGoFile = "c2go_header.i.go"
 )
 
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
-	if reused := conf.Reused; reused != nil && reused.pkg != nil {
-		pkg.Package = reused.pkg
+	if reused := conf.Reused; reused != nil && reused.pkg.Package != nil {
+		pkg = reused.pkg
 	} else {
 		interp := &nodeInterp{}
 		confGox := &gox.Config{
@@ -151,12 +160,9 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		}
 		pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
 		interp.fset = pkg.Fset
-		if reused != nil {
-			reused.pkg = pkg.Package
-		}
 	}
 	pkg.SetVarRedeclarable(true)
-	pkg.PkgInfo, err = loadFile(pkg.Package, conf, file)
+	pkg.pi, err = loadFile(pkg.Package, conf, file)
 	return
 }
 
@@ -202,12 +208,11 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		gblvars:  make(map[string]*gox.VarDefs),
-		extfns:   make(map[string]none),
 		public:   conf.Public,
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
 	}
-	ctx.initMultiFileCtl(conf)
+	ctx.initMultiFileCtl(p, conf)
 	ctx.initCTypes()
 	ctx.initFile()
 	compileDeclStmt(ctx, file, true)
@@ -312,13 +317,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		if fnName == "main" && (results != nil || params != nil) {
 			fnName, isMain = "_cgo_main", true
 		} else {
-			if goName, ok := ctx.public[fnName]; ok {
-				if goName != "" {
-					fnName = goName
-				} else {
-					fnName = title(fnName)
-				}
-			}
+			ctx.getPubName(&fnName)
 		}
 		f, err := pkg.NewFuncWith(ctx.goNodePos(fn), fnName, sig, nil)
 		if err != nil {
@@ -353,6 +352,18 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ctx.extfns[fn.Name] = none{}
 		}
 	}
+}
+
+func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
+	goName, ok := p.public[*pfnName]
+	if ok {
+		if goName != "" {
+			*pfnName = goName
+		} else {
+			*pfnName = title(*pfnName)
+		}
+	}
+	return
 }
 
 func title(name string) string {
