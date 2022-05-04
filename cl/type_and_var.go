@@ -509,6 +509,13 @@ func isCharArray(typ types.Type) bool {
 func initWithStringLiteral(ctx *blockCtx, typ types.Type, decl *ast.Node) bool {
 	if isCharArray(typ) {
 		switch decl.Kind {
+		case ast.InitListExpr:
+			inner := decl.Inner
+			if len(inner) != 1 || inner[0].Kind != ast.StringLiteral {
+				break
+			}
+			decl = inner[0]
+			fallthrough
 		case ast.StringLiteral:
 			s, err := strconv.Unquote(decl.Value.(string))
 			if err != nil {
