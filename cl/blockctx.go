@@ -280,6 +280,9 @@ func (p *blockCtx) initFileLines() {
 }
 
 func (p *blockCtx) initSource() []byte {
+	if p.src != nil {
+		return p.src
+	}
 	b, err := os.ReadFile(p.srcfile)
 	if err != nil {
 		log.Panicln("initSource:", err)
