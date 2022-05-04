@@ -7,6 +7,8 @@ c2go - Convert C to Go
 [![Coverage Status](https://codecov.io/gh/goplus/c2go/branch/main/graph/badge.svg)](https://codecov.io/gh/goplus/c2go)
 [![GoDoc](https://pkg.go.dev/badge/github.com/goplus/c2go.svg)](https://pkg.go.dev/mod/github.com/goplus/c2go)
 
+This is a subproject of [the Go+ project](https://github.com/goplus/gop).
+
 ![Screen Shot1](https://user-images.githubusercontent.com/396972/160951673-30ec62ae-2981-4cdf-a1ab-bc7fcb6f7475.png)
 
 
