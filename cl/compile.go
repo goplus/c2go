@@ -275,9 +275,9 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 }
 
 func compileFunc(ctx *blockCtx, fn *ast.Node) {
-	fnType := fn.Type
+	fnName, fnType := fn.Name, fn.Type
 	if debugCompileDecl {
-		log.Println("func", fn.Name, "-", fnType.QualType, fn.Loc.PresumedLine)
+		log.Println("func", fnName, "-", fnType.QualType, fn.Loc.PresumedLine)
 	}
 	var hasName bool
 	var params []*types.Var
@@ -312,19 +312,18 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		results = types.NewTuple(pkg.NewParam(token.NoPos, "", tyRet))
 	}
 	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
+	ctx.getPubName(&fnName)
 	if body != nil {
-		fnName, isMain := fn.Name, false
+		isMain := false
 		if fnName == "main" && (results != nil || params != nil) {
 			fnName, isMain = "_cgo_main", true
-		} else {
-			ctx.getPubName(&fnName)
 		}
 		f, err := pkg.NewFuncWith(ctx.goNodePos(fn), fnName, sig, nil)
 		if err != nil {
 			log.Panicln("compileFunc:", err)
 		}
 		cb := f.BodyStart(pkg)
-		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fn.Name, body))
+		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fnName, body))
 		compileSub(ctx, body)
 		checkNeedReturn(ctx, body)
 		ctx.curfn = nil
@@ -347,9 +346,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			delete(ctx.extfns, fnName)
 		}
 	} else if fn.IsUsed {
-		f := types.NewFunc(ctx.goNodePos(fn), pkg.Types, fn.Name, sig)
+		f := types.NewFunc(ctx.goNodePos(fn), pkg.Types, fnName, sig)
 		if pkg.Types.Scope().Insert(f) == nil {
-			ctx.extfns[fn.Name] = none{}
+			ctx.extfns[fnName] = none{}
 		}
 	}
 }
