@@ -315,6 +315,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
 	ctx.getPubName(&fnName)
 	if body != nil {
+		if ctx.checkExists(fnName) {
+			return
+		}
 		isMain := false
 		if fnName == "main" && (results != nil || params != nil) {
 			fnName, isMain = "_cgo_main", true
