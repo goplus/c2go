@@ -262,6 +262,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			}
 		case ast.EnumDecl:
 			compileEnum(ctx, decl)
+		case ast.EmptyDecl:
 		case ast.FunctionDecl:
 			if global {
 				compileFunc(ctx, decl)
