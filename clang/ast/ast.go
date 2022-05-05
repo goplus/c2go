@@ -51,6 +51,7 @@ const (
 	FieldDecl                Kind = "FieldDecl"
 	IndirectFieldDecl        Kind = "IndirectFieldDecl"
 	VarDecl                  Kind = "VarDecl"
+	EmptyDecl                Kind = "EmptyDecl"
 	EnumDecl                 Kind = "EnumDecl"
 	EnumConstantDecl         Kind = "EnumConstantDecl"
 	AlwaysInlineAttr         Kind = "AlwaysInlineAttr"
