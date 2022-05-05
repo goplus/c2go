@@ -97,7 +97,11 @@ func execProj(projfile string, flags int) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
 		dir := resolvePath(base, conf.Target.Dir)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
-			err = pkg.WriteFile(filepath.Join(dir, fname), fname)
+			gofile := fname
+			if strings.HasPrefix(fname, "_") {
+				gofile = "c2go" + fname
+			}
+			err = pkg.WriteFile(filepath.Join(dir, gofile), fname)
 			check(err)
 		})
 		if conf.needPkgInfo {
