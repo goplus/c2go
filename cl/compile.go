@@ -346,9 +346,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		} else {
 			delete(ctx.extfns, fnName)
 		}
-	} else {
+	} else if fn.IsUsed {
 		f := types.NewFunc(ctx.goNodePos(fn), pkg.Types, fn.Name, sig)
-		if pkg.Types.Scope().Insert(f) == nil && fn.IsUsed {
+		if pkg.Types.Scope().Insert(f) == nil {
 			ctx.extfns[fn.Name] = none{}
 		}
 	}
