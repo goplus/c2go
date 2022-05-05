@@ -223,7 +223,7 @@ func (p *parser) lookupType(tylit string, flags int) (t types.Type, err error) {
 		return nil, ErrInvalidType
 	}
 	if t == types.Typ[types.Int] {
-		return types.Typ[types.Int32], nil
+		return ctypes.Int, nil
 	}
 	return
 }
@@ -358,7 +358,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				if t != nil {
 					return nil, 0, p.newError("illegal syntax: multiple types?")
 				}
-				t = ctypes.Enum
+				t = ctypes.Int
 				continue
 			case "struct", "union":
 				p.next()

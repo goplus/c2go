@@ -161,7 +161,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 		if item.Kind == "ElaboratedType" {
 			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
 				if owned.Kind == ast.EnumDecl {
-					ctx.cb.AliasType(name, ctypes.Enum, ctx.goNodePos(decl))
+					ctx.cb.AliasType(name, ctypes.Int, ctx.goNodePos(decl))
 					return
 				}
 				id := owned.ID
@@ -237,7 +237,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav in
 		}
 		return 1
 	}
-	cdecl.New(fn, iotav, ctx.goNodePos(v), ctypes.Enum, v.Name)
+	cdecl.New(fn, iotav, ctx.goNodePos(v), ctypes.Int, v.Name)
 	return iotav + 1
 }
 

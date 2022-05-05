@@ -166,7 +166,7 @@ var cases = []testCase{
 	{qualType: "void (*(int, void (*)(int)))(int)", flags: FlagGetRetType, typ: tyFnHandle},
 	{qualType: "int (*)(void *, int, const char *, void (**)(void *, int, void **), void **)"},
 	{qualType: "struct (anonymous) [2]", anonym: tyInt, typ: types.NewArray(tyInt, 2)},
-	{qualType: "enum a", typ: ctypes.Enum},
+	{qualType: "enum a", typ: ctypes.Int},
 }
 
 func TestCases(t *testing.T) {

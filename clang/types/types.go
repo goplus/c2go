@@ -19,7 +19,6 @@ var (
 	Long    = types.Typ[uintptr(types.Int32)+unsafe.Sizeof(0)>>3]  // int32/int64
 	Ulong   = types.Typ[uintptr(types.Uint32)+unsafe.Sizeof(0)>>3] // uint32/uint64
 	NotImpl = UnsafePointer
-	Enum    = types.Typ[types.Int32]
 
 	LongDouble = types.Typ[types.Float64]
 )
