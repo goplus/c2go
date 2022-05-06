@@ -246,8 +246,15 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		log.Println("varDecl", decl.Name, "-", decl.Loc.PresumedLine)
 	}
 	flags := 0
-	if decl.StorageClass == ast.Extern {
+	static := ""
+	switch decl.StorageClass {
+	case ast.Extern:
 		flags = parser.FlagIsExtern
+	case ast.Static:
+		if global {
+			static = decl.Name // don't set static if not in global
+			decl.Name = ctx.autoStaticName(static)
+		}
 	}
 	scope := ctx.cb.Scope()
 	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, flags)
@@ -262,6 +269,16 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		if kind == parser.KindFVolatile && !global {
 			addr := gox.Lookup(scope, decl.Name)
 			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
+		} else if static != "" {
+			real := scope.Lookup(decl.Name)
+			old := scope.Insert(gox.NewSubstVar(token.NoPos, ctx.pkg.Types, static, real))
+			if old != nil {
+				if t, ok := old.Type().(*gox.SubstType); ok {
+					t.Real = real
+				} else {
+					log.Panicln("compileVarDecl: variable exists -", static)
+				}
+			}
 		}
 	}
 }

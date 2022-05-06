@@ -57,6 +57,11 @@ func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
 	return "_cgoa_" + strconv.Itoa(*p.base), suAnonymous
 }
 
+func (p *blockCtx) autoStaticName(name string) string {
+	*p.base++
+	return name + "_cgo" + strconv.Itoa(*p.base)
+}
+
 func (p *blockCtx) logFile(node *ast.Node) {
 	if f := node.Loc.PresumedFile; f != "" {
 		if debugCompileDecl {
