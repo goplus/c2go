@@ -132,6 +132,9 @@ type Config struct {
 	// Public specifies all public C names and their corresponding Go names.
 	Public map[string]string
 
+	// Ignored specifies all ignored symbols (types, functions, etc).
+	Ignored []string
+
 	// Reused specifies to reuse the Package instance between processing multiple C source files.
 	*Reused
 
@@ -208,6 +211,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]*types.Named),
 		gblvars:  make(map[string]*gox.VarDefs),
+		ignored:  conf.Ignored,
 		public:   conf.Public,
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
@@ -352,7 +356,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	} else if fn.IsUsed {
 		f := types.NewFunc(ctx.goNodePos(fn), pkg.Types, fnName, sig)
 		if pkg.Types.Scope().Insert(f) == nil {
-			ctx.extfns[fnName] = none{}
+			ctx.addExternFunc(fnName)
 		}
 	}
 }

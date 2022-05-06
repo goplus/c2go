@@ -192,12 +192,22 @@ type blockCtx struct {
 	unnameds map[ast.ID]*types.Named
 	gblvars  map[string]*gox.VarDefs
 	public   map[string]string
+	ignored  []string
 	srcfile  string
 	src      []byte
 	file     *token.File
 	curfn    *funcCtx
 	curflow  flowCtx
 	multiFileCtl
+}
+
+func (p *blockCtx) addExternFunc(name string) {
+	for _, ign := range p.ignored {
+		if ign == name {
+			return
+		}
+	}
+	p.extfns[name] = none{}
 }
 
 func (p *blockCtx) lookupParent(name string) types.Object {

@@ -20,9 +20,14 @@ type c2goTarget struct {
 	Dir  string `json:"dir"`
 }
 
+type c2goIgnore struct {
+	Names []string `json:"names"`
+}
+
 type c2goSource struct {
-	Dirs  []string `json:"dirs"`
-	Files []string `json:"files"`
+	Dirs   []string   `json:"dirs"`
+	Files  []string   `json:"files"`
+	Ignore c2goIgnore `json:"ignore"`
 }
 
 type c2goConf struct {
@@ -169,6 +174,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		SrcFile:     outfile,
 		Public:      conf.public,
 		NeedPkgInfo: conf.needPkgInfo,
+		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
 	})
 	check(err)

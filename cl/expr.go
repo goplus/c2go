@@ -168,7 +168,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		compileExpr(ctx, v.Inner[0])
 	case ast.BuiltinFnToFnPtr:
 		if fn, ok := getBuiltinFn(v.Inner[0]); ok && ctx.pkg.Types.Scope().Lookup(fn) != nil {
-			ctx.extfns[fn] = none{}
+			ctx.addExternFunc(fn)
 		}
 		fallthrough
 	case ast.FunctionToPointerDecay:
@@ -607,7 +607,7 @@ func compileAtomicExpr(ctx *blockCtx, v *ast.Node) {
 	}
 	cb.Call(len(v.Inner))
 	if fn, ok := getCaller(cb); ok {
-		ctx.extfns[fn] = none{}
+		ctx.addExternFunc(fn)
 	}
 }
 
