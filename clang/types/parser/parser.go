@@ -60,6 +60,7 @@ type Config struct {
 
 const (
 	KindFConst = 1 << iota
+	KindFVolatile
 	KindFAnonymous
 	KindFVariadic
 )
@@ -348,9 +349,11 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				flags |= flagSigned
 			case "const":
 				kind |= KindFConst
+			case "volatile":
+				kind |= KindFVolatile
 			case "_Complex":
 				flags |= flagComplex
-			case "volatile", "restrict", "_Nullable", "_Nonnull":
+			case "restrict", "_Nullable", "_Nonnull":
 			case "enum":
 				if err = p.expect(token.IDENT); err != nil {
 					return

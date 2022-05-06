@@ -21,6 +21,10 @@ void h() {
     g(0) && g(1);
 }
 
+void unused() {
+    volatile int y = 0; // same as: (void)y;
+}
+
 typedef struct {
     char msg[10];
 } foo_t;

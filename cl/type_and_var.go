@@ -259,6 +259,10 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl, global)
+		if kind == parser.KindFVolatile && !global {
+			addr := gox.Lookup(scope, decl.Name)
+			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
+		}
 	}
 }
 
