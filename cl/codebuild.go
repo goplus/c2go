@@ -366,6 +366,15 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			log.Panicln("binaryOp token.ADD/SUB - TODO: unexpected")
 		}
 	}
+	if !isShiftOpertor(op) {
+		isUnt1 := isUntyped(arg1.Type)
+		isUnt2 := isUntyped(arg2.Type)
+		if isUnt1 && !isUnt2 {
+			adjustIntConst(ctx, arg1, arg2.Type)
+		} else if isUnt2 && !isUnt1 {
+			adjustIntConst(ctx, arg2, arg1.Type)
+		}
+	}
 	if isCmpOperator(op) {
 		kind1 := checkNilComparable(arg1)
 		kind2 := checkNilComparable(arg2)
@@ -387,14 +396,6 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			castPtrOrFnPtrType(cb, kind2, arg2.Type, tyUintptr, arg2)
 			cb.BinaryOp(op, src)
 			return
-		}
-	} else if !isShiftOpertor(op) {
-		isUnt1 := isUntyped(arg1.Type)
-		isUnt2 := isUntyped(arg2.Type)
-		if isUnt1 && !isUnt2 {
-			adjustIntConst(ctx, arg1, arg2.Type)
-		} else if isUnt2 && !isUnt1 {
-			adjustIntConst(ctx, arg2, arg1.Type)
 		}
 	}
 	t := toType(ctx, v.Type, 0)
