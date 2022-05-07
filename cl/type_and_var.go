@@ -245,6 +245,9 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	if debugCompileDecl {
 		log.Println("varDecl", decl.Name, "-", decl.Loc.PresumedLine)
 	}
+	if global {
+		ctx.getPubName(&decl.Name)
+	}
 	flags := 0
 	static := ""
 	switch decl.StorageClass {
