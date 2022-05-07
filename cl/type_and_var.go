@@ -273,15 +273,19 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 			addr := gox.Lookup(scope, decl.Name)
 			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
 		} else if static != "" {
-			real := scope.Lookup(decl.Name)
-			old := scope.Insert(gox.NewSubstVar(token.NoPos, ctx.pkg.Types, static, real))
-			if old != nil {
-				if t, ok := old.Type().(*gox.SubstType); ok {
-					t.Real = real
-				} else {
-					log.Panicln("compileVarDecl: variable exists -", static)
-				}
-			}
+			substObj(ctx.pkg.Types, scope, static, decl.Name)
+		}
+	}
+}
+
+func substObj(pkg *types.Package, scope *types.Scope, static, name string) {
+	real := scope.Lookup(name)
+	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, static, real))
+	if old != nil {
+		if t, ok := old.Type().(*gox.SubstType); ok {
+			t.Real = real
+		} else {
+			log.Panicln(static, "redefined")
 		}
 	}
 }

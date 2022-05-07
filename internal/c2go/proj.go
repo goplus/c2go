@@ -71,7 +71,7 @@ func loadPubFile(pubfile string) map[string]string {
 	return ret
 }
 
-func execProj(projfile string, flags int) {
+func execProj(projfile string, flags int, in *Config) {
 	b, err := os.ReadFile(projfile)
 	check(err)
 
@@ -92,11 +92,15 @@ func execProj(projfile string, flags int) {
 	conf.public = loadPubFile(pubfile)
 	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
 
-	for _, dir := range conf.Source.Dirs {
-		execProjDir(resolvePath(base, dir), &conf, flags)
-	}
-	for _, file := range conf.Source.Files {
-		execProjFile(resolvePath(base, file), &conf, flags)
+	if in != nil && in.Select != "" {
+		execProjFile(resolvePath(base, in.Select), &conf, flags)
+	} else {
+		for _, dir := range conf.Source.Dirs {
+			execProjDir(resolvePath(base, dir), &conf, flags)
+		}
+		for _, file := range conf.Source.Files {
+			execProjFile(resolvePath(base, file), &conf, flags)
+		}
 	}
 
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {

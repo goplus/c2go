@@ -317,7 +317,13 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		results = types.NewTuple(pkg.NewParam(token.NoPos, "", tyRet))
 	}
 	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
-	ctx.getPubName(&fnName)
+	static := ""
+	if fn.StorageClass == ast.Static {
+		static = fnName
+		fnName = ctx.autoStaticName(static)
+	} else {
+		ctx.getPubName(&fnName)
+	}
 	if body != nil {
 		if ctx.checkExists(fnName) {
 			return
@@ -358,6 +364,9 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		if pkg.Types.Scope().Insert(f) == nil {
 			ctx.addExternFunc(fnName)
 		}
+	}
+	if static != "" {
+		substObj(pkg.Types, pkg.Types.Scope(), static, fnName)
 	}
 }
 

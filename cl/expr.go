@@ -68,6 +68,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileAtomicExpr(ctx, expr)
 	case ast.OffsetOfExpr:
 		compileOffsetOfExpr(ctx, expr)
+	case ast.VisibilityAttr:
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}
