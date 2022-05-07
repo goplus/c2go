@@ -40,5 +40,6 @@ int main() {
     pfoo->msg[0] += 'a'-'A',
     pfoo->msg[2] = '!', printf("%s\n", foo.msg);
     h();
+    printf("%d\n", (int)((-0x2000ULL << (8*sizeof(long)-1)) | (4096ULL -1)));
     return 0;
 }
