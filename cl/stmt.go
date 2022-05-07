@@ -252,6 +252,7 @@ func compileInitStmt(ctx *blockCtx, initStmt *ast.Node) {
 				return
 			}
 		}
+		fallthrough
 	default:
 		compileStmt(ctx, initStmt)
 	}
