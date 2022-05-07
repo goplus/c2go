@@ -580,7 +580,7 @@ func typeCastIndex(ctx *blockCtx, lhs bool) {
 	cb := ctx.cb
 	v := cb.Get(-2)
 	switch v.Type.(type) {
-	case *types.Pointer: // p[n] = *(p+n)
+	case *types.Pointer, *types.Basic: // p[n] = *(p+n), n[p] = *(n+p)
 		binaryOp(ctx, token.ADD, &cast.Node{})
 		if lhs {
 			cb.ElemRef()
