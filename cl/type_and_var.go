@@ -308,8 +308,12 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 		log.Println("var", decl.Name, typ, "-", decl.Kind)
 	}
 	varDecl, inVBlock := ctx.newVar(scope, ctx.goNodePos(decl), typ, decl.Name)
-	if len(decl.Inner) > 0 {
-		initExpr := decl.Inner[0]
+	inner := decl.Inner
+	if len(inner) == 1 && inner[0].Kind == ast.VisibilityAttr {
+		inner = inner[1:]
+	}
+	if len(inner) > 0 {
+		initExpr := inner[0]
 		if ufs, ok := checkUnion(ctx, typ); ok {
 			if inVBlock {
 				log.Panicln("TODO: initUnionVar inVBlock")
