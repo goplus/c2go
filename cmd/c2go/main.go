@@ -17,6 +17,7 @@ var (
 	gendeps    = flag.Bool("gendeps", false, "generate dependencies automatically")
 	json       = flag.Bool("json", false, "dump C AST to a file in json format")
 	test       = flag.Bool("test", false, "run test")
+	sel        = flag.String("sel", "", "select a file (only available in project mode)")
 )
 
 func usage() {
@@ -64,5 +65,9 @@ func main() {
 	if *json {
 		flags |= c2go.FlagDumpJson
 	}
-	c2go.Run(pkgname, infile, flags)
+	var conf *c2go.Config
+	if *sel != "" {
+		conf = &c2go.Config{Select: *sel}
+	}
+	c2go.Run(pkgname, infile, flags, conf)
 }

@@ -9,6 +9,22 @@ void f() {
 	}
 }
 
+int g(int ret) {
+    printf("%d\n", ret);
+    return ret;
+}
+
+void h() {
+    g(1) || g(0);
+    g(0) || g(1);
+    g(1) && g(0);
+    g(0) && g(1);
+}
+
+void unused() {
+    volatile int y = 0; // same as: (void)y;
+}
+
 typedef struct {
     char msg[10];
 } foo_t;
@@ -23,5 +39,6 @@ int main() {
     pmsg[1] = (msg[0]>='a'?'!':'?'), printf("%s\n", pmsg),
     pfoo->msg[0] += 'a'-'A',
     pfoo->msg[2] = '!', printf("%s\n", foo.msg);
+    h();
     return 0;
 }

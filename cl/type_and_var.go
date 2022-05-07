@@ -161,7 +161,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 		if item.Kind == "ElaboratedType" {
 			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
 				if owned.Kind == ast.EnumDecl {
-					ctx.cb.AliasType(name, ctypes.Enum, ctx.goNodePos(decl))
+					ctx.cb.AliasType(name, ctypes.Int, ctx.goNodePos(decl))
 					return
 				}
 				id := owned.ID
@@ -237,7 +237,7 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav in
 		}
 		return 1
 	}
-	cdecl.New(fn, iotav, ctx.goNodePos(v), ctypes.Enum, v.Name)
+	cdecl.New(fn, iotav, ctx.goNodePos(v), ctypes.Int, v.Name)
 	return iotav + 1
 }
 
@@ -245,9 +245,19 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	if debugCompileDecl {
 		log.Println("varDecl", decl.Name, "-", decl.Loc.PresumedLine)
 	}
+	if global {
+		ctx.getPubName(&decl.Name)
+	}
 	flags := 0
-	if decl.StorageClass == ast.Extern {
+	static := ""
+	switch decl.StorageClass {
+	case ast.Extern:
 		flags = parser.FlagIsExtern
+	case ast.Static:
+		if global {
+			static = decl.Name // don't set static if not in global
+			decl.Name = ctx.autoStaticName(static)
+		}
 	}
 	scope := ctx.cb.Scope()
 	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, flags)
@@ -259,6 +269,24 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl, global)
+		if kind == parser.KindFVolatile && !global {
+			addr := gox.Lookup(scope, decl.Name)
+			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
+		} else if static != "" {
+			substObj(ctx.pkg.Types, scope, static, decl.Name)
+		}
+	}
+}
+
+func substObj(pkg *types.Package, scope *types.Scope, static, name string) {
+	real := scope.Lookup(name)
+	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, static, real))
+	if old != nil {
+		if t, ok := old.Type().(*gox.SubstType); ok {
+			t.Real = real
+		} else {
+			log.Panicln(static, "redefined")
+		}
 	}
 }
 
@@ -280,8 +308,12 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 		log.Println("var", decl.Name, typ, "-", decl.Kind)
 	}
 	varDecl, inVBlock := ctx.newVar(scope, ctx.goNodePos(decl), typ, decl.Name)
-	if len(decl.Inner) > 0 {
-		initExpr := decl.Inner[0]
+	inner := decl.Inner
+	if len(inner) == 1 && inner[0].Kind == ast.VisibilityAttr {
+		inner = inner[1:]
+	}
+	if len(inner) > 0 {
+		initExpr := inner[0]
 		if ufs, ok := checkUnion(ctx, typ); ok {
 			if inVBlock {
 				log.Panicln("TODO: initUnionVar inVBlock")

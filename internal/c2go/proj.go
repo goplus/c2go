@@ -20,9 +20,14 @@ type c2goTarget struct {
 	Dir  string `json:"dir"`
 }
 
+type c2goIgnore struct {
+	Names []string `json:"names"`
+}
+
 type c2goSource struct {
-	Dirs  []string `json:"dirs"`
-	Files []string `json:"files"`
+	Dirs   []string   `json:"dirs"`
+	Files  []string   `json:"files"`
+	Ignore c2goIgnore `json:"ignore"`
 }
 
 type c2goConf struct {
@@ -66,7 +71,7 @@ func loadPubFile(pubfile string) map[string]string {
 	return ret
 }
 
-func execProj(projfile string, flags int) {
+func execProj(projfile string, flags int, in *Config) {
 	b, err := os.ReadFile(projfile)
 	check(err)
 
@@ -87,17 +92,25 @@ func execProj(projfile string, flags int) {
 	conf.public = loadPubFile(pubfile)
 	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
 
-	for _, dir := range conf.Source.Dirs {
-		execProjDir(resolvePath(base, dir), &conf, flags)
-	}
-	for _, file := range conf.Source.Files {
-		execProjFile(resolvePath(base, file), &conf, flags)
+	if in != nil && in.Select != "" {
+		execProjFile(resolvePath(base, in.Select), &conf, flags)
+	} else {
+		for _, dir := range conf.Source.Dirs {
+			execProjDir(resolvePath(base, dir), &conf, flags)
+		}
+		for _, file := range conf.Source.Files {
+			execProjFile(resolvePath(base, file), &conf, flags)
+		}
 	}
 
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
 		dir := resolvePath(base, conf.Target.Dir)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
-			err = pkg.WriteFile(filepath.Join(dir, fname), fname)
+			gofile := fname
+			if strings.HasPrefix(fname, "_") {
+				gofile = "c2go" + fname
+			}
+			err = pkg.WriteFile(filepath.Join(dir, gofile), fname)
 			check(err)
 		})
 		if conf.needPkgInfo {
@@ -165,6 +178,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		SrcFile:     outfile,
 		Public:      conf.public,
 		NeedPkgInfo: conf.needPkgInfo,
+		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
 	})
 	check(err)

@@ -31,7 +31,7 @@ func (p Package) InitDependencies() {
 
 	var uds []string
 	for name, tdecl := range p.pi.typdecls {
-		if !tdecl.Inited() {
+		if tdecl.State() == gox.TyStateUninited {
 			uds = append(uds, name)
 		}
 	}

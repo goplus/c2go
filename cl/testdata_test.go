@@ -9,7 +9,7 @@ import (
 // -----------------------------------------------------------------------------
 
 func TestFromTestdata(t *testing.T) {
-	c2go.Run("", "../testdata/...", c2go.FlagRunTest|c2go.FlagFailFast)
+	c2go.Run("", "../testdata/...", c2go.FlagRunTest|c2go.FlagFailFast, nil)
 }
 
 // -----------------------------------------------------------------------------

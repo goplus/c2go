@@ -68,6 +68,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 		compileAtomicExpr(ctx, expr)
 	case ast.OffsetOfExpr:
 		compileOffsetOfExpr(ctx, expr)
+	case ast.VisibilityAttr:
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}
@@ -168,7 +169,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		compileExpr(ctx, v.Inner[0])
 	case ast.BuiltinFnToFnPtr:
 		if fn, ok := getBuiltinFn(v.Inner[0]); ok && ctx.pkg.Types.Scope().Lookup(fn) != nil {
-			ctx.extfns[fn] = none{}
+			ctx.addExternFunc(fn)
 		}
 		fallthrough
 	case ast.FunctionToPointerDecay:
@@ -315,14 +316,29 @@ func compileCommaExpr(ctx *blockCtx, v *ast.Node, flags int) {
 func compileBinaryExpr(ctx *blockCtx, v *ast.Node, flags int) {
 	if op, ok := binaryOps[v.OpCode]; ok {
 		isBoolOp := (op == token.LOR || op == token.LAND)
+		isIf := isBoolOp && flags == flagIgnoreResult
+		cb := ctx.cb
+		if isIf {
+			cb.If()
+		}
 		compileExpr(ctx, v.Inner[0])
 		if isBoolOp {
-			castToBoolExpr(ctx.cb)
+			castToBoolExpr(cb)
+			if isIf {
+				if op == token.LOR {
+					cb.UnaryOp(token.NOT)
+				}
+				cb.Then()
+			}
 		}
 		compileExpr(ctx, v.Inner[1])
 		if isBoolOp {
-			castToBoolExpr(ctx.cb)
-			ctx.cb.BinaryOp(op, ctx.goNode(v))
+			if isIf {
+				cb.EndStmt().End()
+			} else {
+				castToBoolExpr(cb)
+				cb.BinaryOp(op, ctx.goNode(v))
+			}
 		} else {
 			binaryOp(ctx, op, v)
 		}
@@ -592,7 +608,7 @@ func compileAtomicExpr(ctx *blockCtx, v *ast.Node) {
 	}
 	cb.Call(len(v.Inner))
 	if fn, ok := getCaller(cb); ok {
-		ctx.extfns[fn] = none{}
+		ctx.addExternFunc(fn)
 	}
 }
 

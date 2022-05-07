@@ -42,7 +42,11 @@ func isFile(name string) bool {
 	return false
 }
 
-func Run(pkgname, infile string, flags int) {
+type Config struct {
+	Select string
+}
+
+func Run(pkgname, infile string, flags int, conf *Config) {
 	outfile := infile
 	switch filepath.Ext(infile) {
 	case ".i":
@@ -53,12 +57,12 @@ func Run(pkgname, infile string, flags int) {
 	default:
 		if strings.HasSuffix(infile, "/...") {
 			infile = strings.TrimSuffix(infile, "/...")
-			err := execDirRecursively(infile, flags)
+			err := execDirRecursively(infile, flags, conf)
 			check(err)
 		} else if isDir(infile) {
 			projfile := filepath.Join(infile, "c2go.cfg")
 			if isFile(projfile) {
-				execProj(projfile, flags)
+				execProj(projfile, flags, conf)
 				return
 			}
 			n, err := execDir(pkgname, infile, flags)
@@ -79,7 +83,7 @@ func Run(pkgname, infile string, flags int) {
 	return
 }
 
-func execDirRecursively(dir string, flags int) (last error) {
+func execDirRecursively(dir string, flags int, conf *Config) (last error) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
@@ -87,7 +91,7 @@ func execDirRecursively(dir string, flags int) (last error) {
 	projfile := filepath.Join(dir, "c2go.cfg")
 	if isFile(projfile) {
 		fmt.Printf("==> Compiling %s ...\n", dir)
-		execProj(projfile, flags)
+		execProj(projfile, flags, conf)
 		return
 	}
 
@@ -97,7 +101,7 @@ func execDirRecursively(dir string, flags int) (last error) {
 	for _, fi := range fis {
 		if fi.IsDir() {
 			pkgDir := filepath.Join(dir, fi.Name())
-			if e := execDirRecursively(pkgDir, flags); e != nil {
+			if e := execDirRecursively(pkgDir, flags, conf); e != nil {
 				last = e
 			}
 			continue
