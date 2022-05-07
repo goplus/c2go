@@ -223,9 +223,7 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 	defer ctx.leave(flow)
 
 	cb := ctx.cb.For()
-	if initStmt := stmt.Inner[0]; initStmt.Kind != "" {
-		compileStmt(ctx, initStmt)
-	}
+	compileInitStmt(ctx, stmt.Inner[0])
 	if stmt := stmt.Inner[1]; stmt.Kind != "" {
 		log.Panicln("compileForStmt: unexpected -", stmt.Kind)
 	}
@@ -242,6 +240,22 @@ func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 		compileStmt(ctx, postStmt)
 	}
 	cb.End()
+}
+
+func compileInitStmt(ctx *blockCtx, initStmt *ast.Node) {
+	switch initStmt.Kind {
+	case "":
+	case ast.DeclStmt:
+		if inner := initStmt.Inner; len(inner) == 1 {
+			if stmt := inner[0]; stmt.Kind == ast.VarDecl {
+				compileVarDef(ctx, stmt)
+				return
+			}
+		}
+		fallthrough
+	default:
+		compileStmt(ctx, initStmt)
+	}
 }
 
 // -----------------------------------------------------------------------------

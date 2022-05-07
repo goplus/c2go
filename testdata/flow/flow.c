@@ -33,6 +33,17 @@ two:        printf("multiple shots\n");
     }
 }
 
+void h() {
+    for (int i = 0; i < 3; i++) {
+        printf("Hi %d\n", i);
+    }
+    int i = 1;
+    for (int j; i < 3; i++) {
+        (void)j;
+        printf("Hi %d\n", i);
+    }
+}
+
 int main() {
     int a = sizeof(int);
     int *b = &a;
@@ -68,5 +79,6 @@ done:
     f(1);
     f(-1);
     g(2);
+    h();
     return 0;
 }

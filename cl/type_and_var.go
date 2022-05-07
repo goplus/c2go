@@ -303,6 +303,22 @@ func compileVarWith(ctx *blockCtx, typ types.Type, decl *ast.Node) {
 	newVarAndInit(ctx, scope, typ, decl, false)
 }
 
+func compileVarDef(ctx *blockCtx, decl *ast.Node) {
+	if debugCompileDecl {
+		log.Println("varDef", decl.Name, "-", decl.Loc.PresumedLine)
+	}
+	typ := toType(ctx, decl.Type, 0)
+	avoidKeyword(&decl.Name)
+	cb := ctx.cb.DefineVarStart(ctx.goNodePos(decl), decl.Name).Typ(typ)
+	if inner := decl.Inner; len(inner) > 0 {
+		initExpr := inner[0]
+		varInit(ctx, typ, initExpr)
+	} else {
+		cb.ZeroLit(typ)
+	}
+	cb.Call(1).EndInit(1)
+}
+
 func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.Node, global bool) {
 	if debugCompileDecl {
 		log.Println("var", decl.Name, typ, "-", decl.Kind)
