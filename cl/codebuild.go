@@ -474,8 +474,27 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
+func adjustBigIntConst(ctx *blockCtx, v *gox.Element, t *types.Basic) {
+	var bits = 8 * ctx.sizeof(t)
+	var mask = (uint64(1) << bits) - 1
+	var val = constant.BinaryOp(v.CVal, token.AND, constant.MakeUint64(mask))
+	var ival, iok = constant.Uint64Val(val)
+	if iok && (t.Info()&types.IsUnsigned) == 0 { // int
+		max := (uint64(1) << (bits - 1)) - 1
+		if ival > max {
+			v.CVal = constant.BinaryOp(val, token.SUB, constant.MakeUint64(mask+1))
+			v.Val = &ast.BasicLit{Kind: token.INT, Value: v.CVal.String()}
+			return
+		}
+	}
+	if constant.Compare(val, token.NEQ, v.CVal) {
+		v.CVal = val
+		v.Val = &ast.BasicLit{Kind: token.INT, Value: val.String()}
+	}
+}
+
 func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
-	if v.CVal == nil {
+	if e := v.CVal; e == nil || e.Kind() != constant.Int {
 		return
 	}
 	if t, ok := typ.(*types.Basic); ok && (t.Info()&types.IsInteger) != 0 { // integer
@@ -484,6 +503,7 @@ func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
 		if !iok {
 			bval, bok := cval.(*big.Int)
 			if !bok || !bval.IsUint64() {
+				adjustBigIntConst(ctx, v, t)
 				return
 			}
 		}
@@ -494,9 +514,10 @@ func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
 				v.CVal = constant.MakeUint64(nval)
 			}
 		} else if (t.Info() & types.IsUnsigned) == 0 { // int
-			max := (int64(1) << (8*ctx.sizeof(typ) - 1)) - 1
+			bits := 8 * ctx.sizeof(typ)
+			max := (int64(1) << (bits - 1)) - 1
 			if !iok || ival > max {
-				mask := (uint64(1) << (8 * ctx.sizeof(typ))) - 1
+				mask := (uint64(1) << bits) - 1
 				v.CVal = constant.BinaryOp(
 					constant.BinaryOp(v.CVal, token.AND, constant.MakeUint64(mask)),
 					token.SUB, constant.MakeUint64(mask+1))
