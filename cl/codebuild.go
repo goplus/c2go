@@ -481,11 +481,13 @@ func adjustBigIntConst(ctx *blockCtx, v *gox.Element, t *types.Basic) {
 	var ival, iok = constant.Uint64Val(val)
 	if iok && (t.Info()&types.IsUnsigned) == 0 { // int
 		max := (uint64(1) << (bits - 1)) - 1
-		if !iok || ival > max {
+		if ival > max {
 			v.CVal = constant.BinaryOp(val, token.SUB, constant.MakeUint64(mask+1))
 			v.Val = &ast.BasicLit{Kind: token.INT, Value: v.CVal.String()}
+			return
 		}
-	} else if constant.Compare(val, token.NEQ, v.CVal) {
+	}
+	if constant.Compare(val, token.NEQ, v.CVal) {
 		v.CVal = val
 		v.Val = &ast.BasicLit{Kind: token.INT, Value: val.String()}
 	}
