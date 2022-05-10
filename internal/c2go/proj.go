@@ -15,11 +15,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-type c2goTarget struct {
-	Name string `json:"name"`
-	Dir  string `json:"dir"`
-}
-
 type c2goIgnore struct {
 	Names []string `json:"names"`
 }
@@ -28,6 +23,17 @@ type c2goSource struct {
 	Dirs   []string   `json:"dirs"`
 	Files  []string   `json:"files"`
 	Ignore c2goIgnore `json:"ignore"`
+}
+
+type c2goCmd struct {
+	Dir    string     `json:"dir"`
+	Source c2goSource `json:"source"`
+}
+
+type c2goTarget struct {
+	Name string    `json:"name"`
+	Dir  string    `json:"dir"`
+	Cmds []c2goCmd `json:"cmds"`
 }
 
 type c2goConf struct {
@@ -49,7 +55,12 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func loadPubFile(pubfile string) map[string]string {
 	b, err := os.ReadFile(pubfile)
-	check(err)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		check(err)
+	}
 
 	text := string(b)
 	lines := strings.Split(text, "\n")
@@ -79,30 +90,43 @@ func execProj(projfile string, flags int, in *Config) {
 	err = json.Unmarshal(b, &conf)
 	check(err)
 
-	if conf.Target.Name == "" {
-		conf.Target.Name = "main"
-	}
-	if len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0 {
-		conf.Source.Dirs = []string{"."}
-	}
-
-	base, _ := filepath.Split(projfile)
-
-	pubfile := base + "c2go.pub"
-	conf.public = loadPubFile(pubfile)
 	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
-
-	if in != nil && in.Select != "" {
-		execProjFile(resolvePath(base, in.Select), &conf, flags)
-	} else {
-		for _, dir := range conf.Source.Dirs {
-			execProjDir(resolvePath(base, dir), &conf, flags)
+	base, _ := filepath.Split(projfile)
+	noSource := len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0
+	if noSource {
+		if len(conf.Target.Cmds) == 0 {
+			fatalf("empty project: no source files specified in c2go.cfg.\n")
+			return
 		}
-		for _, file := range conf.Source.Files {
-			execProjFile(resolvePath(base, file), &conf, flags)
+	} else {
+		if conf.Target.Name == "" {
+			conf.Target.Name = "main"
+		}
+
+		pubfile := base + "c2go.pub"
+		conf.public = loadPubFile(pubfile)
+
+		if in != nil && in.Select != "" {
+			execProjFile(resolvePath(base, in.Select), &conf, flags)
+		} else {
+			execProjSource(base, flags, &conf)
+		}
+		execProjDone(base, flags, &conf)
+	}
+	if cmds := conf.Target.Cmds; len(cmds) != 0 {
+		conf.Target.Cmds = nil
+		conf.Target.Name = "main"
+		for _, cmd := range cmds {
+			conf.Source = cmd.Source
+			conf.Target.Dir = cmd.Dir
+			os.MkdirAll(cmd.Dir, 0777)
+			execProjSource(base, flags, &conf)
+			execProjDone(base, flags, &conf)
 		}
 	}
+}
 
+func execProjDone(base string, flags int, conf *c2goConf) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
 		dir := resolvePath(base, conf.Target.Dir)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
@@ -110,15 +134,15 @@ func execProj(projfile string, flags int, in *Config) {
 			if strings.HasPrefix(fname, "_") {
 				gofile = "c2go" + fname
 			}
-			err = pkg.WriteFile(filepath.Join(dir, gofile), fname)
+			err := pkg.WriteFile(filepath.Join(dir, gofile), fname)
 			check(err)
 		})
 		if conf.needPkgInfo {
-			err = pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
+			err := pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
 			check(err)
 		}
-		cmd := exec.Command("go", "build", ".")
-		cmd.Dir = base
+		cmd := exec.Command("go", "install", ".")
+		cmd.Dir = dir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		check(cmd.Run())
@@ -127,7 +151,20 @@ func execProj(projfile string, flags int, in *Config) {
 	}
 }
 
-func execProjDir(dir string, conf *c2goConf, flags int) {
+func execProjSource(base string, flags int, conf *c2goConf) {
+	for _, dir := range conf.Source.Dirs {
+		recursively := strings.HasSuffix(dir, "/...")
+		if recursively {
+			dir = dir[:len(dir)-4]
+		}
+		execProjDir(resolvePath(base, dir), conf, flags, recursively)
+	}
+	for _, file := range conf.Source.Files {
+		execProjFile(resolvePath(base, file), conf, flags)
+	}
+}
+
+func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
@@ -136,8 +173,10 @@ func execProjDir(dir string, conf *c2goConf, flags int) {
 	for _, fi := range fis {
 		fname := fi.Name()
 		if fi.IsDir() {
-			pkgDir := filepath.Join(dir, fname)
-			execProjDir(pkgDir, conf, flags)
+			if recursively {
+				pkgDir := filepath.Join(dir, fname)
+				execProjDir(pkgDir, conf, flags, true)
+			}
 			continue
 		}
 		if strings.HasSuffix(fi.Name(), ".c") {
