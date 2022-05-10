@@ -90,28 +90,40 @@ func execProj(projfile string, flags int, in *Config) {
 	err = json.Unmarshal(b, &conf)
 	check(err)
 
-	if len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0 {
+	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
+	base, _ := filepath.Split(projfile)
+	noSource := len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0
+	if noSource {
 		if len(conf.Target.Cmds) == 0 {
 			fatalf("empty project: no source files specified in c2go.cfg.\n")
 			return
 		}
-	}
-	if conf.Target.Name == "" {
-		conf.Target.Name = "main"
-	}
-
-	base, _ := filepath.Split(projfile)
-
-	pubfile := base + "c2go.pub"
-	conf.public = loadPubFile(pubfile)
-	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
-
-	if in != nil && in.Select != "" {
-		execProjFile(resolvePath(base, in.Select), &conf, flags)
 	} else {
-		execProjSource(base, flags, &conf)
+		if conf.Target.Name == "" {
+			conf.Target.Name = "main"
+		}
+
+		pubfile := base + "c2go.pub"
+		conf.public = loadPubFile(pubfile)
+
+		if in != nil && in.Select != "" {
+			execProjFile(resolvePath(base, in.Select), &conf, flags)
+		} else {
+			execProjSource(base, flags, &conf)
+		}
+		execProjDone(base, flags, &conf)
 	}
-	execProjDone(base, flags, &conf)
+	if cmds := conf.Target.Cmds; len(cmds) != 0 {
+		conf.Target.Cmds = nil
+		conf.Target.Name = "main"
+		for _, cmd := range cmds {
+			conf.Source = cmd.Source
+			conf.Target.Dir = cmd.Dir
+			os.MkdirAll(cmd.Dir, 0777)
+			execProjSource(base, flags, &conf)
+			execProjDone(base, flags, &conf)
+		}
+	}
 }
 
 func execProjDone(base string, flags int, conf *c2goConf) {
@@ -129,8 +141,8 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 			err := pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
 			check(err)
 		}
-		cmd := exec.Command("go", "build", ".")
-		cmd.Dir = base
+		cmd := exec.Command("go", "install", ".")
+		cmd.Dir = dir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		check(cmd.Run())
