@@ -28,6 +28,7 @@ type c2goSource struct {
 type c2goCmd struct {
 	Dir    string     `json:"dir"`
 	Source c2goSource `json:"source"`
+	Deps   []string   `json:"deps"`
 }
 
 type c2goTarget struct {
@@ -40,6 +41,7 @@ type c2goConf struct {
 	Target   c2goTarget `json:"target"`
 	Source   c2goSource `json:"source"`
 	Include  []string   `json:"include"`
+	Deps     []string   `json:"deps"`
 	Define   []string   `json:"define"`
 	Flags    []string   `json:"flags"`
 	PPFlag   string     `json:"pp"` // default: -E
@@ -118,8 +120,8 @@ func execProj(projfile string, flags int, in *Config) {
 		conf.Target.Name = "main"
 		for _, cmd := range cmds {
 			conf.Source = cmd.Source
+			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
-			os.MkdirAll(cmd.Dir, 0777)
 			execProjSource(base, flags, &conf)
 			execProjDone(base, flags, &conf)
 		}
@@ -129,6 +131,7 @@ func execProj(projfile string, flags int, in *Config) {
 func execProjDone(base string, flags int, conf *c2goConf) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
 		dir := resolvePath(base, conf.Target.Dir)
+		os.MkdirAll(dir, 0777)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
 			gofile := fname
 			if strings.HasPrefix(fname, "_") {
