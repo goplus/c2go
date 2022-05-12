@@ -231,6 +231,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		NeedPkgInfo: conf.needPkgInfo,
 		Dir:         conf.dir,
 		Deps:        conf.Deps,
+		Include:     conf.Include,
 		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
 	})

@@ -23,6 +23,7 @@ type multiFileCtl struct {
 	incs      map[string]int  // incPath => incInSelf/incInDeps (only valid on hasMulti)
 	exists    map[string]none // only valid on hasMulti
 	base      *int            // anonymous struct/union
+	baseDir   string
 	hasMulti  bool
 	inHeader  bool // in header file (only valid on hasMulti)
 	inDepPkg  bool // in dependent package (only valid on hasMulti)
@@ -50,6 +51,7 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 		p.base = &reused.base
 		p.hasMulti = true
 		p.incs = reused.deps.incs
+		p.baseDir = reused.deps.baseDir
 		p.skipLibcH = reused.deps.skipLibcH
 	} else {
 		p.typdecls = make(map[string]*gox.TypeDecl)
@@ -92,6 +94,7 @@ func (p *blockCtx) logFile(node *ast.Node) {
 				fname = headerGoFile
 				p.inHeader = true
 				p.inDepPkg = p.skipLibcH
+				f = canonical(p.baseDir, f)
 				for dir, kind := range p.incs {
 					if strings.HasPrefix(f, dir) {
 						suffix := f[len(dir):]
@@ -117,6 +120,13 @@ func (p *blockCtx) checkExists(name string) (exist bool) {
 	return
 }
 
+func canonical(baseDir string, uri string) string {
+	if filepath.IsAbs(uri) {
+		return uri
+	}
+	return filepath.Join(baseDir, uri)
+}
+
 // -----------------------------------------------------------------------------
 
 type pubName struct {
@@ -137,6 +147,7 @@ const (
 type depPkgs struct {
 	pkgs      []depPkg
 	incs      map[string]int // incPath => incInSelf/incInDeps
+	baseDir   string         // absolute base directory
 	loaded    bool
 	skipLibcH bool // skip libc header
 }
@@ -165,9 +176,10 @@ func (p *depPkgs) init(conf *Config) {
 	if err != nil {
 		log.Panicln("filepath.Abs failed:", err)
 	}
+	p.baseDir = base
 	p.incs = make(map[string]int)
 	for _, dir := range conf.Include {
-		dir = filepath.Join(base, dir)
+		dir = canonical(base, dir)
 		p.incs[dir] = incInSelf
 	}
 	procDepPkg := conf.ProcDepPkg
@@ -186,7 +198,7 @@ func (p *depPkgs) init(conf *Config) {
 			log.Panicln("findIncludeDirs:", err)
 		}
 		for _, dir := range depPkgIncs {
-			dir = filepath.Join(depPkgDir, dir)
+			dir = canonical(depPkgDir, dir)
 			p.incs[dir] = incInDeps
 		}
 		pubfile := filepath.Join(depPkgDir, "c2go.pub")
