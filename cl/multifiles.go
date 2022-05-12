@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"encoding/json"
 	"go/token"
 	"log"
 	"os"
@@ -19,10 +20,13 @@ import (
 
 type multiFileCtl struct {
 	PkgInfo
-	exists   map[string]none // only valid on hasMulti
-	base     *int            // anonymous struct/union
-	hasMulti bool
-	inHeader bool // only valid on hasMulti
+	incs      map[string]int  // incPath => incInSelf/incInDeps (only valid on hasMulti)
+	exists    map[string]none // only valid on hasMulti
+	base      *int            // anonymous struct/union
+	hasMulti  bool
+	inHeader  bool // in header file (only valid on hasMulti)
+	inDepPkg  bool // in dependent package (only valid on hasMulti)
+	skipLibcH bool // skip libc header
 }
 
 func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
@@ -34,7 +38,7 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 			pi.extfns = make(map[string]none)
 			reused.pkg.pi = pi
 			reused.pkg.Package = pkg
-			reused.deps.init(conf.Dir, conf.Deps, conf.ProcDepPkg)
+			reused.deps.init(conf)
 		}
 		initDepPkgs(pkg, &reused.deps)
 		p.typdecls = pi.typdecls
@@ -45,6 +49,8 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 		p.exists = reused.exists
 		p.base = &reused.base
 		p.hasMulti = true
+		p.incs = reused.deps.incs
+		p.skipLibcH = reused.deps.skipLibcH
 	} else {
 		p.typdecls = make(map[string]*gox.TypeDecl)
 		p.extfns = make(map[string]none)
@@ -81,9 +87,20 @@ func (p *blockCtx) logFile(node *ast.Node) {
 			case ".c":
 				fname = filepath.Base(f) + ".i.go"
 				p.inHeader = false
+				p.inDepPkg = false
 			default:
 				fname = headerGoFile
 				p.inHeader = true
+				p.inDepPkg = p.skipLibcH
+				for dir, kind := range p.incs {
+					if strings.HasPrefix(f, dir) {
+						suffix := f[len(dir):]
+						if suffix == "" || suffix[0] == '/' || suffix[0] == '\\' {
+							p.inDepPkg = (kind == incInDeps)
+							break
+						}
+					}
+				}
 			}
 			p.pkg.SetCurFile(fname, true)
 		}
@@ -112,8 +129,14 @@ type depPkg struct {
 	pubs []pubName
 }
 
+const (
+	incInSelf = iota
+	incInDeps
+)
+
 type depPkgs struct {
 	pkgs      []depPkg
+	incs      map[string]int // incPath => incInSelf/incInDeps
 	loaded    bool
 	skipLibcH bool // skip libc header
 }
@@ -129,15 +152,26 @@ func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
 	}
 }
 
-func (p *depPkgs) init(dir string, deps []string, procDepPkg func(depPkgDir string)) {
+func (p *depPkgs) init(conf *Config) {
 	if p.loaded {
 		return
 	}
 	p.loaded = true
+	deps := conf.Deps
 	if len(deps) == 0 {
 		return
 	}
-	gomod, _ := gopmod.Load(dir, nil)
+	base, err := filepath.Abs(conf.Dir)
+	if err != nil {
+		log.Panicln("filepath.Abs failed:", err)
+	}
+	p.incs = make(map[string]int)
+	for _, dir := range conf.Include {
+		dir = filepath.Join(base, dir)
+		p.incs[dir] = incInSelf
+	}
+	procDepPkg := conf.ProcDepPkg
+	gomod, _ := gopmod.Load(base, nil)
 	for _, dep := range deps {
 		if dep == "C" {
 			p.skipLibcH = true
@@ -146,6 +180,14 @@ func (p *depPkgs) init(dir string, deps []string, procDepPkg func(depPkgDir stri
 		depPkgDir := findPkgDir(gomod, dep)
 		if procDepPkg != nil {
 			procDepPkg(depPkgDir)
+		}
+		depPkgIncs, err := findIncludeDirs(depPkgDir)
+		if err != nil {
+			log.Panicln("findIncludeDirs:", err)
+		}
+		for _, dir := range depPkgIncs {
+			dir = filepath.Join(depPkgDir, dir)
+			p.incs[dir] = incInDeps
 		}
 		pubfile := filepath.Join(depPkgDir, "c2go.pub")
 		p.loadPubFile(dep, pubfile)
@@ -190,7 +232,27 @@ func findPkgDir(gomod *gopmod.Module, pkgPath string) (pkgDir string) {
 	if err != nil {
 		log.Panicln("gomod.Lookup:", err)
 	}
-	return pkg.Dir
+	pkgDir, err = filepath.Abs(pkg.Dir)
+	if err != nil {
+		log.Panicln("filepath.Abs:", err)
+	}
+	return
+}
+
+func findIncludeDirs(pkgDir string) (incs []string, err error) {
+	var conf struct {
+		Include []string `json:"include"`
+	}
+	file := filepath.Join(pkgDir, "c2go.cfg")
+	b, err := os.ReadFile(file)
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(b, &conf)
+	if err != nil {
+		return
+	}
+	return conf.Include, nil
 }
 
 // -----------------------------------------------------------------------------

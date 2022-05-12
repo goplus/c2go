@@ -127,9 +127,6 @@ type Config struct {
 	// An Importer resolves import paths to Packages.
 	Importer types.Importer
 
-	// Dir specifies location of c2go.cfg.
-	Dir string
-
 	// SrcFile specifies a *.i (not *.c) source file path.
 	SrcFile string
 
@@ -139,6 +136,15 @@ type Config struct {
 	// Public specifies all public C names and their corresponding Go names.
 	Public map[string]string
 
+	// Ignored specifies all ignored symbols (types, functions, etc).
+	Ignored []string
+
+	// Reused specifies to reuse the Package instance between processing multiple C source files.
+	*Reused
+
+	// Dir specifies root directory of a c2go project (where there is a c2go.cfg file).
+	Dir string
+
 	// ProcDepPkg specifies how to process a dependent package.
 	// If ProcDepPkg is nil, it means nothing to do.
 	ProcDepPkg func(depPkgDir string)
@@ -146,11 +152,8 @@ type Config struct {
 	// Deps specifies all dependent packages for the target Go package.
 	Deps []string
 
-	// Ignored specifies all ignored symbols (types, functions, etc).
-	Ignored []string
-
-	// Reused specifies to reuse the Package instance between processing multiple C source files.
-	*Reused
+	// Include specifies include searching directories.
+	Include []string
 
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
@@ -160,6 +163,9 @@ const (
 	headerGoFile = "c2go_header.i.go"
 )
 
+// NewPackage create a Go package from C file AST.
+// If conf.Reused isn't nil, it shares the Go package instance in multi C files.
+// Otherwise it creates a single Go file in the Go package.
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
 	if reused := conf.Reused; reused != nil && reused.pkg.Package != nil {
 		pkg = reused.pkg
@@ -247,7 +253,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		decl := node.Inner[i]
 		if global {
 			ctx.logFile(decl)
-			if decl.IsImplicit {
+			if decl.IsImplicit || ctx.inDepPkg {
 				continue
 			}
 		}
