@@ -1,9 +1,23 @@
 package preprocessor
 
 import (
+	"log"
 	"os"
 	"os/exec"
 )
+
+const (
+	DbgFlagExecCmd = 1 << iota
+	DbgFlagAll     = DbgFlagExecCmd
+)
+
+var (
+	debugExecCmd bool
+)
+
+func SetDebug(flags int) {
+	debugExecCmd = (flags & DbgFlagExecCmd) != 0
+}
 
 // -----------------------------------------------------------------------------
 
@@ -39,6 +53,9 @@ func Do(infile, outfile string, conf *Config) (err error) {
 		args = append(args, "-I"+inc)
 	}
 	args = append(args, infile)
+	if debugExecCmd {
+		log.Println("==> runCmd:", compiler, args)
+	}
 	cmd := exec.Command(compiler, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/goplus/c2go/cl"
+	"github.com/goplus/c2go/clang/preprocessor"
 	"github.com/goplus/c2go/internal/c2go"
 	"github.com/goplus/gox"
 )
@@ -48,6 +49,7 @@ func main() {
 
 	if *verbose {
 		cl.SetDebug(cl.DbgFlagAll)
+		preprocessor.SetDebug(preprocessor.DbgFlagAll)
 		gox.SetDebug(gox.DbgFlagInstruction) // | gox.DbgFlagMatch)
 	}
 	if *test {

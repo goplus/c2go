@@ -28,6 +28,7 @@ var (
 
 func init() {
 	SetDebug(DbgFlagAll)
+	preprocessor.SetDebug(preprocessor.DbgFlagAll)
 
 	home, err := os.UserHomeDir()
 	check(err)
