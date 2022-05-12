@@ -51,7 +51,6 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 		p.base = &reused.base
 		p.hasMulti = true
 		p.incs = reused.deps.incs
-		p.baseDir = reused.deps.baseDir
 		p.skipLibcH = reused.deps.skipLibcH
 	} else {
 		p.typdecls = make(map[string]*gox.TypeDecl)
@@ -94,7 +93,7 @@ func (p *blockCtx) logFile(node *ast.Node) {
 				fname = headerGoFile
 				p.inHeader = true
 				p.inDepPkg = p.skipLibcH
-				f = canonical(p.baseDir, f)
+				f, _ = filepath.Abs(f) // f is related to cwd, not p.baseDir
 				for dir, kind := range p.incs {
 					if strings.HasPrefix(f, dir) {
 						suffix := f[len(dir):]
@@ -147,7 +146,6 @@ const (
 type depPkgs struct {
 	pkgs      []depPkg
 	incs      map[string]int // incPath => incInSelf/incInDeps
-	baseDir   string         // absolute base directory
 	loaded    bool
 	skipLibcH bool // skip libc header
 }
@@ -176,7 +174,6 @@ func (p *depPkgs) init(conf *Config) {
 	if err != nil {
 		log.Panicln("filepath.Abs failed:", err)
 	}
-	p.baseDir = base
 	p.incs = make(map[string]int)
 	for _, dir := range conf.Include {
 		dir = canonical(base, dir)
