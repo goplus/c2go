@@ -18,16 +18,19 @@ import (
 const (
 	DbgFlagCompileDecl = 1 << iota
 	DbgFlagMarkComplicated
-	DbgFlagAll = DbgFlagCompileDecl | DbgFlagMarkComplicated
+	DbgFlagLoadDeps
+	DbgFlagAll = DbgFlagCompileDecl | DbgFlagMarkComplicated | DbgFlagLoadDeps
 )
 
 var (
 	debugCompileDecl     bool
+	debugLoadDeps        bool
 	debugMarkComplicated bool
 )
 
 func SetDebug(flags int) {
 	debugCompileDecl = (flags & DbgFlagCompileDecl) != 0
+	debugLoadDeps = (flags & DbgFlagLoadDeps) != 0
 	debugMarkComplicated = (flags & DbgFlagMarkComplicated) != 0
 }
 
@@ -108,6 +111,7 @@ type Reused struct {
 	pkg    Package
 	exists map[string]none
 	base   int
+	deps   depPkgs
 }
 
 // Pkg returns the shared package instance.
@@ -138,6 +142,19 @@ type Config struct {
 	// Reused specifies to reuse the Package instance between processing multiple C source files.
 	*Reused
 
+	// Dir specifies root directory of a c2go project (where there is a c2go.cfg file).
+	Dir string
+
+	// ProcDepPkg specifies how to process a dependent package.
+	// If ProcDepPkg is nil, it means nothing to do.
+	ProcDepPkg func(depPkgDir string)
+
+	// Deps specifies all dependent packages for the target Go package.
+	Deps []string
+
+	// Include specifies include searching directories.
+	Include []string
+
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
 }
@@ -146,6 +163,9 @@ const (
 	headerGoFile = "c2go_header.i.go"
 )
 
+// NewPackage create a Go package from C file AST.
+// If conf.Reused isn't nil, it shares the Go package instance in multi C files.
+// Otherwise it creates a single Go file in the Go package.
 func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Package, err error) {
 	if reused := conf.Reused; reused != nil && reused.pkg.Package != nil {
 		pkg = reused.pkg
@@ -233,7 +253,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		decl := node.Inner[i]
 		if global {
 			ctx.logFile(decl)
-			if decl.IsImplicit {
+			if decl.IsImplicit || ctx.inDepPkg {
 				continue
 			}
 		}
@@ -376,13 +396,13 @@ func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
 		if goName != "" {
 			*pfnName = goName
 		} else {
-			*pfnName = title(*pfnName)
+			*pfnName = cPubName(*pfnName)
 		}
 	}
 	return
 }
 
-func title(name string) string {
+func cPubName(name string) string {
 	if r := name[0]; 'a' <= r && r <= 'z' {
 		r -= 'a' - 'A'
 		return string(r) + name[1:]

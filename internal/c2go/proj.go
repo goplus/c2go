@@ -28,6 +28,7 @@ type c2goSource struct {
 type c2goCmd struct {
 	Dir    string     `json:"dir"`
 	Source c2goSource `json:"source"`
+	Deps   []string   `json:"deps"`
 }
 
 type c2goTarget struct {
@@ -40,6 +41,7 @@ type c2goConf struct {
 	Target   c2goTarget `json:"target"`
 	Source   c2goSource `json:"source"`
 	Include  []string   `json:"include"`
+	Deps     []string   `json:"deps"`
 	Define   []string   `json:"define"`
 	Flags    []string   `json:"flags"`
 	PPFlag   string     `json:"pp"` // default: -E
@@ -47,6 +49,7 @@ type c2goConf struct {
 
 	cl.Reused `json:"-"`
 
+	dir         string            `json:"-"`
 	public      map[string]string `json:"-"`
 	needPkgInfo bool              `json:"-"`
 }
@@ -90,8 +93,9 @@ func execProj(projfile string, flags int, in *Config) {
 	err = json.Unmarshal(b, &conf)
 	check(err)
 
-	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
 	base, _ := filepath.Split(projfile)
+	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
+	conf.dir = base
 	noSource := len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0
 	if noSource {
 		if len(conf.Target.Cmds) == 0 {
@@ -107,7 +111,7 @@ func execProj(projfile string, flags int, in *Config) {
 		conf.public = loadPubFile(pubfile)
 
 		if in != nil && in.Select != "" {
-			execProjFile(resolvePath(base, in.Select), &conf, flags)
+			execProjFile(canonical(base, in.Select), &conf, flags)
 		} else {
 			execProjSource(base, flags, &conf)
 		}
@@ -118,8 +122,8 @@ func execProj(projfile string, flags int, in *Config) {
 		conf.Target.Name = "main"
 		for _, cmd := range cmds {
 			conf.Source = cmd.Source
+			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
-			os.MkdirAll(cmd.Dir, 0777)
 			execProjSource(base, flags, &conf)
 			execProjDone(base, flags, &conf)
 		}
@@ -128,7 +132,8 @@ func execProj(projfile string, flags int, in *Config) {
 
 func execProjDone(base string, flags int, conf *c2goConf) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
-		dir := resolvePath(base, conf.Target.Dir)
+		dir := canonical(base, conf.Target.Dir)
+		os.MkdirAll(dir, 0777)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
 			gofile := fname
 			if strings.HasPrefix(fname, "_") {
@@ -157,10 +162,10 @@ func execProjSource(base string, flags int, conf *c2goConf) {
 		if recursively {
 			dir = dir[:len(dir)-4]
 		}
-		execProjDir(resolvePath(base, dir), conf, flags, recursively)
+		execProjDir(canonical(base, dir), conf, flags, recursively)
 	}
 	for _, file := range conf.Source.Files {
-		execProjFile(resolvePath(base, file), conf, flags)
+		execProjFile(canonical(base, file), conf, flags)
 	}
 }
 
@@ -192,6 +197,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	outfile := infile + ".i"
 	if (flags&FlagForcePreprocess) != 0 || !isFile(outfile) {
 		err := preprocessor.Do(infile, outfile, &preprocessor.Config{
+			BaseDir:     conf.dir,
 			IncludeDirs: conf.Include,
 			Defines:     conf.Define,
 			Flags:       conf.Flags,
@@ -213,19 +219,29 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		os.WriteFile(infile+".json", json, 0666)
 	}
 
+	procDepPkg := func(pkgDir string) {
+		headerFile := pkgDir + "/c2go_header.i.go"
+		if !isFile(headerFile) {
+			Run("", pkgDir, flags, nil)
+		}
+	}
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
 		SrcFile:     outfile,
+		ProcDepPkg:  procDepPkg,
 		Public:      conf.public,
 		NeedPkgInfo: conf.needPkgInfo,
+		Dir:         conf.dir,
+		Deps:        conf.Deps,
+		Include:     conf.Include,
 		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
 	})
 	check(err)
 }
 
-func resolvePath(base string, path string) string {
-	if filepath.IsAbs(path) {
-		return path
+func canonical(baseDir string, uri string) string {
+	if filepath.IsAbs(uri) {
+		return uri
 	}
-	return filepath.Join(base, path)
+	return filepath.Join(baseDir, uri)
 }

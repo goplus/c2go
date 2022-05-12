@@ -1,15 +1,31 @@
 package preprocessor
 
 import (
+	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
+
+const (
+	DbgFlagExecCmd = 1 << iota
+	DbgFlagAll     = DbgFlagExecCmd
+)
+
+var (
+	debugExecCmd bool
+)
+
+func SetDebug(flags int) {
+	debugExecCmd = (flags & DbgFlagExecCmd) != 0
+}
 
 // -----------------------------------------------------------------------------
 
 type Config struct {
 	Compiler    string // default: clang
 	PPFlag      string // default: -E
+	BaseDir     string // base of include searching directory
 	IncludeDirs []string
 	Defines     []string
 	Flags       []string
@@ -35,10 +51,14 @@ func Do(infile, outfile string, conf *Config) (err error) {
 	for _, def := range conf.Defines {
 		args = append(args, "-D"+def)
 	}
+	base := conf.BaseDir
 	for _, inc := range conf.IncludeDirs {
-		args = append(args, "-I"+inc)
+		args = append(args, "-I"+filepath.Join(base, inc))
 	}
 	args = append(args, infile)
+	if debugExecCmd {
+		log.Println("==> runCmd:", compiler, args)
+	}
 	cmd := exec.Command(compiler, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
