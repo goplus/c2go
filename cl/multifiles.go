@@ -1,15 +1,21 @@
 package cl
 
 import (
+	"go/token"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
+	"github.com/goplus/mod/gopmod"
 )
+
+// -----------------------------------------------------------------------------
 
 type multiFileCtl struct {
 	PkgInfo
@@ -28,7 +34,9 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 			pi.extfns = make(map[string]none)
 			reused.pkg.pi = pi
 			reused.pkg.Package = pkg
+			reused.deps.init(conf.Dir, conf.Deps)
 		}
+		initDepPkgs(pkg, &reused.deps)
 		p.typdecls = pi.typdecls
 		p.extfns = pi.extfns
 		if reused.exists == nil {
@@ -91,3 +99,95 @@ func (p *blockCtx) checkExists(name string) (exist bool) {
 	}
 	return
 }
+
+// -----------------------------------------------------------------------------
+
+type pubName struct {
+	name   string
+	goName string
+}
+
+type depPkg struct {
+	path string
+	pubs []pubName
+}
+
+type depPkgs struct {
+	pkgs      []depPkg
+	loaded    bool
+	skipLibcH bool // skip libc header
+}
+
+func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
+	scope := pkg.Types.Scope()
+	for _, dep := range deps.pkgs {
+		depPkg := pkg.Import(dep.path)
+		for _, pub := range dep.pubs {
+			obj := depPkg.Ref(pub.goName)
+			scope.Insert(gox.NewSubst(token.NoPos, pkg.Types, pub.name, obj))
+		}
+	}
+}
+
+func (p *depPkgs) init(dir string, deps []string) {
+	if p.loaded {
+		return
+	}
+	p.loaded = true
+	if len(deps) == 0 {
+		return
+	}
+	gomod, _ := gopmod.Load(dir, nil)
+	for _, dep := range deps {
+		if dep == "C" {
+			p.skipLibcH = true
+			continue
+		}
+		depPkgDir := findPkgDir(gomod, dep)
+		pubfile := filepath.Join(depPkgDir, "c2go.pub")
+		p.loadPubFile(dep, pubfile)
+	}
+}
+
+func (p *depPkgs) loadPubFile(path string, pubfile string) {
+	if debugLoadDeps {
+		log.Println("==> loadPubFile:", path, pubfile)
+	}
+	b, err := os.ReadFile(pubfile)
+	if err != nil {
+		log.Panicln("loadPubFile failed:", err)
+	}
+
+	text := string(b)
+	lines := strings.Split(text, "\n")
+	pubs := make([]pubName, 0, len(lines))
+	for i, line := range lines {
+		flds := strings.Fields(line)
+		goName := ""
+		switch len(flds) {
+		case 1:
+			goName = cPubName(flds[0])
+		case 2:
+			goName = flds[1]
+		case 0:
+			continue
+		default:
+			log.Panicf("%s:%d: too many fields - %s\n", pubfile, i+1, line)
+		}
+		pubs = append(pubs, pubName{name: flds[0], goName: goName})
+	}
+	p.pkgs = append(p.pkgs, depPkg{path: path, pubs: pubs})
+}
+
+func findPkgDir(gomod *gopmod.Module, pkgPath string) (pkgDir string) {
+	if gomod == nil {
+		log.Panicln("findPkgDir TODO: no go.mod found")
+	}
+	pkg, err := gomod.Lookup(pkgPath)
+	if err != nil {
+		log.Panicln("gomod.Lookup:", err)
+	}
+	return pkg.Dir
+}
+
+// -----------------------------------------------------------------------------

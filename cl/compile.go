@@ -18,16 +18,19 @@ import (
 const (
 	DbgFlagCompileDecl = 1 << iota
 	DbgFlagMarkComplicated
-	DbgFlagAll = DbgFlagCompileDecl | DbgFlagMarkComplicated
+	DbgFlagLoadDeps
+	DbgFlagAll = DbgFlagCompileDecl | DbgFlagMarkComplicated | DbgFlagLoadDeps
 )
 
 var (
 	debugCompileDecl     bool
+	debugLoadDeps        bool
 	debugMarkComplicated bool
 )
 
 func SetDebug(flags int) {
 	debugCompileDecl = (flags & DbgFlagCompileDecl) != 0
+	debugLoadDeps = (flags & DbgFlagLoadDeps) != 0
 	debugMarkComplicated = (flags & DbgFlagMarkComplicated) != 0
 }
 
@@ -108,6 +111,7 @@ type Reused struct {
 	pkg    Package
 	exists map[string]none
 	base   int
+	deps   depPkgs
 }
 
 // Pkg returns the shared package instance.
@@ -123,6 +127,9 @@ type Config struct {
 	// An Importer resolves import paths to Packages.
 	Importer types.Importer
 
+	// Dir specifies location of c2go.cfg.
+	Dir string
+
 	// SrcFile specifies a *.i (not *.c) source file path.
 	SrcFile string
 
@@ -131,6 +138,9 @@ type Config struct {
 
 	// Public specifies all public C names and their corresponding Go names.
 	Public map[string]string
+
+	// Deps specifies all dependent packages for the target Go package.
+	Deps []string
 
 	// Ignored specifies all ignored symbols (types, functions, etc).
 	Ignored []string
@@ -376,13 +386,13 @@ func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
 		if goName != "" {
 			*pfnName = goName
 		} else {
-			*pfnName = title(*pfnName)
+			*pfnName = cPubName(*pfnName)
 		}
 	}
 	return
 }
 
-func title(name string) string {
+func cPubName(name string) string {
 	if r := name[0]; 'a' <= r && r <= 'z' {
 		r -= 'a' - 'A'
 		return string(r) + name[1:]

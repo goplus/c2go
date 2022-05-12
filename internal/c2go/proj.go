@@ -49,6 +49,7 @@ type c2goConf struct {
 
 	cl.Reused `json:"-"`
 
+	dir         string            `json:"-"`
 	public      map[string]string `json:"-"`
 	needPkgInfo bool              `json:"-"`
 }
@@ -92,8 +93,9 @@ func execProj(projfile string, flags int, in *Config) {
 	err = json.Unmarshal(b, &conf)
 	check(err)
 
-	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
 	base, _ := filepath.Split(projfile)
+	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
+	conf.dir = base
 	noSource := len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0
 	if noSource {
 		if len(conf.Target.Cmds) == 0 {
@@ -220,6 +222,8 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		SrcFile:     outfile,
 		Public:      conf.public,
 		NeedPkgInfo: conf.needPkgInfo,
+		Dir:         conf.dir,
+		Deps:        conf.Deps,
 		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
 	})
