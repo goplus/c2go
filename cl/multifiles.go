@@ -129,6 +129,10 @@ func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
 	}
 }
 
+var (
+	DepPkgDirProc func(depPkgDir string)
+)
+
 func (p *depPkgs) init(dir string, deps []string) {
 	if p.loaded {
 		return
@@ -144,6 +148,9 @@ func (p *depPkgs) init(dir string, deps []string) {
 			continue
 		}
 		depPkgDir := findPkgDir(gomod, dep)
+		if DepPkgDirProc != nil {
+			DepPkgDirProc(depPkgDir)
+		}
 		pubfile := filepath.Join(depPkgDir, "c2go.pub")
 		p.loadPubFile(dep, pubfile)
 	}
