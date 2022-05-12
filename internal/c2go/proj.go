@@ -111,7 +111,7 @@ func execProj(projfile string, flags int, in *Config) {
 		conf.public = loadPubFile(pubfile)
 
 		if in != nil && in.Select != "" {
-			execProjFile(resolvePath(base, in.Select), &conf, flags)
+			execProjFile(canonical(base, in.Select), &conf, flags)
 		} else {
 			execProjSource(base, flags, &conf)
 		}
@@ -132,7 +132,7 @@ func execProj(projfile string, flags int, in *Config) {
 
 func execProjDone(base string, flags int, conf *c2goConf) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
-		dir := resolvePath(base, conf.Target.Dir)
+		dir := canonical(base, conf.Target.Dir)
 		os.MkdirAll(dir, 0777)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
 			gofile := fname
@@ -162,10 +162,10 @@ func execProjSource(base string, flags int, conf *c2goConf) {
 		if recursively {
 			dir = dir[:len(dir)-4]
 		}
-		execProjDir(resolvePath(base, dir), conf, flags, recursively)
+		execProjDir(canonical(base, dir), conf, flags, recursively)
 	}
 	for _, file := range conf.Source.Files {
-		execProjFile(resolvePath(base, file), conf, flags)
+		execProjFile(canonical(base, file), conf, flags)
 	}
 }
 
@@ -197,6 +197,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	outfile := infile + ".i"
 	if (flags&FlagForcePreprocess) != 0 || !isFile(outfile) {
 		err := preprocessor.Do(infile, outfile, &preprocessor.Config{
+			BaseDir:     conf.dir,
 			IncludeDirs: conf.Include,
 			Defines:     conf.Define,
 			Flags:       conf.Flags,
@@ -238,9 +239,9 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	check(err)
 }
 
-func resolvePath(base string, path string) string {
-	if filepath.IsAbs(path) {
-		return path
+func canonical(baseDir string, uri string) string {
+	if filepath.IsAbs(uri) {
+		return uri
 	}
-	return filepath.Join(base, path)
+	return filepath.Join(baseDir, uri)
 }
