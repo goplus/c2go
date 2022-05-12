@@ -34,7 +34,7 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 			pi.extfns = make(map[string]none)
 			reused.pkg.pi = pi
 			reused.pkg.Package = pkg
-			reused.deps.init(conf.Dir, conf.Deps)
+			reused.deps.init(conf.Dir, conf.Deps, conf.ProcDepPkg)
 		}
 		initDepPkgs(pkg, &reused.deps)
 		p.typdecls = pi.typdecls
@@ -129,11 +129,7 @@ func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
 	}
 }
 
-var (
-	DepPkgDirProc func(depPkgDir string)
-)
-
-func (p *depPkgs) init(dir string, deps []string) {
+func (p *depPkgs) init(dir string, deps []string, procDepPkg func(depPkgDir string)) {
 	if p.loaded {
 		return
 	}
@@ -148,8 +144,8 @@ func (p *depPkgs) init(dir string, deps []string) {
 			continue
 		}
 		depPkgDir := findPkgDir(gomod, dep)
-		if DepPkgDirProc != nil {
-			DepPkgDirProc(depPkgDir)
+		if procDepPkg != nil {
+			procDepPkg(depPkgDir)
 		}
 		pubfile := filepath.Join(depPkgDir, "c2go.pub")
 		p.loadPubFile(dep, pubfile)

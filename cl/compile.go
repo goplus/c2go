@@ -139,6 +139,10 @@ type Config struct {
 	// Public specifies all public C names and their corresponding Go names.
 	Public map[string]string
 
+	// ProcDepPkg specifies how to process a dependent package.
+	// If ProcDepPkg is nil, it means nothing to do.
+	ProcDepPkg func(depPkgDir string)
+
 	// Deps specifies all dependent packages for the target Go package.
 	Deps []string
 

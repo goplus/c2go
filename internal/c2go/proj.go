@@ -218,8 +218,15 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		os.WriteFile(infile+".json", json, 0666)
 	}
 
+	procDepPkg := func(pkgDir string) {
+		headerFile := pkgDir + "/c2go_header.i.go"
+		if !isFile(headerFile) {
+			Run("", pkgDir, flags, nil)
+		}
+	}
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
 		SrcFile:     outfile,
+		ProcDepPkg:  procDepPkg,
 		Public:      conf.public,
 		NeedPkgInfo: conf.needPkgInfo,
 		Dir:         conf.dir,
