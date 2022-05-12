@@ -79,9 +79,6 @@ func (p *blockCtx) autoStaticName(name string) string {
 
 func (p *blockCtx) logFile(node *ast.Node) {
 	if f := node.Loc.PresumedFile; f != "" {
-		if debugCompileDecl {
-			log.Println("==>", f)
-		}
 		if p.hasMulti {
 			var fname string
 			switch filepath.Ext(f) {
@@ -105,6 +102,9 @@ func (p *blockCtx) logFile(node *ast.Node) {
 				}
 			}
 			p.pkg.SetCurFile(fname, true)
+			if debugCompileDecl && !p.inDepPkg {
+				log.Println("==>", f)
+			}
 		}
 	}
 	return
