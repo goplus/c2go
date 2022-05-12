@@ -1,4 +1,4 @@
-#include "bar.h"
+#include <bar.h>
 
 string bar() {
     return "world";
