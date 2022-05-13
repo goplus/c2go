@@ -245,7 +245,8 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	initPublicFrom(conf, file)
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
-		pi = conf.pkg.pi
+		pkgInfo := ctx.PkgInfo // make a copy: don't keep a ref to blockCtx
+		pi = &pkgInfo
 	}
 	return
 }
