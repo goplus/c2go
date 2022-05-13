@@ -242,7 +242,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	ctx.initMultiFileCtl(p, conf)
 	ctx.initCTypes()
 	ctx.initFile()
-	initPublicFrom(conf, file)
+	ctx.initPublicFrom(conf, file)
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
 		pkgInfo := ctx.PkgInfo // make a copy: don't keep a ref to blockCtx
@@ -401,13 +401,19 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 }
 
 func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
-	goName, ok := p.public[*pfnName]
+	name := *pfnName
+	goName, ok := p.public[name]
 	if ok {
 		if goName != "" {
 			*pfnName = goName
 		} else {
-			*pfnName = cPubName(*pfnName)
+			*pfnName = cPubName(name)
 		}
+		return
+	}
+	if _, ok = p.autopub[name]; ok {
+		p.public[name] = ""
+		*pfnName = cPubName(name)
 	}
 	return
 }

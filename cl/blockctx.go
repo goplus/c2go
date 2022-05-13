@@ -192,6 +192,7 @@ type blockCtx struct {
 	unnameds map[ast.ID]*types.Named
 	gblvars  map[string]*gox.VarDefs
 	public   map[string]string
+	autopub  map[string]none
 	ignored  []string
 	srcfile  string
 	src      []byte

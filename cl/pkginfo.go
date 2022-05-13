@@ -149,15 +149,12 @@ func WritePubFile(file string, public map[string]string) (err error) {
 	return
 }
 
-func initPublicFrom(conf *Config, node *ast.Node) {
+func (p *blockCtx) initPublicFrom(conf *Config, node *ast.Node) {
 	pubFrom := conf.PublicFrom
 	if len(pubFrom) == 0 {
 		return
 	}
-	if conf.Public == nil {
-		conf.Public = make(map[string]string)
-	}
-	public := conf.Public
+	p.autopub = make(map[string]none)
 	isPub := false
 	for _, decl := range node.Inner {
 		if f := decl.Loc.PresumedFile; f != "" {
@@ -167,7 +164,7 @@ func initPublicFrom(conf *Config, node *ast.Node) {
 			switch decl.Kind {
 			case ast.VarDecl, ast.TypedefDecl, ast.FunctionDecl:
 				if canPub(decl.Name) {
-					public[decl.Name] = ""
+					p.autopub[decl.Name] = none{}
 				}
 			}
 		}
