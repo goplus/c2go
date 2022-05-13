@@ -317,7 +317,9 @@ func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			return
 		}
 	}
-	ctx.cb.UnaryOp(op)
+	cb := ctx.cb.UnaryOp(op)
+	ret := cb.Get(-1)
+	adjustIntConst(ctx, ret, ret.Type)
 }
 
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
