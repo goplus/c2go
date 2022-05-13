@@ -39,7 +39,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.ImplicitCastExpr:
 		compileImplicitCastExpr(ctx, expr)
 	case ast.IntegerLiteral:
-		compileLiteral(ctx, token.INT, expr)
+		compileIntegerLiteral(ctx, expr)
 	case ast.StringLiteral:
 		compileStringLiteral(ctx, expr)
 	case ast.CharacterLiteral:
@@ -80,8 +80,13 @@ func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
 	compileExprEx(ctx, expr, unknownExprPrompt, flagLHS)
 }
 
+func compileIntegerLiteral(ctx *blockCtx, expr *ast.Node) {
+	typ := toType(ctx, expr.Type, 0)
+	ctx.cb.Typ(typ).Val(literal(token.INT, expr), ctx.goNode(expr)).Call(1)
+}
+
 func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
-	ctx.cb.Val(&goast.BasicLit{Kind: kind, Value: expr.Value.(string)}, ctx.goNode(expr))
+	ctx.cb.Val(literal(kind, expr), ctx.goNode(expr))
 }
 
 func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
@@ -102,6 +107,10 @@ func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
 	lit := v.Val.(*goast.BasicLit)
 	lit.Kind = token.IMAG
 	lit.Value += "i"
+}
+
+func literal(kind token.Token, expr *ast.Node) *goast.BasicLit {
+	return &goast.BasicLit{Kind: kind, Value: expr.Value.(string)}
 }
 
 // -----------------------------------------------------------------------------

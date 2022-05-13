@@ -201,7 +201,7 @@ void test() {
 		a [6]int32
 		b int32
 	}
-	var x _cgoa_1 = _cgoa_1{[6]int32{1, 2, 3}, 0}
+	var x _cgoa_1 = _cgoa_1{[6]int32{int32(1), int32(2), int32(3)}, 0}
 }`)
 	testFunc(t, "testKeyword", `
 void test() {
@@ -252,7 +252,7 @@ void test() {
 		Xbf_0 int32
 		x     float64
 	}
-	var a struct_foo = struct_foo{1, 0, 0}
+	var a struct_foo = struct_foo{int32(1), 0, 0}
 }`)
 }
 
@@ -277,7 +277,7 @@ void test() {
 	const i = 100;
 }
 `, `func test() {
-	const i int32 = 100
+	const i int32 = int32(100)
 }`)
 }
 
@@ -306,7 +306,7 @@ void test() {
 }
 `, `func test() {
 	const (
-		a int32 = 3
+		a int32 = int32(3)
 		b int32 = 4
 	)
 	type foo = int32
