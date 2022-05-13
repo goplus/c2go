@@ -38,7 +38,7 @@ retry:
 	return
 }
 
-func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct {
+func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) (ret *types.Struct, dels delfunc) {
 	b := newStructBuilder()
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	n := len(struc.Inner)
@@ -59,10 +59,12 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 			}
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			typ := compileStructOrUnion(ctx, name, decl)
+			typ, del := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
 				break
 			}
+			dels = append(dels, name)
+			dels = append(dels, del...)
 			for i+1 < n {
 				next := struc.Inner[i+1]
 				if next.Kind == ast.FieldDecl {
@@ -82,10 +84,11 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) *types.Struct 
 			log.Panicln("toStructType: unknown field kind =", decl.Kind)
 		}
 	}
-	return b.Type(ctx, t)
+	ret = b.Type(ctx, t)
+	return
 }
 
-func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
+func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) (ret types.Type, dels delfunc) {
 	b := newUnionBuilder()
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	n := len(unio.Inner)
@@ -100,10 +103,12 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
 			b.Field(ctx, ctx.goNodePos(decl), typ, decl.Name, false)
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			typ := compileStructOrUnion(ctx, name, decl)
+			typ, del := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
 				break
 			}
+			dels = append(dels, name)
+			dels = append(dels, del...)
 			for i+1 < n {
 				next := unio.Inner[i+1]
 				if next.Kind == ast.FieldDecl {
@@ -123,7 +128,8 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) types.Type {
 			log.Panicln("toUnionType: unknown field kind =", decl.Kind)
 		}
 	}
-	return b.Type(ctx, t)
+	ret = b.Type(ctx, t)
+	return
 }
 
 func checkAnonymous(ctx *blockCtx, scope *types.Scope, typ types.Type, v *ast.Node) (ret types.Type, ok bool) {
@@ -144,12 +150,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) types.Type {
 			item := decl.Inner[0]
 			if item.Kind == "ElaboratedType" {
 				if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" && owned.Kind != ast.EnumDecl {
-					id := owned.ID
-					if typ, ok := ctx.unnameds[id]; ok {
-						if t, decled := ctx.typdecls[typ.Obj().Name()]; decled {
-							t.Delete()
-						}
-					}
+					ctx.deleteUnnamed(owned.ID)
 				}
 			}
 		}
@@ -165,8 +166,8 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) types.Type {
 					return ctypes.Int
 				}
 				id := owned.ID
-				if typ, ok := ctx.unnameds[id]; ok {
-					aliasType(scope, ctx.pkg.Types, name, typ)
+				if u, ok := ctx.unnameds[id]; ok {
+					aliasType(scope, ctx.pkg.Types, name, u.typ)
 					return nil
 				}
 				log.Panicln("compileTypedef: unknown id =", id)
@@ -189,7 +190,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) types.Type {
 	return typ
 }
 
-func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Named {
+func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) (*types.Named, delfunc) {
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
@@ -200,15 +201,16 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 	}
 	if decl.CompleteDefinition {
 		var inner types.Type
+		var del delfunc
 		switch decl.TagUsed {
 		case "struct":
-			inner = toStructType(ctx, t.Type(), decl)
+			inner, del = toStructType(ctx, t.Type(), decl)
 		default:
-			inner = toUnionType(ctx, t.Type(), decl)
+			inner, del = toUnionType(ctx, t.Type(), decl)
 		}
-		return t.InitType(ctx.pkg, inner)
+		return t.InitType(ctx.pkg, inner), del
 	}
-	return t.Type()
+	return t.Type(), nil
 }
 
 func compileEnum(ctx *blockCtx, decl *ast.Node, global bool) {
