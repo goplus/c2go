@@ -133,9 +133,6 @@ type Config struct {
 	// Src specifies source code of SrcFile. Will read from SrcFile if nil.
 	Src []byte
 
-	// Public specifies all public C names and their corresponding Go names.
-	Public map[string]string
-
 	// Ignored specifies all ignored symbols (types, functions, etc).
 	Ignored []string
 
@@ -154,6 +151,12 @@ type Config struct {
 
 	// Include specifies include searching directories.
 	Include []string
+
+	// Public specifies all public C names and their corresponding Go names.
+	Public map[string]string
+
+	// PublicFrom specifies header files to fetch public symbols.
+	PublicFrom []string
 
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
@@ -239,9 +242,10 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	ctx.initMultiFileCtl(p, conf)
 	ctx.initCTypes()
 	ctx.initFile()
+	initPublicFrom(conf, file)
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
-		pi = ctx.genPkgInfo()
+		pi = conf.pkg.pi
 	}
 	return
 }
@@ -261,7 +265,12 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		case ast.VarDecl:
 			compileVarDecl(ctx, decl, global)
 		case ast.TypedefDecl:
-			compileTypedef(ctx, decl, global)
+			if typ := compileTypedef(ctx, decl, global); typ != nil && global {
+				name := decl.Name
+				if ctx.getPubName(&name) {
+					ctx.pkg.AliasType(name, typ, ctx.goNodePos(decl))
+				}
+			}
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
 			if global && suKind != suAnonymous && decl.CompleteDefinition && ctx.checkExists(name) {
@@ -408,6 +417,11 @@ func cPubName(name string) string {
 		return string(r) + name[1:]
 	}
 	return name
+}
+
+func canPub(name string) bool {
+	r := name[0]
+	return 'a' <= r && r <= 'z'
 }
 
 const (

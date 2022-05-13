@@ -134,7 +134,7 @@ func checkAnonymous(ctx *blockCtx, scope *types.Scope, typ types.Type, v *ast.No
 
 // -----------------------------------------------------------------------------
 
-func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
+func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) types.Type {
 	name, qualType := decl.Name, decl.Type.QualType
 	if debugCompileDecl {
 		log.Println("typedef", name, "-", qualType)
@@ -153,7 +153,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 				}
 			}
 		}
-		return
+		return nil
 	}
 	scope := ctx.cb.Scope()
 	if len(decl.Inner) > 0 {
@@ -162,12 +162,12 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
 				if owned.Kind == ast.EnumDecl {
 					ctx.cb.AliasType(name, ctypes.Int, ctx.goNodePos(decl))
-					return
+					return ctypes.Int
 				}
 				id := owned.ID
 				if typ, ok := ctx.unnameds[id]; ok {
 					aliasType(scope, ctx.pkg.Types, name, typ)
-					return
+					return nil
 				}
 				log.Panicln("compileTypedef: unknown id =", id)
 			}
@@ -176,16 +176,17 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) {
 	typ := toType(ctx, decl.Type, parser.FlagIsTypedef)
 	if isArrayUnknownLen(typ) || typ == ctypes.Void {
 		aliasType(scope, ctx.pkg.Types, name, typ)
-		return
+		return nil
 	}
 	if global {
 		if old := scope.Lookup(name); old != nil {
 			if types.Identical(typ, old.Type()) {
-				return
+				return nil
 			}
 		}
 	}
 	ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+	return typ
 }
 
 func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Named {

@@ -234,6 +234,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		SrcFile:     outfile,
 		ProcDepPkg:  procDepPkg,
 		Public:      conf.public,
+		PublicFrom:  conf.Public.From,
 		NeedPkgInfo: conf.needPkgInfo,
 		Dir:         conf.dir,
 		Deps:        conf.Deps,
