@@ -18,6 +18,7 @@ go.work*
 *.json
 *.i.go
 *.c.go
+c2go.a.pub
 c2go_autogen.go
 
 # Dependency directories (remove the comment below to include it)
