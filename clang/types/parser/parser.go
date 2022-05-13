@@ -11,6 +11,7 @@ import (
 
 	ctypes "github.com/goplus/c2go/clang/types"
 	"github.com/goplus/c2go/clang/types/scanner"
+	"github.com/goplus/gox"
 )
 
 var (
@@ -177,7 +178,7 @@ const (
 
 func (p *parser) lookupType(tylit string, flags int) (t types.Type, err error) {
 	structOrUnion := (flags & flagStructOrUnion) != 0
-	_, o := p.scope.LookupParent(tylit, token.NoPos)
+	_, o := gox.LookupParent(p.scope, tylit, token.NoPos)
 	if o == nil {
 		return nil, &TypeNotFound{Literal: tylit, StructOrUnion: structOrUnion}
 	}

@@ -7,8 +7,6 @@ import (
 	"log"
 	"strconv"
 
-	ctypes "github.com/goplus/c2go/clang/types"
-
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
 )
@@ -280,7 +278,12 @@ func isVariadic(typ types.Type) bool {
 }
 
 func isValist(typ types.Type) bool {
-	return typ == ctypes.Valist
+	if t, ok := typ.(*types.Slice); ok {
+		if e, ok := t.Elem().(*types.Interface); ok {
+			return e.Empty()
+		}
+	}
+	return false
 }
 
 func isBuiltinFn(fn *ast.Node) bool {
