@@ -348,7 +348,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	}
 	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
 	static := ""
-	if fn.StorageClass == ast.Static {
+	if !ctx.inHeader && fn.StorageClass == ast.Static {
 		static = fnName
 		fnName = ctx.autoStaticName(static)
 	} else {
