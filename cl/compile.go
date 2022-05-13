@@ -232,7 +232,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	}
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
-		unnameds: make(map[ast.ID]*types.Named),
+		unnameds: make(map[ast.ID]unnamedType),
 		gblvars:  make(map[string]*gox.VarDefs),
 		ignored:  conf.Ignored,
 		public:   conf.Public,
@@ -277,11 +277,11 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			if global && suKind != suAnonymous && decl.CompleteDefinition && ctx.checkExists(name) {
 				continue
 			}
-			typ := compileStructOrUnion(ctx, name, decl)
+			typ, del := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
 				break
 			} else {
-				ctx.unnameds[decl.ID] = typ
+				ctx.unnameds[decl.ID] = unnamedType{typ: typ, del: del}
 			}
 			for i+1 < n {
 				next := node.Inner[i+1]

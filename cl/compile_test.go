@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"go/format"
 	"go/token"
-	"go/types"
 	"log"
 	"os"
 	"strconv"
@@ -91,7 +90,7 @@ func newTestEnv(code string) *testEnv {
 	p := gox.NewPackage("", "main", nil)
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
-		unnameds: make(map[ast.ID]*types.Named),
+		unnameds: make(map[ast.ID]unnamedType),
 	}
 	ctx.typdecls = make(map[string]*gox.TypeDecl)
 	ctx.initCTypes()

@@ -183,13 +183,20 @@ func (p *loopCtx) labelStart(ctx *blockCtx) {
 
 // -----------------------------------------------------------------------------
 
+type delfunc = []string
+
+type unnamedType struct {
+	typ *types.Named
+	del delfunc
+}
+
 type blockCtx struct {
 	pkg      *gox.Package
 	cb       *gox.CodeBuilder
 	fset     *token.FileSet
 	tyI128   types.Type
 	tyU128   types.Type
-	unnameds map[ast.ID]*types.Named
+	unnameds map[ast.ID]unnamedType
 	gblvars  map[string]*gox.VarDefs
 	public   map[string]string
 	autopub  map[string]none
@@ -200,6 +207,21 @@ type blockCtx struct {
 	curfn    *funcCtx
 	curflow  flowCtx
 	multiFileCtl
+}
+
+func (p *blockCtx) deleteUnnamed(id ast.ID) {
+	if u, ok := p.unnameds[id]; ok {
+		for _, delName := range u.del {
+			p.deleteByName(delName)
+		}
+		p.deleteByName(u.typ.Obj().Name())
+	}
+}
+
+func (p *blockCtx) deleteByName(name string) {
+	if t, decled := p.typdecls[name]; decled {
+		t.Delete()
+	}
 }
 
 func (p *blockCtx) addExternFunc(name string) {
