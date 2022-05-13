@@ -37,7 +37,12 @@ type c2goTarget struct {
 	Cmds []c2goCmd `json:"cmds"`
 }
 
+type c2goPublic struct {
+	From []string `json:"from"`
+}
+
 type c2goConf struct {
+	Public   c2goPublic `json:"public"`
 	Target   c2goTarget `json:"target"`
 	Source   c2goSource `json:"source"`
 	Include  []string   `json:"include"`

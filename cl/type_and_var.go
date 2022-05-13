@@ -210,11 +210,15 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) *types.Nam
 	return t.Type()
 }
 
-func compileEnum(ctx *blockCtx, decl *ast.Node) {
+func compileEnum(ctx *blockCtx, decl *ast.Node, global bool) {
+	inner := decl.Inner
+	if global && len(inner) > 0 && ctx.checkExists(inner[0].Name) {
+		return
+	}
 	scope := ctx.cb.Scope()
 	cdecl := ctx.pkg.NewConstDefs(scope)
 	iotav := 0
-	for _, item := range decl.Inner {
+	for _, item := range inner {
 		iotav = compileEnumConst(ctx, cdecl, item, iotav)
 	}
 }
