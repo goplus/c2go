@@ -579,7 +579,7 @@ func typeCastCall(ctx *blockCtx, typ types.Type) {
 			}
 		case *types.Signature:
 			switch vt {
-			case types.Typ[types.UntypedInt]: // untyped_int => fnptr
+			case types.Typ[types.UntypedInt], ctypes.Int: // untyped_int => fnptr
 				vt = tyUintptr
 				adjustIntConst(ctx, v, vt)
 				fallthrough
