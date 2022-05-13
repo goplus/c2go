@@ -61,35 +61,6 @@ type c2goConf struct {
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func loadPubFile(pubfile string) map[string]string {
-	b, err := os.ReadFile(pubfile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		check(err)
-	}
-
-	text := string(b)
-	lines := strings.Split(text, "\n")
-	ret := make(map[string]string, len(lines))
-	for i, line := range lines {
-		flds := strings.Fields(line)
-		goName := ""
-		switch len(flds) {
-		case 1:
-		case 2:
-			goName = flds[1]
-		case 0:
-			continue
-		default:
-			fatalf("line %d: too many fields - %s\n", i+1, line)
-		}
-		ret[flds[0]] = goName
-	}
-	return ret
-}
-
 func execProj(projfile string, flags int, in *Config) {
 	b, err := os.ReadFile(projfile)
 	check(err)
@@ -113,7 +84,7 @@ func execProj(projfile string, flags int, in *Config) {
 		}
 
 		pubfile := base + "c2go.pub"
-		conf.public = loadPubFile(pubfile)
+		conf.public = cl.ReadPubFile(pubfile)
 
 		if in != nil && in.Select != "" {
 			execProjFile(canonical(base, in.Select), &conf, flags)
@@ -121,6 +92,9 @@ func execProj(projfile string, flags int, in *Config) {
 			execProjSource(base, flags, &conf)
 		}
 		execProjDone(base, flags, &conf)
+
+		err = cl.WritePubFile(base+"c2go.a.pub", conf.public)
+		check(err)
 	}
 	if cmds := conf.Target.Cmds; len(cmds) != 0 {
 		conf.Target.Cmds = nil

@@ -198,7 +198,7 @@ func (p *depPkgs) init(conf *Config) {
 			dir = canonical(depPkgDir, dir)
 			p.incs[dir] = incInDeps
 		}
-		pubfile := filepath.Join(depPkgDir, "c2go.pub")
+		pubfile := filepath.Join(depPkgDir, "c2go.a.pub")
 		p.loadPubFile(dep, pubfile)
 	}
 }
@@ -207,29 +207,7 @@ func (p *depPkgs) loadPubFile(path string, pubfile string) {
 	if debugLoadDeps {
 		log.Println("==> loadPubFile:", path, pubfile)
 	}
-	b, err := os.ReadFile(pubfile)
-	if err != nil {
-		log.Panicln("loadPubFile failed:", err)
-	}
-
-	text := string(b)
-	lines := strings.Split(text, "\n")
-	pubs := make([]pubName, 0, len(lines))
-	for i, line := range lines {
-		flds := strings.Fields(line)
-		goName := ""
-		switch len(flds) {
-		case 1:
-			goName = cPubName(flds[0])
-		case 2:
-			goName = flds[1]
-		case 0:
-			continue
-		default:
-			log.Panicf("%s:%d: too many fields - %s\n", pubfile, i+1, line)
-		}
-		pubs = append(pubs, pubName{name: flds[0], goName: goName})
-	}
+	pubs := loadPubFile(pubfile)
 	p.pkgs = append(p.pkgs, depPkg{path: path, pubs: pubs})
 }
 
