@@ -99,47 +99,53 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Target.Name = "main"
 		}
 
+		appFlags := flags &^ (FlagTestMain | FlagRunTest)
 		pubfile := base + "c2go.pub"
 		conf.public = cl.ReadPubFile(pubfile)
 
 		if in != nil && in.Select != "" {
-			execProjFile(canonical(base, in.Select), &conf, flags)
+			execProjFile(canonical(base, in.Select), &conf, appFlags)
 			return
 		}
-		execProjSource(base, flags, &conf)
+		execProjSource(base, appFlags, &conf)
 
 		err = cl.WritePubFile(base+"c2go.a.pub", conf.public)
 		check(err)
 	}
 	if cmds := conf.Target.Cmds; len(cmds) != 0 {
 		conf.Target.Cmds = nil
-		conf.Target.Name = "main"
+		conf.public = nil
 		for _, cmd := range cmds {
+			conf.Target.Name = "main"
+			appFlags := flags
+			if (flags & FlagTestMain) != 0 {
+				appFlags &= ^FlagRunTest // not allow both FlagTestMain and FlagRunTest
+				dir, fname := filepath.Split(cmd.Dir)
+				if strings.HasPrefix(fname, "test_") {
+					conf.Target.Name = fname[5:]
+					cmd.Dir = dir + "test/" + conf.Target.Name
+				} else {
+					appFlags &= ^FlagTestMain
+				}
+			} else if (appFlags & FlagRunTest) != 0 {
+				fname := filepath.Base(cmd.Dir)
+				if !strings.HasPrefix(fname, "test_") { // only test cmd/test_xxx
+					appFlags &= ^FlagRunTest
+				}
+			}
+			fmt.Printf("==> Building %s ...\n", cmd.Dir)
 			conf.Source = cmd.Source
 			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
-			var action string
-			var appFlags = flags
-			switch {
-			case (flags & FlagRunTest) != 0:
-				fname := filepath.Base(cmd.Dir)
-				if strings.HasPrefix(fname, "test_") {
-					action = "Testing"
-					break
-				}
-				appFlags &= ^FlagRunTest
-				fallthrough
-			default:
-				action = "Building"
-			}
-			fmt.Printf("==> %s %s ...\n", action, cmd.Dir)
 			execProjSource(base, appFlags, &conf)
 			if (appFlags & FlagRunTest) != 0 {
 				cmd2 := exec.Command(clangOut)
-				cmd2.Dir = cmd.Dir
+				cmd2.Dir = canonical(base, cmd.Dir)
 				cmd2.Stdout = os.Stdout
 				cmd2.Stderr = os.Stderr
+				fmt.Printf("==> Running %s ...\n", cmd2.Dir)
 				check(cmd2.Run())
+				os.Remove(filepath.Join(cmd2.Dir, clangOut))
 			}
 		}
 	}
@@ -177,7 +183,7 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 			check(err)
 		}
 		var cmd *exec.Cmd
-		if (flags & FlagRunTest) != 0 {
+		if (flags&FlagRunTest) != 0 && conf.Target.Name == "main" {
 			cmd = exec.Command("go", "build", "-o", clangOut, ".")
 		} else {
 			cmd = exec.Command("go", "install", ".")
@@ -258,6 +264,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		Include:     conf.Include,
 		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
+		TestMain:    (flags & FlagTestMain) != 0,
 	})
 	check(err)
 }

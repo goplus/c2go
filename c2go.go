@@ -40,6 +40,7 @@ const (
 	FlagDepsAutoGen
 	FlagForcePreprocess
 	FlagDumpJson
+	FlagTestMain
 
 	flagChdir
 )
