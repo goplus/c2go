@@ -116,7 +116,7 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 		pkg.ForEachFile(func(fname string, file *gox.File) {
 			gofile := fname
 			if strings.HasPrefix(fname, "_") {
-				gofile = "c2go" + fname
+				gofile = "x2g" + fname
 			}
 			err := pkg.WriteFile(filepath.Join(dir, gofile), fname)
 			check(err)
