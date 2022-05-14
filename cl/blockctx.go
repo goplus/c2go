@@ -207,6 +207,7 @@ type blockCtx struct {
 	curfn    *funcCtx
 	curflow  flowCtx
 	multiFileCtl
+	testMain bool
 }
 
 func (p *blockCtx) deleteUnnamed(id ast.ID) {

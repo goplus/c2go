@@ -160,6 +160,9 @@ type Config struct {
 
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
+
+	// TestMain specifies to generate TestMain func as entry, not main func.
+	TestMain bool
 }
 
 const (
@@ -238,6 +241,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 		public:   conf.Public,
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
+		testMain: conf.TestMain,
 	}
 	ctx.initMultiFileCtl(p, conf)
 	ctx.initCTypes()
@@ -373,9 +377,27 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		ctx.curfn = nil
 		cb.End()
 		if isMain {
-			pkg.NewFunc(nil, "main", nil, nil, false).BodyStart(pkg)
+			var t *types.Var
+			var entryParams *types.Tuple
+			var entry = "main"
+			var testMain = ctx.testMain
+			if testMain {
+				entry = "TestMain"
+				testing := pkg.Import("testing")
+				t = pkg.NewParam(token.NoPos, "t", types.NewPointer(testing.Ref("T").Type()))
+				entryParams = types.NewTuple(t)
+			}
+			pkg.NewFunc(nil, entry, entryParams, nil, false).BodyStart(pkg)
 			if results != nil {
-				cb.Val(pkg.Import("os").Ref("Exit")).Typ(types.Typ[types.Int])
+				if testMain {
+					// if _cgo_ret := _cgo_main(); _cgo_ret != 0 {
+					//   t.Fatal("exit status", _cgo_ret)
+					// }
+					cb.If().DefineVarStart(token.NoPos, retName)
+				} else {
+					// os.Exit(int(_cgo_main()))
+					cb.Val(pkg.Import("os").Ref("Exit")).Typ(types.Typ[types.Int])
+				}
 			}
 			cb.Val(f.Func)
 			if params != nil {
@@ -383,7 +405,15 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			}
 			cb.Call(len(params))
 			if results != nil {
-				cb.Call(1).Call(1)
+				if testMain {
+					cb.EndInit(1)
+					ret := cb.Scope().Lookup(retName)
+					cb.Val(ret).Val(0).BinaryOp(token.NEQ).Then().
+						Val(t).MemberVal("Fatal").Val("exit status").Val(ret).Call(2).EndStmt().
+						End()
+				} else {
+					cb.Call(1).Call(1)
+				}
 			}
 			cb.EndStmt().End()
 		} else {

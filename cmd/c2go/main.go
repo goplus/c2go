@@ -18,6 +18,7 @@ var (
 	gendeps    = flag.Bool("gendeps", false, "generate dependencies automatically")
 	json       = flag.Bool("json", false, "dump C AST to a file in json format")
 	test       = flag.Bool("test", false, "run test")
+	testmain   = flag.Bool("testmain", false, "generate TestMain as entry instead of main (only for cmd/test_xxx)")
 	sel        = flag.String("sel", "", "select a file (only available in project mode)")
 )
 
@@ -54,6 +55,9 @@ func main() {
 	}
 	if *test {
 		flags |= c2go.FlagRunTest
+	}
+	if *testmain {
+		flags |= c2go.FlagTestMain
 	}
 	if *failfast {
 		flags |= c2go.FlagFailFast
