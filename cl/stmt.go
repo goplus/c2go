@@ -269,22 +269,23 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 }
 
 func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
+	const (
+		tagNamePrefix        = "_tag"
+		notMatchedNamePrefix = "_nm"
+	)
+
 	sw := ctx.enterSwitch()
 	defer ctx.leave(sw)
 
 	compileExpr(ctx, switchStmt.Inner[0])
 	tag := ctx.cb.InternalStack().Pop()
 
-	const (
-		tagName        = "_tag"
-		notMatchedName = "_nm"
-	)
 	scope := ctx.cb.Scope()
-	ctx.newVar(scope, token.NoPos, tag.Type, tagName)
-	ctx.newVar(scope, token.NoPos, types.Typ[types.Bool], notMatchedName)
+	ctx.newVar(scope, token.NoPos, tag.Type, tagNamePrefix)
+	ctx.newVar(scope, token.NoPos, types.Typ[types.Bool], notMatchedNamePrefix)
 
-	sw.tag = gox.Lookup(scope, tagName)
-	sw.notmat = gox.Lookup(scope, notMatchedName)
+	sw.tag = gox.Lookup(scope, tagNamePrefix)
+	sw.notmat = gox.Lookup(scope, notMatchedNamePrefix)
 
 	cb := ctx.cb.VarRef(sw.tag).VarRef(sw.notmat).Val(tag).Val(true).Assign(2)
 
