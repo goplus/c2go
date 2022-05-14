@@ -434,6 +434,7 @@ func canPub(name string) bool {
 const (
 	valistName = "__cgo_args"
 	retName    = "_cgo_ret"
+	tagName    = "_cgo_tag"
 )
 
 func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
@@ -458,9 +459,11 @@ func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
 			Call(1).Call(1).Val(1).Index(1, false).
 			Call(1).Assign(1)
 	} else if t, ok := typ.(*types.Basic); ok && isNormalInteger(t) {
-		// _cgo_ret, _cgo_ok := __cgo_args[0].(typ)
-		// if !_cgo_ok {
-		//   _cgo_ret = typ(__cgo_args[0].(typ2))
+		// switch _cgo_tag := __cgo_args[0].(type) {
+		// case typ:
+		//   _go_ret = _cgo_tag
+		// case typ2:
+		//   _cgo_ret = typ(_cgo_tag)
 		// }
 		var typ2 types.Type
 		if t.Kind() <= types.Int64 { // int
@@ -468,12 +471,19 @@ func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
 		} else { // uint
 			typ2 = types.Typ[t.Kind()-(types.Uint-types.Int)]
 		}
-		cb.DefineVarStart(token.NoPos, retName, "_cgo_ok").
-			Val(args).Val(0).Index(1, false).TypeAssert(typ, true).EndInit(1)
-		ok := cb.Scope().Lookup("_cgo_ok")
-		cb.If().Val(ok).UnaryOp(token.NOT).Then().
-			VarRef(ret).Typ(typ).Val(args).Val(0).Index(1, false).TypeAssert(typ2, false).Call(1).Assign(1).
-			End()
+		cb.TypeSwitch(tagName).Val(args).Val(0).Index(1, false).TypeAssertThen()
+
+		cb.Typ(typ).TypeCase(1)
+		cb.VarRef(ret).Val(cb.Scope().Lookup(tagName)).Assign(1).End()
+
+		cb.Typ(typ2).TypeCase(1)
+		cb.VarRef(ret).Typ(typ).Val(cb.Scope().Lookup(tagName)).Call(1).Assign(1).End()
+
+		if t.Kind() == types.Int32 {
+			cb.Typ(types.Typ[types.Uint64]).TypeCase(1)
+			cb.VarRef(ret).Typ(typ).Val(cb.Scope().Lookup(tagName)).Call(1).Assign(1).End()
+		}
+		cb.End() // end switch
 	} else {
 		// _cgo_ret = __cgo_args[0].(typ)
 		cb.VarRef(ret).Val(args).Val(0).Index(1, false).TypeAssert(typ, false).Assign(1)
