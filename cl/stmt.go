@@ -268,6 +268,10 @@ func compileSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	compileSimpleSwitchStmt(ctx, switchStmt)
 }
 
+const (
+	notMatchedName = "_cgo_nm"
+)
+
 func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	sw := ctx.enterSwitch()
 	defer ctx.leave(sw)
@@ -275,10 +279,6 @@ func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	compileExpr(ctx, switchStmt.Inner[0])
 	tag := ctx.cb.InternalStack().Pop()
 
-	const (
-		tagName        = "_tag"
-		notMatchedName = "_nm"
-	)
 	scope := ctx.cb.Scope()
 	ctx.newVar(scope, token.NoPos, tag.Type, tagName)
 	ctx.newVar(scope, token.NoPos, types.Typ[types.Bool], notMatchedName)
