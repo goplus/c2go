@@ -102,6 +102,7 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Source = cmd.Source
 			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
+			fmt.Printf("==> Building %s ...\n", cmd.Dir)
 			execProjSource(base, flags, &conf)
 		}
 	}
