@@ -103,7 +103,7 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
 			var action string
-			var runApp = true
+			var appFlags = flags
 			switch {
 			case (flags & FlagRunTest) != 0:
 				fname := filepath.Base(cmd.Dir)
@@ -111,13 +111,14 @@ func execProj(projfile string, flags int, in *Config) {
 					action = "Testing"
 					break
 				}
+				appFlags &= ^FlagRunTest
 				fallthrough
 			default:
-				action, runApp = "Building", false
+				action = "Building"
 			}
 			fmt.Printf("==> %s %s ...\n", action, cmd.Dir)
-			execProjSource(base, flags, &conf)
-			if runApp {
+			execProjSource(base, appFlags, &conf)
+			if (appFlags & FlagRunTest) != 0 {
 				cmd2 := exec.Command(clangOut)
 				cmd2.Dir = cmd.Dir
 				cmd2.Stdout = os.Stdout
@@ -160,7 +161,7 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 			check(err)
 		}
 		var cmd *exec.Cmd
-		if (flags & (FlagRunTest | FlagRunApp)) != 0 {
+		if (flags & FlagRunTest) != 0 {
 			cmd = exec.Command("go", "build", "-o", clangOut, ".")
 		} else {
 			cmd = exec.Command("go", "install", ".")
