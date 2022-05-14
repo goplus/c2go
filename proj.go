@@ -136,7 +136,7 @@ func execProj(projfile string, flags int, in *Config) {
 			execProjSource(base, appFlags, &conf)
 			if (appFlags & FlagRunTest) != 0 {
 				cmd2 := exec.Command(clangOut)
-				cmd2.Dir = cmd.Dir
+				cmd2.Dir = canonical(base, cmd.Dir)
 				cmd2.Stdout = os.Stdout
 				cmd2.Stderr = os.Stderr
 				check(cmd2.Run())
