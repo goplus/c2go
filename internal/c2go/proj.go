@@ -88,10 +88,9 @@ func execProj(projfile string, flags int, in *Config) {
 
 		if in != nil && in.Select != "" {
 			execProjFile(canonical(base, in.Select), &conf, flags)
-		} else {
-			execProjSource(base, flags, &conf)
+			return
 		}
-		execProjDone(base, flags, &conf)
+		execProjSource(base, flags, &conf)
 
 		err = cl.WritePubFile(base+"c2go.a.pub", conf.public)
 		check(err)
@@ -104,9 +103,23 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
 			execProjSource(base, flags, &conf)
-			execProjDone(base, flags, &conf)
 		}
 	}
+}
+
+func execProjSource(base string, flags int, conf *c2goConf) {
+	conf.Reused = cl.Reused{}
+	for _, dir := range conf.Source.Dirs {
+		recursively := strings.HasSuffix(dir, "/...")
+		if recursively {
+			dir = dir[:len(dir)-4]
+		}
+		execProjDir(canonical(base, dir), conf, flags, recursively)
+	}
+	for _, file := range conf.Source.Files {
+		execProjFile(canonical(base, file), conf, flags)
+	}
+	execProjDone(base, flags, conf)
 }
 
 func execProjDone(base string, flags int, conf *c2goConf) {
@@ -132,19 +145,6 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 		check(cmd.Run())
 	} else {
 		fatalf("empty project: no *.c files in this directory.\n")
-	}
-}
-
-func execProjSource(base string, flags int, conf *c2goConf) {
-	for _, dir := range conf.Source.Dirs {
-		recursively := strings.HasSuffix(dir, "/...")
-		if recursively {
-			dir = dir[:len(dir)-4]
-		}
-		execProjDir(canonical(base, dir), conf, flags, recursively)
-	}
-	for _, file := range conf.Source.Files {
-		execProjFile(canonical(base, file), conf, flags)
 	}
 }
 
