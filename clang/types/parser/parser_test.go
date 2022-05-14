@@ -145,6 +145,7 @@ var cases = []testCase{
 	{qualType: "int (*)()", typ: newFn(nil, typesInt)},
 	{qualType: "int (*)(int, ...)", typ: newFnv(typesIntVA, typesInt)},
 	{qualType: "int (*)(int, struct __va_list_tag*)", typ: newFn(typesIntVA, typesInt)},
+	{qualType: "int (*volatile)(int, struct __va_list_tag* restrict)", typ: newFn(typesIntVA, typesInt)},
 	{qualType: "int (const char *, const char *, unsigned int)", flags: FlagGetRetType, typ: tyInt},
 	{qualType: "const char *restrict", typ: tyCharPtr},
 	{qualType: "const char [7]", typ: types.NewArray(tyChar, 7)},
