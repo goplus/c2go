@@ -102,8 +102,28 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Source = cmd.Source
 			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
-			fmt.Printf("==> Building %s ...\n", cmd.Dir)
+			var action string
+			var runApp = true
+			switch {
+			case (flags & FlagRunTest) != 0:
+				fname := filepath.Base(cmd.Dir)
+				if strings.HasPrefix(fname, "test_") {
+					action = "Testing"
+					break
+				}
+				fallthrough
+			default:
+				action, runApp = "Building", false
+			}
+			fmt.Printf("==> %s %s ...\n", action, cmd.Dir)
 			execProjSource(base, flags, &conf)
+			if runApp {
+				cmd2 := exec.Command(clangOut)
+				cmd2.Dir = cmd.Dir
+				cmd2.Stdout = os.Stdout
+				cmd2.Stderr = os.Stderr
+				check(cmd2.Run())
+			}
 		}
 	}
 }
@@ -139,7 +159,12 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 			err := pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
 			check(err)
 		}
-		cmd := exec.Command("go", "install", ".")
+		var cmd *exec.Cmd
+		if (flags & (FlagRunTest | FlagRunApp)) != 0 {
+			cmd = exec.Command("go", "build", "-o", clangOut, ".")
+		} else {
+			cmd = exec.Command("go", "install", ".")
+		}
 		cmd.Dir = dir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
