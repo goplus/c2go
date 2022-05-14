@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2022 The GoPlus Authors (goplus.org). All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package c2go
 
 import (
@@ -88,10 +104,9 @@ func execProj(projfile string, flags int, in *Config) {
 
 		if in != nil && in.Select != "" {
 			execProjFile(canonical(base, in.Select), &conf, flags)
-		} else {
-			execProjSource(base, flags, &conf)
+			return
 		}
-		execProjDone(base, flags, &conf)
+		execProjSource(base, flags, &conf)
 
 		err = cl.WritePubFile(base+"c2go.a.pub", conf.public)
 		check(err)
@@ -103,10 +118,46 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Source = cmd.Source
 			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
-			execProjSource(base, flags, &conf)
-			execProjDone(base, flags, &conf)
+			var action string
+			var appFlags = flags
+			switch {
+			case (flags & FlagRunTest) != 0:
+				fname := filepath.Base(cmd.Dir)
+				if strings.HasPrefix(fname, "test_") {
+					action = "Testing"
+					break
+				}
+				appFlags &= ^FlagRunTest
+				fallthrough
+			default:
+				action = "Building"
+			}
+			fmt.Printf("==> %s %s ...\n", action, cmd.Dir)
+			execProjSource(base, appFlags, &conf)
+			if (appFlags & FlagRunTest) != 0 {
+				cmd2 := exec.Command(clangOut)
+				cmd2.Dir = cmd.Dir
+				cmd2.Stdout = os.Stdout
+				cmd2.Stderr = os.Stderr
+				check(cmd2.Run())
+			}
 		}
 	}
+}
+
+func execProjSource(base string, flags int, conf *c2goConf) {
+	conf.Reused = cl.Reused{}
+	for _, dir := range conf.Source.Dirs {
+		recursively := strings.HasSuffix(dir, "/...")
+		if recursively {
+			dir = dir[:len(dir)-4]
+		}
+		execProjDir(canonical(base, dir), conf, flags, recursively)
+	}
+	for _, file := range conf.Source.Files {
+		execProjFile(canonical(base, file), conf, flags)
+	}
+	execProjDone(base, flags, conf)
 }
 
 func execProjDone(base string, flags int, conf *c2goConf) {
@@ -125,26 +176,18 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 			err := pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
 			check(err)
 		}
-		cmd := exec.Command("go", "install", ".")
+		var cmd *exec.Cmd
+		if (flags & FlagRunTest) != 0 {
+			cmd = exec.Command("go", "build", "-o", clangOut, ".")
+		} else {
+			cmd = exec.Command("go", "install", ".")
+		}
 		cmd.Dir = dir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		check(cmd.Run())
 	} else {
 		fatalf("empty project: no *.c files in this directory.\n")
-	}
-}
-
-func execProjSource(base string, flags int, conf *c2goConf) {
-	for _, dir := range conf.Source.Dirs {
-		recursively := strings.HasSuffix(dir, "/...")
-		if recursively {
-			dir = dir[:len(dir)-4]
-		}
-		execProjDir(canonical(base, dir), conf, flags, recursively)
-	}
-	for _, file := range conf.Source.Files {
-		execProjFile(canonical(base, file), conf, flags)
 	}
 }
 
