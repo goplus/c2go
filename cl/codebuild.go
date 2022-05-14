@@ -508,46 +508,14 @@ func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
 	if e := v.CVal; e == nil || e.Kind() != constant.Int {
 		return
 	}
-	if t, ok := typ.(*types.Basic); ok && t.Kind() <= types.Uintptr && t.Kind() >= types.Int { // integer
+	if t, ok := typ.(*types.Basic); ok && isNormalInteger(t) { // integer
 		adjustBigIntConst(ctx, v, t)
 	}
 }
 
-/*
-func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
-	if e := v.CVal; e == nil || e.Kind() != constant.Int {
-		return
-	}
-	if t, ok := typ.(*types.Basic); ok && (t.Info()&types.IsInteger) != 0 { // integer
-		var cval = constant.Val(v.CVal)
-		var ival, iok = cval.(int64)
-		if !iok {
-			bval, bok := cval.(*big.Int)
-			if !bok || !bval.IsUint64() {
-				adjustBigIntConst(ctx, v, t)
-				return
-			}
-		}
-		if iok && ival < 0 {
-			if (t.Info() & types.IsUnsigned) != 0 { // unsigned int
-				nval := (uint64(1) << (8 * ctx.sizeof(typ))) + uint64(ival)
-				v.Val = &ast.BasicLit{Kind: token.INT, Value: strconv.FormatUint(nval, 10)}
-				v.CVal = constant.MakeUint64(nval)
-			}
-		} else if (t.Info() & types.IsUnsigned) == 0 { // int
-			bits := 8 * ctx.sizeof(typ)
-			max := (int64(1) << (bits - 1)) - 1
-			if !iok || ival > max {
-				mask := (uint64(1) << bits) - 1
-				v.CVal = constant.BinaryOp(
-					constant.BinaryOp(v.CVal, token.AND, constant.MakeUint64(mask)),
-					token.SUB, constant.MakeUint64(mask+1))
-				v.Val = &ast.BasicLit{Kind: token.INT, Value: v.CVal.String()}
-			}
-		}
-	}
+func isNormalInteger(t *types.Basic) bool {
+	return t.Kind() <= types.Uintptr && t.Kind() >= types.Int
 }
-*/
 
 func convertibleTo(V, T types.Type) bool {
 	if _, ok := V.(*types.Pointer); ok {

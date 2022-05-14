@@ -7,9 +7,10 @@ void vprintn2(int n, va_list ap1) {
 	va_list ap;
 	__builtin_va_copy(ap, ap1);
 	for (i = 0; i < n; i++) {
-		s = va_arg(ap, char*);
+		s = va_arg(ap, void*);
 		printf("%s\n", s);
 	}
+	printf("%d, %d\n", va_arg(ap, int), (int)va_arg(ap, unsigned int));
 }
 
 void vprintn1(int n, va_list ap) {
