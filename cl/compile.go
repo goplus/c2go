@@ -441,19 +441,36 @@ func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
 	typ := toType(ctx, expr.Type, 0)
 	args := pkg.NewParam(token.NoPos, valistName, ctypes.Valist)
 	ret := pkg.NewParam(token.NoPos, "_cgo_ret", typ)
-	cb := ctx.cb.NewClosure(types.NewTuple(args), types.NewTuple(ret), false).BodyStart(pkg)
+	cb := ctx.cb.NewClosure(types.NewTuple(args), types.NewTuple(ret), false).
+		BodyStart(pkg).VarRef(ret)
 	//
 	// func(__cgo_args []any) (_cgo_ret T) {
-	//    _cgo_ret = __cgo_args[0].(typ)
+	//    _cgo_ret = ...
 	//    ap = __cgo_args[1:]
 	//    return
 	// }(ap)
-	cb.VarRef(ret).Val(args).Val(0).Index(1, false).TypeAssert(typ, false).Assign(1)
+	if isNilComparable(typ) {
+		// typ((
+		//	 (*[2]unsafe.Pointer)(unsafe.Pointer(&__cgo_args[0]))
+		// )[1])
+		cb.Typ(typ).Typ(tyPVPA).Typ(ctypes.UnsafePointer).
+			Val(args).Val(0).IndexRef(1).UnaryOp(token.AND).
+			Call(1).Call(1).Val(1).Index(1, false).
+			Call(1)
+	} else {
+		// __cgo_args[0].(typ)
+		cb.Val(args).Val(0).Index(1, false).TypeAssert(typ, false)
+	}
+	cb.Assign(1)
 	ap = compileValistLHS(ctx, ap)
 	cb.Val(args).Val(1).None().Slice(false).Assign(1).Return(0).End()
 	compileExpr(ctx, ap)
 	cb.Call(1)
 }
+
+var (
+	tyPVPA = types.NewPointer(types.NewArray(ctypes.UnsafePointer, 2))
+)
 
 func newVariadicParam(ctx *blockCtx, hasName bool) *types.Var {
 	name := ""
