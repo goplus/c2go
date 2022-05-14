@@ -99,14 +99,15 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Target.Name = "main"
 		}
 
+		appFlags := flags &^ (FlagTestMain | FlagRunTest)
 		pubfile := base + "c2go.pub"
 		conf.public = cl.ReadPubFile(pubfile)
 
 		if in != nil && in.Select != "" {
-			execProjFile(canonical(base, in.Select), &conf, flags)
+			execProjFile(canonical(base, in.Select), &conf, appFlags)
 			return
 		}
-		execProjSource(base, flags, &conf)
+		execProjSource(base, appFlags, &conf)
 
 		err = cl.WritePubFile(base+"c2go.a.pub", conf.public)
 		check(err)
@@ -118,16 +119,15 @@ func execProj(projfile string, flags int, in *Config) {
 			conf.Target.Name = "main"
 			appFlags := flags
 			if (flags & FlagTestMain) != 0 {
+				appFlags &= ^FlagRunTest // not allow both FlagTestMain and FlagRunTest
 				dir, fname := filepath.Split(cmd.Dir)
 				if strings.HasPrefix(fname, "test_") {
-					appFlags &= ^FlagRunTest // not allow both FlagTestMain and FlagRunTest
 					conf.Target.Name = fname[5:]
 					cmd.Dir = dir + "test/" + conf.Target.Name
 				} else {
 					appFlags &= ^FlagTestMain
 				}
-			}
-			if (flags & FlagRunTest) != 0 {
+			} else if (appFlags & FlagRunTest) != 0 {
 				fname := filepath.Base(cmd.Dir)
 				if !strings.HasPrefix(fname, "test_") { // only test cmd/test_xxx
 					appFlags &= ^FlagRunTest
