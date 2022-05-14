@@ -10,7 +10,7 @@ void vprintn2(int n, va_list ap1) {
 		s = va_arg(ap, void*);
 		printf("%s\n", s);
 	}
-	printf("%d\n", va_arg(ap, int));
+	printf("%d, %d\n", va_arg(ap, int), (int)va_arg(ap, unsigned int));
 }
 
 void vprintn1(int n, va_list ap) {

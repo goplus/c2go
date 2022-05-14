@@ -433,6 +433,7 @@ func canPub(name string) bool {
 
 const (
 	valistName = "__cgo_args"
+	retName    = "_cgo_ret"
 )
 
 func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
@@ -440,28 +441,43 @@ func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
 	ap := expr.Inner[0]
 	typ := toType(ctx, expr.Type, 0)
 	args := pkg.NewParam(token.NoPos, valistName, ctypes.Valist)
-	ret := pkg.NewParam(token.NoPos, "_cgo_ret", typ)
-	cb := ctx.cb.NewClosure(types.NewTuple(args), types.NewTuple(ret), false).
-		BodyStart(pkg).VarRef(ret)
+	ret := pkg.NewParam(token.NoPos, retName, typ)
+	cb := ctx.cb.NewClosure(types.NewTuple(args), types.NewTuple(ret), false).BodyStart(pkg)
 	//
 	// func(__cgo_args []any) (_cgo_ret T) {
-	//    _cgo_ret = ...
+	//    ...
 	//    ap = __cgo_args[1:]
 	//    return
 	// }(ap)
 	if isNilComparable(typ) {
-		// typ((
+		// _cgo_ret = typ((
 		//	 (*[2]unsafe.Pointer)(unsafe.Pointer(&__cgo_args[0]))
 		// )[1])
-		cb.Typ(typ).Typ(tyPVPA).Typ(ctypes.UnsafePointer).
+		cb.VarRef(ret).Typ(typ).Typ(tyPVPA).Typ(ctypes.UnsafePointer).
 			Val(args).Val(0).IndexRef(1).UnaryOp(token.AND).
 			Call(1).Call(1).Val(1).Index(1, false).
-			Call(1)
+			Call(1).Assign(1)
+	} else if t, ok := typ.(*types.Basic); ok && isNormalInteger(t) {
+		// _cgo_ret, _cgo_ok := __cgo_args[0].(typ)
+		// if !_cgo_ok {
+		//   _cgo_ret = typ(__cgo_args[0].(typ2))
+		// }
+		var typ2 types.Type
+		if t.Kind() <= types.Int64 { // int
+			typ2 = types.Typ[t.Kind()+(types.Uint-types.Int)]
+		} else { // uint
+			typ2 = types.Typ[t.Kind()-(types.Uint-types.Int)]
+		}
+		cb.DefineVarStart(token.NoPos, retName, "_cgo_ok").
+			Val(args).Val(0).Index(1, false).TypeAssert(typ, true).EndInit(1)
+		ok := cb.Scope().Lookup("_cgo_ok")
+		cb.If().Val(ok).UnaryOp(token.NOT).Then().
+			VarRef(ret).Typ(typ).Val(args).Val(0).Index(1, false).TypeAssert(typ2, false).Call(1).Assign(1).
+			End()
 	} else {
-		// __cgo_args[0].(typ)
-		cb.Val(args).Val(0).Index(1, false).TypeAssert(typ, false)
+		// _cgo_ret = __cgo_args[0].(typ)
+		cb.VarRef(ret).Val(args).Val(0).Index(1, false).TypeAssert(typ, false).Assign(1)
 	}
-	cb.Assign(1)
 	ap = compileValistLHS(ctx, ap)
 	cb.Val(args).Val(1).None().Slice(false).Assign(1).Return(0).End()
 	compileExpr(ctx, ap)
