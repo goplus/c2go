@@ -317,7 +317,9 @@ func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			return
 		}
 	}
-	ctx.cb.UnaryOp(op)
+	cb := ctx.cb.UnaryOp(op)
+	ret := cb.Get(-1)
+	adjustIntConst(ctx, ret, ret.Type)
 }
 
 func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
@@ -338,6 +340,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			if isNegConst(arg2) { // fix: can't convert -1 to uintptr
 				cb.UnaryOp(token.SUB)
 				arg2 = stk.Get(-1)
+				adjustIntConst(ctx, arg2, arg2.Type)
 				op = (token.SUB + token.ADD) - op
 			}
 			stk.PopN(2)
@@ -409,6 +412,8 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		}
 	}
 	cb.BinaryOp(op, src)
+	ret := cb.Get(-1)
+	adjustIntConst(ctx, ret, ret.Type)
 }
 
 func untypedZeroToNil(v *gox.Element) {
@@ -474,6 +479,11 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
+func isBasicLit(v *gox.Element) (ok bool) {
+	_, ok = v.Val.(*ast.BasicLit)
+	return
+}
+
 func adjustBigIntConst(ctx *blockCtx, v *gox.Element, t *types.Basic) {
 	var bits = 8 * ctx.sizeof(t)
 	var mask = (uint64(1) << bits) - 1
@@ -482,17 +492,28 @@ func adjustBigIntConst(ctx *blockCtx, v *gox.Element, t *types.Basic) {
 	if iok && (t.Info()&types.IsUnsigned) == 0 { // int
 		max := (uint64(1) << (bits - 1)) - 1
 		if ival > max {
-			v.CVal = constant.BinaryOp(val, token.SUB, constant.MakeUint64(mask+1))
+			maskAdd1 := constant.BinaryOp(constant.MakeUint64(mask), token.ADD, constant.MakeInt64(1))
+			v.CVal = constant.BinaryOp(val, token.SUB, maskAdd1)
 			v.Val = &ast.BasicLit{Kind: token.INT, Value: v.CVal.String()}
 			return
 		}
 	}
-	if constant.Compare(val, token.NEQ, v.CVal) {
+	if !isBasicLit(v) || constant.Compare(val, token.NEQ, v.CVal) {
 		v.CVal = val
 		v.Val = &ast.BasicLit{Kind: token.INT, Value: val.String()}
 	}
 }
 
+func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
+	if e := v.CVal; e == nil || e.Kind() != constant.Int {
+		return
+	}
+	if t, ok := typ.(*types.Basic); ok && t.Kind() <= types.Uintptr && t.Kind() >= types.Int { // integer
+		adjustBigIntConst(ctx, v, t)
+	}
+}
+
+/*
 func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
 	if e := v.CVal; e == nil || e.Kind() != constant.Int {
 		return
@@ -526,6 +547,7 @@ func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
 		}
 	}
 }
+*/
 
 func convertibleTo(V, T types.Type) bool {
 	if _, ok := V.(*types.Pointer); ok {

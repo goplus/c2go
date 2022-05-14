@@ -150,10 +150,31 @@ struct foo {
 func TestVarAndInit(t *testing.T) {
 	testFunc(t, "testBasic", `
 void test() {
-	int a;
+	int a = (unsigned char)-1;
+	long b;
+	if (b == -1) {
+		a = 3;
+	}
 }
 `, `func test() {
-	var a int32
+	var a int32 = int32(255)
+	var b int64
+	if b == int64(-1) {
+		a = int32(3)
+	}
+}`)
+	testFunc(t, "testKeyword", `
+void test() {
+	int type;
+	double import;
+	type = (long)-1;
+	import = type;
+}
+`, `func test() {
+	var type_ int32
+	var import_ float64
+	type_ = int32(-1)
+	import_ = float64(type_)
 }`)
 	testFunc(t, "testExtern", `
 void test() {
@@ -202,19 +223,6 @@ void test() {
 		b int32
 	}
 	var x _cgoa_1 = _cgoa_1{[6]int32{int32(1), int32(2), int32(3)}, 0}
-}`)
-	testFunc(t, "testKeyword", `
-void test() {
-	int type;
-	double import;
-	type = 1;
-	import = type;
-}
-`, `func test() {
-	var type_ int32
-	var import_ float64
-	type_ = int32(1)
-	import_ = float64(type_)
 }`)
 }
 
