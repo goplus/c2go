@@ -255,18 +255,19 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	if global {
 		ctx.getPubName(&decl.Name)
 	}
+	scope := ctx.cb.Scope()
 	flags := 0
 	static := ""
 	switch decl.StorageClass {
 	case ast.Extern:
 		flags = parser.FlagIsExtern
 	case ast.Static:
-		if global {
-			static = decl.Name // don't set static if not in global
-			decl.Name = ctx.autoStaticName(static)
+		if !global { // local static variable
+			scope = ctx.pkg.Types.Scope()
 		}
+		static = decl.Name
+		decl.Name = ctx.autoStaticName(static)
 	}
-	scope := ctx.cb.Scope()
 	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, flags)
 	avoidKeyword(&decl.Name)
 	if flags == parser.FlagIsExtern {
@@ -280,13 +281,13 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 			addr := gox.Lookup(scope, decl.Name)
 			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
 		} else if static != "" {
-			substObj(ctx.pkg.Types, scope, static, decl.Name)
+			substObj(ctx.pkg.Types, ctx.cb.Scope(), static, scope, decl.Name)
 		}
 	}
 }
 
-func substObj(pkg *types.Package, scope *types.Scope, static, name string) {
-	real := scope.Lookup(name)
+func substObj(pkg *types.Package, scope *types.Scope, static string, scope2 *types.Scope, name string) {
+	real := scope2.Lookup(name)
 	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, static, real))
 	if old != nil {
 		if t, ok := old.Type().(*gox.SubstType); ok {

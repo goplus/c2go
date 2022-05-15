@@ -426,7 +426,8 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 	}
 	if static != "" {
-		substObj(pkg.Types, pkg.Types.Scope(), static, fnName)
+		scope := pkg.Types.Scope()
+		substObj(pkg.Types, scope, static, scope, fnName)
 	}
 }
 
