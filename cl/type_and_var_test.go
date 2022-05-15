@@ -151,15 +151,14 @@ func TestVarAndInit(t *testing.T) {
 	testFunc(t, "testBasic", `
 void test() {
 	int a = (unsigned char)-1;
-	long b;
+	static long b;
 	if (b == -1) {
 		a = 3;
 	}
 }
 `, `func test() {
 	var a int32 = int32(255)
-	var b int64
-	if b == int64(-1) {
+	if b_cgo1 == int64(-1) {
 		a = int32(3)
 	}
 }`)
