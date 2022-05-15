@@ -161,16 +161,16 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) types.Type {
 		item := decl.Inner[0]
 		if item.Kind == "ElaboratedType" {
 			if owned := item.OwnedTagDecl; owned != nil && owned.Name == "" {
+				var typ types.Type
 				if owned.Kind == ast.EnumDecl {
-					ctx.cb.AliasType(name, ctypes.Int, ctx.goNodePos(decl))
-					return ctypes.Int
+					typ = ctypes.Int
+				} else if u, ok := ctx.unnameds[owned.ID]; ok {
+					typ = u.typ
+				} else {
+					log.Panicf("compileTypedef %v: unknown id = %v\n", name, owned.ID)
 				}
-				id := owned.ID
-				if u, ok := ctx.unnameds[id]; ok {
-					aliasType(scope, ctx.pkg.Types, name, u.typ)
-					return nil
-				}
-				log.Panicln("compileTypedef: unknown id =", id)
+				ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+				return typ
 			}
 		}
 	}
