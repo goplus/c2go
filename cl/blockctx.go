@@ -498,6 +498,10 @@ func (p *blockCtx) initCTypes() {
 
 	decl_builtin(p)
 }
+
+func aliasCType(scope *types.Scope, pkg *types.Package, name string, c *gox.PkgRef, cname string) {
+	aliasType(scope, pkg, name, c.Ref(cname).Type())
+}
 */
 func (p *blockCtx) initCTypes() {
 	pkg := p.pkg.Types
@@ -521,10 +525,6 @@ func (p *blockCtx) initCTypes() {
 func aliasType(scope *types.Scope, pkg *types.Package, name string, typ types.Type) {
 	o := types.NewTypeName(token.NoPos, pkg, name, typ)
 	scope.Insert(o)
-}
-
-func aliasCType(scope *types.Scope, pkg *types.Package, name string, c *gox.PkgRef, cname string) {
-	aliasType(scope, pkg, name, c.Ref(cname).Type())
 }
 
 // -----------------------------------------------------------------------------
