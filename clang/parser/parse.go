@@ -46,6 +46,7 @@ func DumpAST(filename string, conf *Config) (result []byte, warning []byte, err 
 		args = append(conf.Flags, args...)
 	}
 	cmd := exec.Command("clang", args...)
+	cmd.Stdin = os.Stdin
 	cmd.Stdout = stdout
 	if conf.Stderr && !skiperr {
 		cmd.Stderr = os.Stderr
