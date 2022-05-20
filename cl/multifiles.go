@@ -40,8 +40,8 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 			reused.pkg.pi = pi
 			reused.pkg.Package = pkg
 			reused.deps.init(conf)
+			initDepPkgs(pkg, &reused.deps)
 		}
-		initDepPkgs(pkg, &reused.deps)
 		p.typdecls = pi.typdecls
 		p.extfns = pi.extfns
 		if reused.exists == nil {
