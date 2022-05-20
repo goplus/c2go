@@ -40,8 +40,8 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 			reused.pkg.pi = pi
 			reused.pkg.Package = pkg
 			reused.deps.init(conf)
+			initDepPkgs(pkg, &reused.deps)
 		}
-		initDepPkgs(pkg, &reused.deps)
 		p.typdecls = pi.typdecls
 		p.extfns = pi.extfns
 		if reused.exists == nil {
@@ -156,7 +156,9 @@ func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
 		depPkg := pkg.Import(dep.path)
 		for _, pub := range dep.pubs {
 			obj := depPkg.Ref(pub.goName)
-			scope.Insert(gox.NewSubst(token.NoPos, pkg.Types, pub.name, obj))
+			if old := scope.Insert(gox.NewSubst(token.NoPos, pkg.Types, pub.name, obj)); old != nil {
+				log.Panicf("conflicted name `%v` in %v, previous definition is %v\n", pub.name, dep.path, old)
+			}
 		}
 	}
 }
