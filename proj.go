@@ -27,6 +27,7 @@ import (
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/preprocessor"
 	"github.com/goplus/gox"
+	"github.com/goplus/gox/cpackages"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -101,7 +102,8 @@ func execProj(projfile string, flags int, in *Config) {
 
 		appFlags := flags &^ (FlagTestMain | FlagRunTest)
 		pubfile := base + "c2go.pub"
-		conf.public = cl.ReadPubFile(pubfile)
+		conf.public, err = cpackages.ReadPubFile(pubfile)
+		check(err)
 
 		if in != nil && in.Select != "" {
 			execProjFile(canonical(base, in.Select), &conf, appFlags)
@@ -109,7 +111,7 @@ func execProj(projfile string, flags int, in *Config) {
 		}
 		execProjSource(base, appFlags, &conf)
 
-		err = cl.WritePubFile(base+"c2go.a.pub", conf.public)
+		err = cpackages.WritePubFile(base+"c2go.a.pub", conf.public)
 		check(err)
 	}
 	if cmds := conf.Target.Cmds; len(cmds) != 0 {

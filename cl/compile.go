@@ -11,6 +11,7 @@ import (
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
+	"github.com/goplus/gox/cpackages"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 )
@@ -438,28 +439,15 @@ func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
 		if goName != "" {
 			*pfnName = goName
 		} else {
-			*pfnName = cPubName(name)
+			*pfnName = cpackages.PubName(name)
 		}
 		return
 	}
 	if _, ok = p.autopub[name]; ok {
 		p.public[name] = ""
-		*pfnName = cPubName(name)
+		*pfnName = cpackages.PubName(name)
 	}
 	return
-}
-
-func cPubName(name string) string {
-	if r := name[0]; 'a' <= r && r <= 'z' {
-		r -= 'a' - 'A'
-		return string(r) + name[1:]
-	}
-	return name
-}
-
-func canPub(name string) bool {
-	r := name[0]
-	return 'a' <= r && r <= 'z'
 }
 
 const (
