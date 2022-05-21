@@ -2,13 +2,16 @@ package c2go
 
 import (
 	"flag"
-	"fmt"
 	"os"
 
 	"github.com/goplus/c2go"
 	"github.com/goplus/c2go/cl"
 	"github.com/goplus/c2go/clang/preprocessor"
 	"github.com/goplus/gox"
+)
+
+const (
+	ShortUsage = "c2go [-test -testmain -ff -pp -json -sel selectfile -gendeps -v] [pkgname] source\n"
 )
 
 func isDir(name string) bool {
@@ -38,8 +41,7 @@ func Main(flag *flag.FlagSet, args []string) {
 	case 2:
 		pkgname, infile = flag.Arg(0), flag.Arg(1)
 	default:
-		fmt.Fprintf(os.Stderr, "Usage: c2go [-test -ff -gendeps -v] [pkgname] source.c\n")
-		flag.PrintDefaults()
+		flag.Usage()
 		return
 	}
 
