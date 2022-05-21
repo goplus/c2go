@@ -67,6 +67,13 @@ func (ctx *blockCtx) goNodePos(v *ast.Node) token.Pos {
 	return token.NoPos
 }
 
+func goPos(v goast.Node) token.Pos {
+	if v == nil {
+		return token.NoPos
+	}
+	return v.Pos()
+}
+
 // -----------------------------------------------------------------------------
 
 type nodeInterp struct {

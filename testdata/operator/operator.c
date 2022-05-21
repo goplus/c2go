@@ -21,8 +21,11 @@ void h() {
     g(0) && g(1);
 }
 
-void unused() {
+#define shunget(f) (rpos ? (void)rpos-- : (void)0)
+
+void unused(int rpos) {
     volatile int y = 0; // same as: (void)y;
+    shunget(rpos);
 }
 
 typedef struct {
