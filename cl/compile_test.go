@@ -139,6 +139,21 @@ func testWith(t *testing.T, name string, fn string, code string, outFunc string)
 	return
 }
 
+func testPanic(t *testing.T, panicMsg string, doPanic func()) {
+	t.Run(panicMsg, func(t *testing.T) {
+		if panicMsg != "" {
+			defer func() {
+				if e := recover(); e == nil {
+					t.Fatal("testPanic: no error?")
+				} else if msg := e.(string); msg != panicMsg {
+					t.Fatalf("\nResult:\n%s\nExpected Panic:\n%s\n", msg, panicMsg)
+				}
+			}()
+		}
+		doPanic()
+	})
+}
+
 // -----------------------------------------------------------------------------
 
 func TestFuncAndDecl(t *testing.T) {
