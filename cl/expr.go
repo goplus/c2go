@@ -7,6 +7,8 @@ import (
 	"log"
 	"strconv"
 
+	ctypes "github.com/goplus/c2go/clang/types"
+
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
 )
@@ -200,7 +202,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
 	switch v.CastKind {
 	case ast.ToVoid: // _ = expr
-		cb, _ := closureStartT(ctx, types.Typ[types.Int])
+		cb, _ := closureStartT(ctx, goPos(src), types.Typ[types.Int])
 		cb.VarRef(nil)
 		compileExpr(ctx, v.Inner[0])
 		cb.Assign(1).Val(0).Return(1).End().Call(0)
@@ -319,7 +321,8 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 // -----------------------------------------------------------------------------
 
 func compileCommaExpr(ctx *blockCtx, v *ast.Node, flags int) {
-	cb, _ := closureStart(ctx, "")
+	pos := ctx.goNodePos(v)
+	cb, _ := closureStart(ctx, pos, "")
 	compileExprEx(ctx, v.Inner[0], unknownExprPrompt, flagIgnoreResult)
 	cb.EndStmt()
 	compileExpr(ctx, v.Inner[1])
@@ -515,39 +518,57 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 }
 
 func closureStartInitAddr(ctx *blockCtx, v *ast.Node) (*gox.CodeBuilder, *types.Var) {
-	cb, ret := closureStart(ctx, "_cgo_ret")
-	cb.DefineVarStart(token.NoPos, addrVarName)
+	pos := ctx.goNodePos(v)
+	cb, ret := closureStart(ctx, pos, "_cgo_ret")
+	cb.DefineVarStart(pos, addrVarName)
 	compileExprLHS(ctx, v.Inner[0])
 	cb.UnaryOp(token.AND).EndInit(1)
 	return cb, ret
 }
 
-func closureStart(ctx *blockCtx, retName string) (*gox.CodeBuilder, *types.Var) {
+func closureStart(ctx *blockCtx, pos token.Pos, retName string) (*gox.CodeBuilder, *types.Var) {
 	pkg := ctx.pkg
-	ret := pkg.NewAutoParam(retName)
+	ret := pkg.NewAutoParamEx(pos, retName)
 	return ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg), ret
 }
 
-func closureStartT(ctx *blockCtx, t types.Type) (*gox.CodeBuilder, *types.Var) {
+func closureStartT(ctx *blockCtx, pos token.Pos, t types.Type) (*gox.CodeBuilder, *types.Var) {
 	pkg := ctx.pkg
-	ret := pkg.NewParam(token.NoPos, "", t)
+	ret := pkg.NewParam(pos, "", t)
 	return ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg), ret
 }
 
 // -----------------------------------------------------------------------------
 
 func compileConditionalOperator(ctx *blockCtx, v *ast.Node) {
+	cb := ctx.cb
+	src := ctx.goNode(v)
 	t := toType(ctx, v.Type, 0)
-	cb, _ := closureStartT(ctx, t)
+	notVoid := (t != ctypes.Void)
+	if notVoid {
+		closureStartT(ctx, goPos(src), t) // start closure
+	}
 	cb.If()
 	compileExpr(ctx, v.Inner[0])
 	castToBoolExpr(cb)
 	cb.Then()
 	compileExpr(ctx, v.Inner[1])
-	cb.Return(1).Else()
+	returnIf(notVoid, cb, src)
+	cb.Else()
 	compileExpr(ctx, v.Inner[2])
-	cb.Return(1).End().
-		End().Call(0) // end func
+	returnIf(notVoid, cb, src)
+	cb.End() // end if
+	if notVoid {
+		cb.End().CallWith(0, 0, src) // end closure
+	}
+}
+
+func returnIf(notVoid bool, cb *gox.CodeBuilder, src goast.Node) {
+	if notVoid {
+		cb.Return(1, src)
+	} else {
+		cb.EndStmt()
+	}
 }
 
 // -----------------------------------------------------------------------------
