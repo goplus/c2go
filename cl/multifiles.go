@@ -182,7 +182,7 @@ func (p *depPkgs) init(conf *Config) {
 		p.incs[dir] = incInSelf
 	}
 	procDepPkg := conf.ProcDepPkg
-	gomod, _ := gopmod.Load(base, nil)
+	gomod, _ := gopmod.Load(base, 0)
 	for _, dep := range deps {
 		if dep == "C" {
 			p.skipLibcH = true
