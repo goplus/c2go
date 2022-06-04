@@ -6,6 +6,7 @@ c2go - Convert C to Go
 [![GitHub release](https://img.shields.io/github/v/tag/goplus/c2go.svg?label=release)](https://github.com/goplus/c2go/releases)
 [![Coverage Status](https://codecov.io/gh/goplus/c2go/branch/main/graph/badge.svg)](https://codecov.io/gh/goplus/c2go)
 [![GoDoc](https://pkg.go.dev/badge/github.com/goplus/c2go.svg)](https://pkg.go.dev/mod/github.com/goplus/c2go)
+[![Language](https://img.shields.io/badge/language-Go+-blue.svg)](https://github.com/goplus/gop)
 
 This is a subproject of [the Go+ project](https://github.com/goplus/gop). Its goal is converting any C project into Go without any human intervention and keeping performance close to C.
 
@@ -28,6 +29,35 @@ Run/Test multiple examples:
 - Run examples: `c2go ./...`
 - Test examples: `c2go -test ./...`
 
+
+## How c2go is used in Go+
+
+Here is an example to show how Go+ interacts with C.
+
+```go
+import "C"
+
+C.printf C"Hello, c2go!\n"
+C.fprintf C.stderr, C"Hi, %7.1f\n", 3.14
+```
+
+Here we use `import "C"` to import libc. It's an abbreviation for `import "C/github.com/goplus/libc"`. It is equivalent to the following code:
+
+```go
+import "C/github.com/goplus/libc"
+
+C.printf C"Hello, c2go!\n"
+C.fprintf C.stderr, C"Hi, %7.1f\n", 3.14
+```
+
+In this example we call two C standard functions `printf` and `fprintf`, pass a C variable `stderr` and two C strings in the form of `C"xxx"`.
+
+The output of this example is as follows:
+
+```
+Hello, c2go!
+Hi,     3.1
+```
 
 ## What's our plan?
 
