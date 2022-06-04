@@ -32,7 +32,7 @@ Run/Test multiple examples:
 
 ## How c2go is used in Go+
 
-Here is an example to show how Go+ interacts with C.
+Here is [an example to show how Go+ interacts with C](https://github.com/goplus/gop/tree/main/testdata/helloc2go).
 
 ```go
 import "C"
