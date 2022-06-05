@@ -50,7 +50,7 @@ C.printf C"Hello, c2go!\n"
 C.fprintf C.stderr, C"Hi, %7.1f\n", 3.14
 ```
 
-In this example we call two C standard functions `printf` and `fprintf`, pass a C variable `stderr` and two C strings in the form of `C"xxx"` (a Go+ syntax to represent C style strings).
+In this example we call two C standard functions `printf` and `fprintf`, passing a C variable `stderr` and two C strings in the form of `C"xxx"` (a Go+ syntax to represent C style strings).
 
 Run `gop run .` to see the output of this example:
 
