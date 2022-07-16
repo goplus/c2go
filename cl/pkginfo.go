@@ -104,7 +104,6 @@ func (p *blockCtx) initPublicFrom(conf *Config, node *ast.Node) {
 	if len(pubFrom) == 0 {
 		return
 	}
-	p.autopub = make(map[string]none)
 	isPub := false
 	for _, decl := range node.Inner {
 		if f := decl.Loc.PresumedFile; f != "" {
