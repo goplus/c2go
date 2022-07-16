@@ -73,8 +73,22 @@ func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
 }
 
 func (p *blockCtx) autoStaticName(name string) string {
+	if file := p.srcfile; file != "" {
+		return name + "_" + baseOfFile(file)
+	}
 	*p.base++
 	return name + "_cgo" + strconv.Itoa(*p.base)
+}
+
+func baseOfFile(file string) string {
+	base := filepath.Base(file)
+	pos := strings.IndexFunc(base, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_')
+	})
+	if pos > 0 {
+		base = base[:pos]
+	}
+	return base
 }
 
 func (p *blockCtx) logFile(node *ast.Node) {
