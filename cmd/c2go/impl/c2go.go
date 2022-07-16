@@ -30,7 +30,8 @@ func Main(flag *flag.FlagSet, args []string) {
 		json       = flag.Bool("json", false, "dump C AST to a file in json format")
 		test       = flag.Bool("test", false, "run test")
 		testmain   = flag.Bool("testmain", false, "generate TestMain as entry instead of main (only for cmd/test_xxx)")
-		sel        = flag.String("sel", "", "select a file (only available in project mode)")
+		runcmd     = flag.String("run", "", "select a command to run (only available in project mode)")
+		selfile    = flag.String("sel", "", "select a file (only available in project mode)")
 	)
 	flag.Parse(args)
 	var pkgname, infile string
@@ -50,7 +51,7 @@ func Main(flag *flag.FlagSet, args []string) {
 		preprocessor.SetDebug(preprocessor.DbgFlagAll)
 		gox.SetDebug(gox.DbgFlagInstruction) // | gox.DbgFlagMatch)
 	}
-	if *test {
+	if *test || *runcmd != "" {
 		flags |= c2go.FlagRunTest
 	}
 	if *testmain {
@@ -68,9 +69,9 @@ func Main(flag *flag.FlagSet, args []string) {
 	if *json {
 		flags |= c2go.FlagDumpJson
 	}
-	var conf *c2go.Config
-	if *sel != "" {
-		conf = &c2go.Config{Select: *sel}
+	conf := &c2go.Config{
+		SelectFile: *selfile,
+		SelectCmd:  *runcmd,
 	}
 	c2go.Run(pkgname, infile, flags, conf)
 }

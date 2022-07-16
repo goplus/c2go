@@ -60,7 +60,8 @@ func isFile(name string) bool {
 }
 
 type Config struct {
-	Select string
+	SelectFile string
+	SelectCmd  string
 }
 
 func Run(pkgname, infile string, flags int, conf *Config) {
