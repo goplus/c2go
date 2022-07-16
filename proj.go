@@ -46,6 +46,7 @@ type c2goCmd struct {
 	Dir    string     `json:"dir"`
 	Source c2goSource `json:"source"`
 	Deps   []string   `json:"deps"`
+	For    []string   `json:"for"`
 }
 
 type c2goTarget struct {
@@ -125,9 +126,9 @@ func execProj(projfile string, flags int, in *Config) {
 		if in != nil {
 			cmdSel = in.SelectCmd
 		}
-		for _, cmd := range cmds {
+		doCmd := func(cmd c2goCmd) {
 			if cmdSel != "" && cmd.Dir != cmdSel {
-				continue
+				return
 			}
 			conf.Target.Name = "main"
 			appFlags := flags
@@ -161,7 +162,45 @@ func execProj(projfile string, flags int, in *Config) {
 				os.Remove(filepath.Join(cmd2.Dir, clangOut))
 			}
 		}
+		doCmdTempl := func(cmd c2goCmd, it string) {
+			cmd.Dir = substText(cmd.Dir, it)
+			cmd.Deps = substTexts(cmd.Deps, it)
+			cmd.Source.Files = substTexts(cmd.Source.Files, it)
+			cmd.Source.Dirs = substTexts(cmd.Source.Dirs, it)
+			doCmd(cmd)
+		}
+		for _, cmd := range cmds {
+			if len(cmd.For) > 0 {
+				for _, it := range cmd.For {
+					doCmdTempl(cmd, it)
+				}
+			} else {
+				doCmd(cmd)
+			}
+		}
 	}
+}
+
+func substText(tpl string, it string) string {
+	return strings.ReplaceAll(tpl, "$(it)", it)
+}
+
+func substTexts(tpl []string, it string) []string {
+	for n, v := range tpl {
+		nv := substText(v, it)
+		if v != nv {
+			ret := make([]string, len(tpl))
+			for i := 0; i < n; i++ {
+				ret[i] = tpl[i]
+			}
+			ret[n] = nv
+			for i, n := n+1, len(tpl); i < n; i++ {
+				ret[i] = substText(tpl[i], it)
+			}
+			return ret
+		}
+	}
+	return tpl
 }
 
 func execProjSource(base string, flags int, conf *c2goConf) {
