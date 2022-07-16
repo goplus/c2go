@@ -152,6 +152,7 @@ var cases = []testCase{
 	{qualType: "const char [7]", flags: FlagIsParam, typ: tyCharPtr},
 	{qualType: "char []", flags: FlagIsField, typ: types.NewArray(tyChar, 0)},
 	{qualType: "char []", flags: FlagIsExtern, typ: types.NewArray(tyChar, -1)},
+	{qualType: "char []", flags: 0, err: emsgDefArrWithoutLen},
 	{qualType: "char []", flags: FlagIsTypedef, typ: types.NewArray(tyChar, -1)},
 	{qualType: "char []", flags: FlagIsParam, typ: tyCharPtr},
 	{qualType: "int [100][3]", typ: tyInt3_100},
@@ -198,6 +199,19 @@ func errMsgOf(err error) string {
 		return e.ErrMsg
 	}
 	return err.Error()
+}
+
+// -----------------------------------------------------------------------------
+
+func TestIsArrayWithoutLen(t *testing.T) {
+	_, _, err := ParseType("byte[]", &Config{Scope: types.Universe})
+	if !IsArrayWithoutLen(err) {
+		t.Fatal("ParseType:", err)
+	}
+	_, _, err = ParseType("byte[]", &Config{Scope: types.Universe, Flags: FlagIsExtern})
+	if IsArrayWithoutLen(err) {
+		t.Fatal("ParseType:", err)
+	}
 }
 
 // -----------------------------------------------------------------------------

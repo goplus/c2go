@@ -2,7 +2,9 @@
 
 int g_a = 100;
 
-int g_arr[100][3];
+static int g_arr[][3];
+static int g_arr[100][3];
+
 int (*g_parr)[100][3] = &g_arr;
 
 union { int a; unsigned short b; } g_foo = { 1 };
