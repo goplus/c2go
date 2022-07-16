@@ -14,6 +14,10 @@ import (
 	"github.com/goplus/gox"
 )
 
+const (
+	emsgDefArrWithoutLen = "define array without length"
+)
+
 var (
 	ErrInvalidType = errors.New("invalid type")
 )
@@ -34,6 +38,13 @@ type ParseTypeError struct {
 
 func (p *ParseTypeError) Error() string {
 	return p.ErrMsg // TODO
+}
+
+func IsArrayWithoutLen(err error) bool {
+	if e, ok := err.(*ParseTypeError); ok {
+		return e.ErrMsg == emsgDefArrWithoutLen
+	}
+	return false
 }
 
 // -----------------------------------------------------------------------------
@@ -266,7 +277,7 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 	if n >= 0 || (inFlags&(FlagIsExtern|FlagIsTypedef|FlagIsParam)) != 0 {
 		t = types.NewArray(t, n)
 	} else {
-		return nil, p.newError("define array without length")
+		return nil, p.newError(emsgDefArrWithoutLen)
 	}
 	return t, nil
 }

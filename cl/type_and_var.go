@@ -22,18 +22,25 @@ func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
 }
 
 func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int) {
+	t, kind, err := parseType(ctx, scope, tyAnonym, typ, flags)
+	if err != nil {
+		log.Panicln("toType:", err, "-", typ.QualType)
+	}
+	return
+}
+
+func parseType(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int, err error) {
 	conf := &parser.Config{
 		Pkg: ctx.pkg.Types, Scope: scope, Flags: flags,
 		TyAnonym: tyAnonym, TyInt128: ctx.tyI128, TyUint128: ctx.tyU128,
 	}
 retry:
-	t, kind, err := parser.ParseType(typ.QualType, conf)
+	t, kind, err = parser.ParseType(typ.QualType, conf)
 	if err != nil {
 		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
 			ctx.typdecls[e.Literal] = ctx.cb.NewType(e.Literal)
 			goto retry
 		}
-		log.Panicln("toType:", err, "-", typ.QualType)
 	}
 	return
 }
@@ -258,17 +265,26 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	scope := ctx.cb.Scope()
 	flags := 0
 	static := ""
+	gblStatic := false
 	switch decl.StorageClass {
 	case ast.Extern:
 		flags = parser.FlagIsExtern
 	case ast.Static:
-		if !global { // local static variable
+		if global { // global static
+			gblStatic = true
+		} else { // local static variable
 			scope = ctx.pkg.Types.Scope()
 		}
 		static = decl.Name
 		decl.Name = ctx.autoStaticName(static)
 	}
-	typ, kind := toTypeEx(ctx, scope, nil, decl.Type, flags)
+	typ, kind, err := parseType(ctx, scope, nil, decl.Type, flags)
+	if err != nil {
+		if gblStatic && parser.IsArrayWithoutLen(err) {
+			return
+		}
+		log.Panicln("parseType:", err, "-", decl.Type)
+	}
 	avoidKeyword(&decl.Name)
 	if flags == parser.FlagIsExtern {
 		scope.Insert(types.NewVar(ctx.goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
