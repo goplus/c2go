@@ -22,7 +22,8 @@ type multiFileCtl struct {
 	PkgInfo
 	incs      map[string]int  // incPath => incInSelf/incInDeps (only valid on hasMulti)
 	exists    map[string]none // only valid on hasMulti
-	base      *int            // anonymous struct/union
+	base      *int            // for anonymous struct/union or static
+	baseOF    string          // basename of file
 	baseDir   string
 	hasMulti  bool
 	inHeader  bool // in header file (only valid on hasMulti)
@@ -31,7 +32,8 @@ type multiFileCtl struct {
 }
 
 func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
-	if reused := conf.Reused; reused != nil {
+	reused := conf.Reused
+	if reused != nil {
 		pi := reused.pkg.pi
 		if pi == nil {
 			pi = new(PkgInfo)
@@ -57,6 +59,23 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 		p.extfns = make(map[string]none)
 		p.base = new(int)
 	}
+	if file := conf.SrcFile; file != "" {
+		p.baseOF = "_" + baseOfFile(file)
+		if reused != nil {
+			p.base = new(int)
+		}
+	}
+}
+
+func baseOfFile(file string) string {
+	base := filepath.Base(file)
+	pos := strings.IndexFunc(base, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_')
+	})
+	if pos > 0 {
+		base = base[:pos]
+	}
+	return base
 }
 
 const (
@@ -69,26 +88,12 @@ func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
 		return ctypes.MangledName(tag, name), suNormal
 	}
 	*p.base++
-	return "_cgoa_" + strconv.Itoa(*p.base), suAnonymous
+	return "_cgoa_" + strconv.Itoa(*p.base) + p.baseOF, suAnonymous
 }
 
 func (p *blockCtx) autoStaticName(name string) string {
-	if file := p.srcfile; file != "" {
-		return name + "_" + baseOfFile(file)
-	}
 	*p.base++
-	return name + "_cgo" + strconv.Itoa(*p.base)
-}
-
-func baseOfFile(file string) string {
-	base := filepath.Base(file)
-	pos := strings.IndexFunc(base, func(r rune) bool {
-		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_')
-	})
-	if pos > 0 {
-		base = base[:pos]
-	}
-	return base
+	return name + "_cgo" + strconv.Itoa(*p.base) + p.baseOF
 }
 
 func (p *blockCtx) logFile(node *ast.Node) {
