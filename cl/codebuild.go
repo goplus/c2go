@@ -80,15 +80,14 @@ func decl_builtin(ctx *blockCtx) {
 	bfm := ctx.bfm
 	pkg := ctx.pkg.Types
 	scope := pkg.Scope()
-	for fn, proto := range fns {
-		t := toType(ctx, &cast.Type{QualType: strings.ReplaceAll(proto, "size_t", "unsigned long")}, 0)
-		switch bfm {
-		case BFM_InLibC:
-			fn = "X" + fn
-		case BFM_FromLibC:
-			panic("TODO: import builtin from libc")
+	if bfm != BFM_FromLibC {
+		for fn, proto := range fns {
+			t := toType(ctx, &cast.Type{QualType: strings.ReplaceAll(proto, "size_t", "unsigned long")}, 0)
+			if bfm == BFM_InLibC {
+				fn = "X" + fn
+			}
+			scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
 		}
-		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
 	}
 	for _, o := range builtin_overloads {
 		fns := make([]types.Object, len(o.overloads))
