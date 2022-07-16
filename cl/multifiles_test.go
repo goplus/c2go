@@ -19,3 +19,9 @@ func TestInitDepPkgs(t *testing.T) {
 		initDepPkgs(pkg, deps)
 	})
 }
+
+func TestBaseOfFile(t *testing.T) {
+	if ret := baseOfFile("src/errno/strerror.c.i"); ret != "strerror" {
+		t.Fatal("baseOfFile:", ret)
+	}
+}
