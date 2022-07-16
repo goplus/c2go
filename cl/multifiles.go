@@ -22,8 +22,9 @@ type multiFileCtl struct {
 	PkgInfo
 	incs      map[string]int  // incPath => incInSelf/incInDeps (only valid on hasMulti)
 	exists    map[string]none // only valid on hasMulti
-	base      *int            // for anonymous struct/union or static
-	baseOF    string          // basename of file
+	autopub   map[string]none
+	base      *int   // for anonymous struct/union or static
+	baseOF    string // basename of file
 	baseDir   string
 	hasMulti  bool
 	inHeader  bool // in header file (only valid on hasMulti)
@@ -49,7 +50,11 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 		if reused.exists == nil {
 			reused.exists = make(map[string]none)
 		}
+		if reused.autopub == nil {
+			reused.autopub = make(map[string]none)
+		}
 		p.exists = reused.exists
+		p.autopub = reused.autopub
 		p.base = &reused.base
 		p.hasMulti = true
 		p.incs = reused.deps.incs

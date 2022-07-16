@@ -126,10 +126,11 @@ func (p Package) IsValid() bool {
 }
 
 type Reused struct {
-	pkg    Package
-	exists map[string]none
-	base   int
-	deps   depPkgs
+	pkg     Package
+	exists  map[string]none
+	autopub map[string]none
+	base    int
+	deps    depPkgs
 }
 
 // Pkg returns the shared package instance.
