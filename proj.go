@@ -109,8 +109,8 @@ func execProj(projfile string, flags int, in *Config) {
 		conf.public, err = cpackages.ReadPubFile(pubfile)
 		check(err)
 
-		if in != nil && in.Select != "" {
-			execProjFile(canonical(base, in.Select), &conf, appFlags)
+		if in != nil && in.SelectFile != "" {
+			execProjFile(canonical(base, in.SelectFile), &conf, appFlags)
 			return
 		}
 		execProjSource(base, appFlags, &conf)
@@ -121,7 +121,14 @@ func execProj(projfile string, flags int, in *Config) {
 	if cmds := conf.Target.Cmds; len(cmds) != 0 {
 		conf.Target.Cmds = nil
 		conf.public = nil
+		cmdSel := ""
+		if in != nil {
+			cmdSel = in.SelectCmd
+		}
 		for _, cmd := range cmds {
+			if cmdSel != "" && cmd.Dir != cmdSel {
+				continue
+			}
 			conf.Target.Name = "main"
 			appFlags := flags
 			if (flags & FlagTestMain) != 0 {
