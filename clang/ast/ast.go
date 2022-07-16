@@ -65,6 +65,7 @@ const (
 	PureAttr                 Kind = "PureAttr"
 	PackedAttr               Kind = "PackedAttr"
 	GNUInlineAttr            Kind = "GNUInlineAttr"
+	StrictFPAttr             Kind = "StrictFPAttr"
 	ReturnsTwiceAttr         Kind = "ReturnsTwiceAttr"
 	RestrictAttr             Kind = "RestrictAttr"
 	NoThrowAttr              Kind = "NoThrowAttr"
