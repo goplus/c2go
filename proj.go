@@ -74,6 +74,10 @@ type c2goConf struct {
 	dir         string            `json:"-"`
 	public      map[string]string `json:"-"`
 	needPkgInfo bool              `json:"-"`
+
+	InLibC bool `json:"libc"` // bfm = BFM_InLibC
+
+	SimpleProj bool `json:"simpleProj"` // bfm = BFM_Default
 }
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -255,6 +259,12 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 			Run("", pkgDir, flags, nil)
 		}
 	}
+	var bfm cl.BFMode
+	if conf.InLibC {
+		bfm = cl.BFM_InLibC
+	} else if !conf.SimpleProj {
+		bfm = cl.BFM_FromLibC
+	}
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
 		SrcFile:     outfile,
 		ProcDepPkg:  procDepPkg,
@@ -267,6 +277,8 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
 		TestMain:    (flags & FlagTestMain) != 0,
+		// BuiltinFuncMode: compiling mode of builtin functions
+		BuiltinFuncMode: bfm,
 	})
 	check(err)
 }

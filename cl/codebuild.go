@@ -77,15 +77,25 @@ func decl_builtin(ctx *blockCtx) {
 	if err != nil {
 		log.Panicln("decl_builtin decode error:", err)
 	}
+	bfm := ctx.bfm
 	pkg := ctx.pkg.Types
 	scope := pkg.Scope()
-	for fn, proto := range fns {
-		t := toType(ctx, &cast.Type{QualType: strings.ReplaceAll(proto, "size_t", "unsigned long")}, 0)
-		scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
+	if bfm != BFM_FromLibC {
+		for fn, proto := range fns {
+			t := toType(ctx, &cast.Type{QualType: strings.ReplaceAll(proto, "size_t", "unsigned long")}, 0)
+			if bfm == BFM_InLibC {
+				fn = "X" + fn
+			}
+			scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
+		}
 	}
 	for _, o := range builtin_overloads {
 		fns := make([]types.Object, len(o.overloads))
 		for i, item := range o.overloads {
+			switch bfm {
+			case BFM_InLibC:
+				item = "X" + item
+			}
 			fns[i] = pkg.Scope().Lookup(item)
 		}
 		scope.Insert(gox.NewOverloadFunc(token.NoPos, pkg, o.name, fns...))

@@ -1,3 +1,7 @@
+__builtin___memcpy_chk
+__builtin_object_size
+__builtin_bswap32
+__builtin_bswap64
 printf
 strlen
 qsort QSort

@@ -100,6 +100,16 @@ func (p *nodeInterp) LoadExpr(v goast.Node) (code string, pos token.Position) {
 
 // -----------------------------------------------------------------------------
 
+type BFMode int8
+
+const (
+	BFM_Default  BFMode = iota
+	BFM_InLibC          // define builtin functions in libc
+	BFM_FromLibC        // import builtin functions from libc
+)
+
+// -----------------------------------------------------------------------------
+
 type PkgInfo struct {
 	typdecls map[string]*gox.TypeDecl
 	extfns   map[string]none // external functions which are used
@@ -165,6 +175,9 @@ type Config struct {
 
 	// PublicFrom specifies header files to fetch public symbols.
 	PublicFrom []string
+
+	// BuiltinFuncMode sets compiling mode of builtin functions.
+	BuiltinFuncMode BFMode
 
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
@@ -249,6 +262,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 		public:   conf.Public,
 		srcfile:  conf.SrcFile,
 		src:      conf.Src,
+		bfm:      conf.BuiltinFuncMode,
 		testMain: conf.TestMain,
 	}
 	ctx.initMultiFileCtl(p, conf)

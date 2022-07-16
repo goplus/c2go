@@ -206,6 +206,7 @@ type blockCtx struct {
 	file     *token.File
 	curfn    *funcCtx
 	curflow  flowCtx
+	bfm      BFMode
 	multiFileCtl
 	testMain bool
 }

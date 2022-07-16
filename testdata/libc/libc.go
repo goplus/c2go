@@ -64,21 +64,21 @@ func memcpy(dst unsafe.Pointer, src unsafe.Pointer, n c.SizeT) unsafe.Pointer {
 	return dst
 }
 
-func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n c.SizeT, elem c.SizeT) unsafe.Pointer {
+func X__builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n c.SizeT, elem c.SizeT) unsafe.Pointer {
 	copy(sliceOf(dst, n), sliceOf(src, n))
 	return dst
 }
 
-func __builtin_object_size(unsafe.Pointer, int32) c.SizeT {
+func X__builtin_object_size(unsafe.Pointer, int32) c.SizeT {
 	return 1
 }
 
-func __builtin_bswap32(v uint32) uint32 {
+func X__builtin_bswap32(v uint32) uint32 {
 	log.Panicln("__builtin_bswap32: notimpl")
 	return v
 }
 
-func __builtin_bswap64(v uint64) uint64 {
+func X__builtin_bswap64(v uint64) uint64 {
 	log.Panicln("__builtin_bswap32: notimpl")
 	return v
 }
