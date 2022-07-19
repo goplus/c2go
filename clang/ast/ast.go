@@ -118,6 +118,7 @@ const (
 	BinaryOperator           Kind = "BinaryOperator"
 	UnaryOperator            Kind = "UnaryOperator"
 	ConditionalOperator      Kind = "ConditionalOperator"
+	CompoundLiteralExpr      Kind = "CompoundLiteralExpr"
 	CharacterLiteral         Kind = "CharacterLiteral"
 	IntegerLiteral           Kind = "IntegerLiteral"
 	StringLiteral            Kind = "StringLiteral"

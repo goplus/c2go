@@ -69,6 +69,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.OffsetOfExpr:
 		compileOffsetOfExpr(ctx, expr)
 	case ast.VisibilityAttr:
+	case ast.CompoundLiteralExpr:
+		compileCompoundLiteralExpr(ctx, expr)
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}
@@ -80,6 +82,16 @@ func compileExpr(ctx *blockCtx, expr *ast.Node) {
 
 func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
 	compileExprEx(ctx, expr, unknownExprPrompt, flagLHS)
+}
+
+func compileCompoundLiteralExpr(ctx *blockCtx, expr *ast.Node) {
+	typ := toType(ctx, expr.Type, 0)
+	switch inner := expr.Inner[0]; inner.Kind {
+	case ast.InitListExpr:
+		initLit(ctx, typ, inner)
+	default:
+		log.Panicln("compileCompoundLiteralExpr unexpected:", inner.Kind)
+	}
 }
 
 func compileIntegerLiteral(ctx *blockCtx, expr *ast.Node) {
