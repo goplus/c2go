@@ -177,6 +177,9 @@ type Config struct {
 	// PublicFrom specifies header files to fetch public symbols.
 	PublicFrom []string
 
+	// PublicIgnore specifies header files to ignore.
+	PublicIgnore []string
+
 	// BuiltinFuncMode sets compiling mode of builtin functions.
 	BuiltinFuncMode BFMode
 
