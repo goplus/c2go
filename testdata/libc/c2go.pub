@@ -5,4 +5,3 @@ __builtin_bswap64
 printf
 strlen
 qsort QSort
-foo
