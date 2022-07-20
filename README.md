@@ -123,8 +123,8 @@ Hi,     3.1
 - [x] Boolean, Integer
 - [x] Float, Complex Imaginary
 - [x] Character, String
-- [ ] Array: `(T[]){ expr1, expr2, ... }`
-- [ ] Array Pointer: `&(T[]){ expr1, expr2, ... }`
+- [x] Array: `(T[]){ expr1, expr2, ... }`
+- [x] Array Pointer: `&(T[]){ expr1, expr2, ... }`
 - [ ] Struct: `struct T{ expr1, expr2, ... }`
 
 ### Initialization
