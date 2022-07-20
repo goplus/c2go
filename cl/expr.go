@@ -85,9 +85,9 @@ func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
 }
 
 func compileCompoundLiteralExpr(ctx *blockCtx, expr *ast.Node) {
-	typ := toType(ctx, expr.Type, 0)
 	switch inner := expr.Inner[0]; inner.Kind {
 	case ast.InitListExpr:
+		typ := toType(ctx, inner.Type, 0)
 		initLit(ctx, typ, inner)
 	default:
 		log.Panicln("compileCompoundLiteralExpr unexpected:", inner.Kind)

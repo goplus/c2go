@@ -31,8 +31,7 @@ func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.T
 
 func parseType(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int, err error) {
 	conf := &parser.Config{
-		Pkg: ctx.pkg.Types, Scope: scope, Flags: flags,
-		TyAnonym: tyAnonym, TyInt128: ctx.tyI128, TyUint128: ctx.tyU128,
+		Scope: scope, Flags: flags, Anonym: tyAnonym, ParseEnv: ctx,
 	}
 retry:
 	t, kind, err = parser.ParseType(typ.QualType, conf)

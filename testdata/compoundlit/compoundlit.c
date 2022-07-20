@@ -1,5 +1,13 @@
 #include <stdio.h>
 
+#define asdouble(i) ((union{unsigned long _ival; double _fval;}){i})._fval
+
+/*
+void test() {
+    printf("%f\n", asdouble(1));
+}
+*/
+
 void f(unsigned short a[]) {
     printf("%d, %d, %d\n", (int)a[0], (int)a[1], (int)a[2]);
 }

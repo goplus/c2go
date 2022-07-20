@@ -61,13 +61,17 @@ func getRetType(flags int) bool {
 	return (flags & FlagGetRetType) != 0
 }
 
+type ParseEnv interface {
+	Pkg() *types.Package
+	Int128() types.Type
+	Uint128() types.Type
+}
+
 type Config struct {
-	Pkg       *types.Package
-	Scope     *types.Scope
-	TyAnonym  types.Type
-	TyInt128  types.Type
-	TyUint128 types.Type
-	Flags     int
+	ParseEnv
+	Scope  *types.Scope
+	Anonym types.Type
+	Flags  int
 }
 
 const (
@@ -105,7 +109,6 @@ func ParseType(qualType string, conf *Config) (t types.Type, kind int, err error
 
 type parser struct {
 	s     scanner.Scanner
-	pkg   *types.Package
 	scope *types.Scope
 	conf  *Config
 
@@ -122,7 +125,7 @@ const (
 )
 
 func newParser(qualType string, conf *Config) *parser {
-	p := &parser{pkg: conf.Pkg, scope: conf.Scope, conf: conf}
+	p := &parser{scope: conf.Scope, conf: conf}
 	p.old.tok = invalidTok
 	p.s.Init(qualType)
 	return p
@@ -197,12 +200,13 @@ func (p *parser) lookupType(tylit string, flags int) (t types.Type, err error) {
 	if !structOrUnion && flags != 0 {
 		tt, ok := t.(*types.Basic)
 		if !ok {
-			if t == p.conf.TyInt128 {
+			tyInt128 := p.conf.Int128()
+			if t == tyInt128 {
 				switch flags {
 				case flagSigned:
-					return p.conf.TyInt128, nil
+					return tyInt128, nil
 				case flagUnsigned:
-					return p.conf.TyUint128, nil
+					return p.conf.Uint128(), nil
 				}
 			}
 		} else if (flags & flagComplex) != 0 {
@@ -380,9 +384,9 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				switch p.tok {
 				case token.IDENT:
 				case token.LPAREN:
-					if t == nil && p.conf.TyAnonym != nil {
+					if t == nil && p.conf.Anonym != nil {
 						p.skipUntil(token.RPAREN)
-						t = p.conf.TyAnonym
+						t = p.conf.Anonym
 						kind |= KindFAnonymous
 						continue
 					}
@@ -433,7 +437,7 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 			var nstar = p.parseStars()
 			var nstarRet int
 			var tyArr types.Type
-			var pkg, isFn = p.pkg, false
+			var pkg, isFn = p.conf.Pkg(), false
 			var args []*types.Var
 			var variadic bool
 			if nstar == 0 {
