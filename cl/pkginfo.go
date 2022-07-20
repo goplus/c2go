@@ -127,6 +127,9 @@ func canPub(name string) bool {
 
 func isPublicFrom(f string, pubFrom []string) bool {
 	for _, from := range pubFrom {
+		if strings.HasPrefix(from, ".") { // relative path
+			from = strings.TrimLeft(from, "./") // remove "./", "../", etc.
+		}
 		if strings.HasSuffix(f, from) {
 			return true
 		}
