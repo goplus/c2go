@@ -104,10 +104,12 @@ func (p *blockCtx) initPublicFrom(conf *Config, node *ast.Node) {
 	if len(pubFrom) == 0 {
 		return
 	}
+	pubIngore := conf.PublicIgnore
 	isPub := false
 	for _, decl := range node.Inner {
 		if f := decl.Loc.PresumedFile; f != "" {
-			isPub = isPublicFrom(f, pubFrom)
+			isIngore := isPublicFrom(f, pubIngore)
+			isPub = !isIngore && isPublicFrom(f, pubFrom)
 		}
 		if isPub {
 			switch decl.Kind {
