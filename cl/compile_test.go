@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"go/format"
 	"go/token"
+	"go/types"
 	"log"
 	"os"
 	"strconv"
@@ -162,6 +163,18 @@ void test(int var) {
 }
 `, `func test(var_ int32) {
 }`)
+}
+
+func TestParseEnv(t *testing.T) {
+	tyI128 := types.Typ[types.Complex128]
+	tyU128 := types.Typ[types.Complex64]
+	ctx := &blockCtx{tyI128: tyI128, tyU128: tyU128}
+	if ctx.Uint128() != tyU128 {
+		t.Fatal("ctx.Uint128")
+	}
+	if ctx.Int128() != tyI128 {
+		t.Fatal("ctx.Int128")
+	}
 }
 
 // -----------------------------------------------------------------------------
