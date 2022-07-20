@@ -217,6 +217,7 @@ type Node struct {
 	MangledName          string        `json:"mangledName,omitempty"`
 	Type                 *Type         `json:"type,omitempty"`
 	CC                   CC            `json:"cc,omitempty"`
+	Field                *Node         `json:"field,omitempty"`
 	Decl                 *Node         `json:"decl,omitempty"`
 	OwnedTagDecl         *Node         `json:"ownedTagDecl,omitempty"`
 	ReferencedDecl       *Node         `json:"referencedDecl,omitempty"`

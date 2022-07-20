@@ -210,6 +210,18 @@ type blockCtx struct {
 	testMain bool
 }
 
+func (p *blockCtx) Pkg() *types.Package {
+	return p.pkg.Types
+}
+
+func (p *blockCtx) Int128() types.Type {
+	return p.tyI128
+}
+
+func (p *blockCtx) Uint128() types.Type {
+	return p.tyU128
+}
+
 func (p *blockCtx) deleteUnnamed(id ast.ID) {
 	if u, ok := p.unnameds[id]; ok {
 		for _, delName := range u.del {

@@ -171,6 +171,24 @@ var cases = []testCase{
 	{qualType: "enum a", typ: ctypes.Int},
 }
 
+type baseEnv struct {
+	pkg       *types.Package
+	tyInt128  types.Type
+	tyUint128 types.Type
+}
+
+func (p *baseEnv) Pkg() *types.Package {
+	return p.pkg
+}
+
+func (p *baseEnv) Int128() types.Type {
+	return p.tyInt128
+}
+
+func (p *baseEnv) Uint128() types.Type {
+	return p.tyUint128
+}
+
 func TestCases(t *testing.T) {
 	sel := ""
 	for _, c := range cases {
@@ -179,8 +197,8 @@ func TestCases(t *testing.T) {
 		}
 		t.Run(c.qualType, func(t *testing.T) {
 			conf := &Config{
-				Pkg: pkg, Scope: scope, Flags: c.flags,
-				TyAnonym: c.anonym, TyInt128: tyInt128, TyUint128: tyUint128,
+				Scope: scope, Flags: c.flags, Anonym: c.anonym,
+				ParseEnv: &baseEnv{pkg: pkg, tyInt128: tyInt128, tyUint128: tyUint128},
 			}
 			typ, _, err := ParseType(c.qualType, conf)
 			if err != nil {
