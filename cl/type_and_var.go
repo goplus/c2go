@@ -44,6 +44,21 @@ retry:
 	return
 }
 
+func toAnonymType(ctx *blockCtx, pos token.Pos, decl *ast.Node) (ret *types.Named) {
+	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
+	switch decl.Kind {
+	case ast.FieldDecl:
+		pkg := ctx.pkg
+		typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
+		fld := types.NewField(ctx.goNodePos(decl), pkg.Types, decl.Name, typ, false)
+		struc := types.NewStruct([]*types.Var{fld}, nil)
+		ret = ctx.cb.NewType(ctx.getAnonyName(), pos).InitType(pkg, struc)
+	default:
+		log.Panicln("toAnonymType: unknown kind -", decl.Kind)
+	}
+	return
+}
+
 func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) (ret *types.Struct, dels delfunc) {
 	b := newStructBuilder()
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
