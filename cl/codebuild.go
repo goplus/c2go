@@ -429,6 +429,10 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	adjustIntConst(ctx, ret, ret.Type)
 }
 
+func compareOp(ctx *blockCtx, op token.Token, src ast.Node) {
+	ctx.cb.BinaryOp(op, src)
+}
+
 func untypedZeroToNil(v *gox.Element) {
 	v.Type = types.Typ[types.UntypedNil]
 	v.Val = &ast.Ident{Name: "nil"}
