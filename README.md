@@ -125,7 +125,7 @@ Hi,     3.1
 - [x] Character, String
 - [x] Array: `(T[]){ expr1, expr2, ... }`
 - [x] Array Pointer: `&(T[]){ expr1, expr2, ... }`
-- [ ] Struct: `struct T{ expr1, expr2, ... }`
+- [x] Struct: `struct T{ expr1, expr2, ... }`
 
 ### Initialization
 
