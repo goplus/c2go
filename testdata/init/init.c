@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+static const int k = 1023;
+
 int g_a = 100;
 
 static int g_arr[][3];
@@ -29,7 +31,7 @@ int main() {
 
     struct test_t z = test;
 
-    printf("a = %d, g_a = %d\n", a, g_a);
+    printf("a = %d, g_a = %d, k = %d\n", a, g_a, k);
 
     printf("foo.a = %d, foo.b = %d\n", foo.a, foo.b);
     printf("bar.a = %d, bar.b = %s\n", bar.a, bar.b);
