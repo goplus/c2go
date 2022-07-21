@@ -3,6 +3,7 @@ package cl
 import (
 	"encoding/json"
 	"go/token"
+	"go/types"
 	"log"
 	"os"
 	"path/filepath"
@@ -94,6 +95,19 @@ func (p *blockCtx) getSuName(v *ast.Node, tag string) (string, int) {
 	}
 	*p.base++
 	return "_cgoa_" + strconv.Itoa(*p.base) + p.baseOF, suAnonymous
+}
+
+func (p *blockCtx) getAnonyName() string {
+	*p.base++
+	return "_cgoz_" + strconv.Itoa(*p.base) + p.baseOF
+}
+
+func checkAnonyUnion(typ types.Type) (t *types.Named, ok bool) {
+	if t, ok = typ.(*types.Named); ok {
+		name := t.Obj().Name()
+		ok = strings.HasPrefix(name, "_cgoz_")
+	}
+	return
 }
 
 func (p *blockCtx) autoStaticName(name string) string {

@@ -87,7 +87,11 @@ func compileExprLHS(ctx *blockCtx, expr *ast.Node) {
 func compileCompoundLiteralExpr(ctx *blockCtx, expr *ast.Node) {
 	switch inner := expr.Inner[0]; inner.Kind {
 	case ast.InitListExpr:
-		typ := toType(ctx, inner.Type, 0)
+		var tyAnonym types.Type
+		if fld := inner.Field; fld != nil {
+			tyAnonym = toAnonymType(ctx, ctx.goNodePos(expr), fld)
+		}
+		typ, _ := toTypeEx(ctx, ctx.cb.Scope(), tyAnonym, inner.Type, 0)
 		initLit(ctx, typ, inner)
 	default:
 		log.Panicln("compileCompoundLiteralExpr unexpected:", inner.Kind)
@@ -323,10 +327,26 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 		return
 	}
 	src := ctx.goNode(v)
+	cb := ctx.cb
 	if lhs {
-		ctx.cb.MemberRef(name, src)
+		cb.MemberRef(name, src)
 	} else {
-		ctx.cb.MemberVal(name, src)
+		_, err := cb.Member(name, gox.MemberFlagVal, src)
+		if err != nil { // see aslong @ testdata/compoundlit.c
+			if t, ok := checkAnonyUnion(cb.InternalStack().Get(-1).Type); ok {
+				if stru, ok := t.Underlying().(*types.Struct); ok && stru.NumFields() == 1 {
+					fld := stru.Field(0)
+					fields := []*gox.UnionField{
+						{Name: fld.Name(), Type: fld.Type()},
+						{Name: name, Type: toType(ctx, v.Type, 0)},
+					}
+					ctx.pkg.SetVFields(t, gox.NewUnionFields(fields))
+					cb.MemberVal(name, src)
+					return
+				}
+			}
+			panic(err)
+		}
 	}
 }
 
