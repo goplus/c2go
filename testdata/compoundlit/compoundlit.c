@@ -3,7 +3,9 @@
 #define aslong(v) ((union{double _fval; long _ival;}){v})._ival
 
 void test() {
-    printf("%d\n", (int)aslong(1.1));
+    if (aslong(1.1)) {
+        printf("%d\n", (int)aslong(1.1));
+    }
 }
 
 void f(unsigned short a[]) {
