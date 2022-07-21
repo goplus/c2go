@@ -52,7 +52,7 @@ func toAnonymType(ctx *blockCtx, pos token.Pos, decl *ast.Node) (ret *types.Name
 		typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
 		fld := types.NewField(ctx.goNodePos(decl), pkg.Types, decl.Name, typ, false)
 		struc := types.NewStruct([]*types.Var{fld}, nil)
-		ret = ctx.cb.NewType(ctx.getAnonyName(), pos).InitType(pkg, struc)
+		ret = pkg.NewType(ctx.getAnonyName(), pos).InitType(pkg, struc)
 	default:
 		log.Panicln("toAnonymType: unknown kind -", decl.Kind)
 	}
