@@ -304,6 +304,9 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		scope.Insert(types.NewVar(ctx.goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
 	} else {
 		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
+			if static != "" {
+				substObj(ctx.pkg.Types, ctx.cb.Scope(), static, scope, decl.Name)
+			}
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl, global)
