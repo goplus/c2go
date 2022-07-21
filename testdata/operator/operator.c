@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+
 void f() {
 	double a;
 	float b;
@@ -12,6 +15,12 @@ void f() {
 int g(int ret) {
     printf("%d\n", ret);
     return ret;
+}
+
+void test() {
+    if (likely(g(100))) {
+        printf("likely(g(100))\n");
+    }
 }
 
 void h() {
@@ -44,5 +53,6 @@ int main() {
     pfoo->msg[2] = '!', printf("%s\n", foo.msg);
     h();
     printf("%d\n", (int)((-0x2000ULL << (8*sizeof(long)-1)) | (4096ULL -1)));
+    test();
     return 0;
 }

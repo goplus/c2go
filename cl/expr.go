@@ -272,6 +272,11 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 				compileExpr(ctx, v.Inner[2])
 				cb.Assign(1)
 				return
+			case "__builtin_expect":
+				compileExpr(ctx, v.Inner[1])
+				compileExpr(ctx, v.Inner[2])
+				compareOp(ctx, token.EQL, ctx.goNode(v))
+				return
 			}
 		}
 		for i := 0; i < n; i++ {
