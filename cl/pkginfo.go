@@ -57,7 +57,8 @@ func (p Package) InitDependencies() {
 		case *types.Signature:
 			sig = t
 		case *gox.SubstType:
-			sig = t.Real.Type().(*types.Signature)
+			real := t.Real
+			uf, sig = real.Name(), real.Type().(*types.Signature)
 		}
 		f, _ := pkg.NewFuncWith(token.NoPos, uf, sig, nil)
 		f.BodyStart(pkg).

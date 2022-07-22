@@ -39,17 +39,16 @@ func f() {
 	os.Remove(genfile)
 }
 
-func TestPkgInfo_Public(t *testing.T) {
+func TestPkgInfo_BuiltinFn(t *testing.T) {
 	pkg := testFuncEx(t, "Basic", `
 
-void f();
 void test(struct foo* in) {
-	f();
+	__builtin_inf();
 }
 `, `func test(in *struct_foo) {
-	F()
+	X__builtin_inf()
 }`, func(c *Config) {
-		c.Public = map[string]string{"f": ""}
+		c.BuiltinFuncMode = BFM_InLibC
 	})
 	var out bytes.Buffer
 	pkg.WriteDepTo(&out)
@@ -59,7 +58,7 @@ void test(struct foo* in) {
 type struct_foo struct {
 }
 
-func F() {
+func X__builtin_inf() float64 {
 	panic("notimpl")
 }
 ` {
