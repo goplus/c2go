@@ -219,7 +219,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) (*types.Na
 	pos := ctx.goNodePos(decl)
 	realName := name
 	if ctx.inSrcFile() && decl.Name != "" {
-		realName = ctx.autoStaticName(name)
+		realName = ctx.autoStaticName(decl.Name)
 		var scope = ctx.cb.Scope()
 		t = ctx.cb.NewType(realName, pos)
 		substObj(ctx.pkg.Types, scope, name, scope, realName)
