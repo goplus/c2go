@@ -273,6 +273,11 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	ctx.initCTypes()
 	ctx.initFile()
 	ctx.initPublicFrom(conf, file)
+	for _, ign := range ctx.ignored {
+		if ctx.getPubName(&ign) {
+			ctx.ignored = append(ctx.ignored, ign)
+		}
+	}
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
 		pkgInfo := ctx.PkgInfo // make a copy: don't keep a ref to blockCtx
