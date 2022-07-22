@@ -157,6 +157,10 @@ func (p *blockCtx) checkExists(name string) (exist bool) {
 	return
 }
 
+func (p *blockCtx) inSrcFile() bool {
+	return p.hasMulti && !p.inHeader
+}
+
 func canonical(baseDir string, uri string) string {
 	if filepath.IsAbs(uri) {
 		return uri
