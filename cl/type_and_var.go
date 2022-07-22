@@ -215,10 +215,21 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) (*types.Na
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
-	t, decled := ctx.typdecls[name]
-	if !decled {
-		t = ctx.cb.NewType(name, ctx.goNodePos(decl))
-		ctx.typdecls[name] = t
+	var t *gox.TypeDecl
+	pos := ctx.goNodePos(decl)
+	realName := name
+	if ctx.inSrcFile() && decl.Name != "" {
+		realName = ctx.autoStaticName(name)
+		var scope = ctx.cb.Scope()
+		t = ctx.cb.NewType(realName, pos)
+		substObj(ctx.pkg.Types, scope, name, scope, realName)
+	} else {
+		var decled bool
+		t, decled = ctx.typdecls[name]
+		if !decled {
+			t = ctx.cb.NewType(realName, pos)
+			ctx.typdecls[name] = t
+		}
 	}
 	if decl.CompleteDefinition {
 		var inner types.Type
