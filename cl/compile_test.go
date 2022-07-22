@@ -113,14 +113,22 @@ func findFunc(file *goast.File, name string) *goast.FuncDecl {
 }
 
 func testFunc(t *testing.T, name string, code string, outFunc string) Package {
-	return testWith(t, name, "test", code, outFunc)
+	return testWith(t, name, "test", code, outFunc, nil)
 }
 
-func testWith(t *testing.T, name string, fn string, code string, outFunc string) (pkgOut Package) {
+func testFuncEx(t *testing.T, name string, code string, outFunc string, initConf func(*Config)) Package {
+	return testWith(t, name, "test", code, outFunc, initConf)
+}
+
+func testWith(t *testing.T, name string, fn string, code string, outFunc string, initConf func(*Config)) (pkgOut Package) {
 	t.Run(name, func(t *testing.T) {
 		var json []byte
 		doc, src := parse(code, &json)
-		pkg, err := NewPackage("", "main", doc, &Config{Src: src, NeedPkgInfo: true})
+		conf := &Config{Src: src, NeedPkgInfo: true}
+		if initConf != nil {
+			initConf(conf)
+		}
+		pkg, err := NewPackage("", "main", doc, conf)
 		check(err)
 		file := gox.ASTFile(pkg.Package)
 		ret := goast.Node(file)

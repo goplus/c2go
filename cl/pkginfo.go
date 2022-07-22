@@ -52,7 +52,14 @@ func (p Package) InitDependencies() {
 	}
 	vPanic := types.Universe.Lookup("panic")
 	for _, uf := range extfns {
-		sig := scope.Lookup(uf).Type().(*types.Signature)
+		var sig *types.Signature
+		switch t := scope.Lookup(uf).Type().(type) {
+		case *types.Signature:
+			sig = t
+		case *gox.SubstType:
+			real := t.Real
+			uf, sig = real.Name(), real.Type().(*types.Signature)
+		}
 		f, _ := pkg.NewFuncWith(token.NoPos, uf, sig, nil)
 		f.BodyStart(pkg).
 			Val(vPanic).Val("notimpl").Call(1).EndStmt().
