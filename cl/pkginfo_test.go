@@ -48,6 +48,8 @@ void test(struct foo* in) {
 `, `func test(in *struct_foo) {
 	X__builtin_inf()
 }`, func(c *Config) {
+		c.Ignored = []string{"f", "g"}
+		c.Public = map[string]string{"f": ""}
 		c.BuiltinFuncMode = BFM_InLibC
 	})
 	var out bytes.Buffer
