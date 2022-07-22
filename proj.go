@@ -34,6 +34,7 @@ import (
 
 type c2goIgnore struct {
 	Names []string `json:"names"`
+	Files []string `json:"files"`
 }
 
 type c2goSource struct {
@@ -206,6 +207,11 @@ func substTexts(tpl []string, it string) []string {
 
 func execProjSource(base string, flags int, conf *c2goConf) {
 	conf.Reused = cl.Reused{}
+	for i, file := range conf.Source.Ignore.Files {
+		if absf, e := filepath.Abs(file); e == nil {
+			conf.Source.Ignore.Files[i] = absf
+		}
+	}
 	for _, dir := range conf.Source.Dirs {
 		recursively := strings.HasSuffix(dir, "/...")
 		if recursively {
@@ -267,9 +273,21 @@ func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 		}
 		if strings.HasSuffix(fi.Name(), ".c") {
 			pkgFile := filepath.Join(dir, fname)
+			if ignoreFile(pkgFile, conf) {
+				continue
+			}
 			execProjFile(pkgFile, conf, flags)
 		}
 	}
+}
+
+func ignoreFile(infile string, conf *c2goConf) bool {
+	for _, file := range conf.Source.Ignore.Files {
+		if absf, e := filepath.Abs(infile); e == nil && absf == file {
+			return true
+		}
+	}
+	return false
 }
 
 func execProjFile(infile string, conf *c2goConf, flags int) {
