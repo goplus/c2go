@@ -21,5 +21,7 @@ go.work*
 c2go.a.pub
 c2go_autogen.go
 
+.c2go.*
+
 # Dependency directories (remove the comment below to include it)
 # vendor/

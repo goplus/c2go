@@ -282,11 +282,13 @@ func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
-	cache, err := readDirCache(dir)
-	if err == nil {
-		_ = cache
-		return
-	}
+	/*
+		cache, err := readDirCache(dir)
+		if err == nil {
+			_ = cache
+			return
+		}
+	*/
 	fis, err := os.ReadDir(dir)
 	check(err)
 	for _, fi := range fis {
@@ -306,7 +308,7 @@ func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 			execProjFile(pkgFile, conf, flags)
 		}
 	}
-	writeDirCache(dir)
+	// writeDirCache(dir)
 }
 
 func ignoreFile(infile string, conf *c2goConf) bool {
