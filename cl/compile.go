@@ -395,6 +395,11 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		if err != nil {
 			log.Panicln("compileFunc:", err)
 		}
+		if rewritten { // for fnName is a recursive function
+			scope := pkg.Types.Scope()
+			substObj(pkg.Types, scope, origName, scope, fnName)
+			rewritten = false
+		}
 		cb := f.BodyStart(pkg)
 		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fnName, body))
 		compileSub(ctx, body)
