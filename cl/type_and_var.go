@@ -270,15 +270,15 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav in
 }
 
 func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
+	origName, rewritten := decl.Name, false
 	if debugCompileDecl {
-		log.Println("varDecl", decl.Name, "-", decl.Loc.PresumedLine)
+		log.Println("varDecl", origName, "-", decl.Loc.PresumedLine)
 	}
 	if global {
-		ctx.getPubName(&decl.Name)
+		rewritten = ctx.getPubName(&decl.Name)
 	}
 	scope := ctx.cb.Scope()
 	flags := 0
-	static := ""
 	gblStatic := false
 	switch decl.StorageClass {
 	case ast.Extern:
@@ -289,8 +289,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		} else { // local static variable
 			scope = ctx.pkg.Types.Scope()
 		}
-		static = decl.Name
-		decl.Name = ctx.autoStaticName(static)
+		decl.Name, rewritten = ctx.autoStaticName(origName), true
 	}
 	typ, kind, err := parseType(ctx, scope, nil, decl.Type, flags)
 	if err != nil {
@@ -304,14 +303,14 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		scope.Insert(types.NewVar(ctx.goNodePos(decl), ctx.pkg.Types, decl.Name, typ))
 	} else {
 		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
-			if static != "" {
-				substObj(ctx.pkg.Types, ctx.cb.Scope(), static, scope, decl.Name)
+			if rewritten {
+				substObj(ctx.pkg.Types, ctx.cb.Scope(), origName, scope, decl.Name)
 			}
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl, global)
-		if static != "" {
-			substObj(ctx.pkg.Types, ctx.cb.Scope(), static, scope, decl.Name)
+		if rewritten {
+			substObj(ctx.pkg.Types, ctx.cb.Scope(), origName, scope, decl.Name)
 		} else if kind == parser.KindFVolatile && !global {
 			addr := gox.Lookup(scope, decl.Name)
 			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
@@ -319,14 +318,14 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	}
 }
 
-func substObj(pkg *types.Package, scope *types.Scope, static string, scope2 *types.Scope, name string) {
+func substObj(pkg *types.Package, scope *types.Scope, origName string, scope2 *types.Scope, name string) {
 	real := scope2.Lookup(name)
-	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, static, real))
+	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, origName, real))
 	if old != nil {
 		if t, ok := old.Type().(*gox.SubstType); ok {
 			t.Real = real
 		} else {
-			log.Panicln(static, "redefined")
+			log.Panicln(origName, "redefined")
 		}
 	}
 }
