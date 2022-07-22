@@ -318,14 +318,14 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	}
 }
 
-func substObj(pkg *types.Package, scope *types.Scope, static string, scope2 *types.Scope, name string) {
+func substObj(pkg *types.Package, scope *types.Scope, origName string, scope2 *types.Scope, name string) {
 	real := scope2.Lookup(name)
-	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, static, real))
+	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, origName, real))
 	if old != nil {
 		if t, ok := old.Type().(*gox.SubstType); ok {
 			t.Real = real
 		} else {
-			log.Panicln(static, "redefined")
+			log.Panicln(origName, "redefined")
 		}
 	}
 }

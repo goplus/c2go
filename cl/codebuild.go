@@ -83,10 +83,14 @@ func decl_builtin(ctx *blockCtx) {
 	if bfm != BFM_FromLibC {
 		for fn, proto := range fns {
 			t := toType(ctx, &cast.Type{QualType: strings.ReplaceAll(proto, "size_t", "unsigned long")}, 0)
+			origFn := fn
 			if bfm == BFM_InLibC {
 				fn = "X" + fn
 			}
 			scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
+			if bfm == BFM_InLibC {
+				substObj(pkg, scope, origFn, scope, fn)
+			}
 		}
 	}
 	for _, o := range builtin_overloads {
