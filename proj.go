@@ -18,6 +18,7 @@ package c2go
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -256,10 +257,38 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 	}
 }
 
+type dirCache struct {
+}
+
+const (
+	dirCacheName = ".c2go.cache"
+)
+
+func readDirCache(dir string) (cache *dirCache, err error) {
+	cachefile := filepath.Join(dir, dirCacheName)
+	_, err = os.ReadFile(cachefile)
+	return
+}
+
+func writeDirCache(dir string) {
+	cachefile := filepath.Join(dir, dirCacheName)
+	err := os.WriteFile(cachefile, nil, 0666)
+	if err != nil {
+		log.Panicln("writeDirCache:", err)
+	}
+}
+
 func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
+	/*
+		cache, err := readDirCache(dir)
+		if err == nil {
+			_ = cache
+			return
+		}
+	*/
 	fis, err := os.ReadDir(dir)
 	check(err)
 	for _, fi := range fis {
@@ -279,6 +308,7 @@ func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 			execProjFile(pkgFile, conf, flags)
 		}
 	}
+	// writeDirCache(dir)
 }
 
 func ignoreFile(infile string, conf *c2goConf) bool {
