@@ -111,7 +111,7 @@ func checkAnonyUnion(typ types.Type) (t *types.Named, ok bool) {
 }
 
 func (p *blockCtx) autoStaticName(name string) string {
-	return name + "_cgos_" + p.baseOF
+	return "_cgos_" + name + "_" + p.baseOF
 }
 
 func (p *blockCtx) logFile(node *ast.Node) {
