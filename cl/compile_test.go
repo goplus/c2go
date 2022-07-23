@@ -165,6 +165,23 @@ func testPanic(t *testing.T, panicMsg string, doPanic func()) {
 
 // -----------------------------------------------------------------------------
 
+func TestGetVStruct(t *testing.T) {
+	defer func() {
+		if e := recover(); e != nil {
+			if emsg, ok := e.(string); ok {
+				if emsg == "foo not found\n" {
+					return
+				}
+			}
+			t.Fatal("TestGetVStruct failed:", e)
+		}
+		t.Fatal("TestGetVStruct: no error?")
+	}()
+	var ctx blockCtx
+	typ := types.NewNamed(types.NewTypeName(0, nil, "foo", nil), nil, nil)
+	ctx.getVStruct(typ)
+}
+
 func TestFuncAndDecl(t *testing.T) {
 	testFunc(t, "testKeyword", `
 void test(int var) {
