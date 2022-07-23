@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 
+	ctypes "github.com/goplus/c2go/clang/types"
+
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
 	"github.com/goplus/gox/cpackages"
@@ -123,6 +125,11 @@ func (p *blockCtx) initPublicFrom(conf *Config, node *ast.Node) {
 			case ast.VarDecl, ast.TypedefDecl, ast.FunctionDecl:
 				if canPub(decl.Name) {
 					p.autopub[decl.Name] = none{}
+				}
+			case ast.RecordDecl:
+				if decl.Name != "" {
+					suName := ctypes.MangledName(decl.TagUsed, decl.Name)
+					p.autopub[suName] = none{}
 				}
 			}
 		}

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 
-typedef struct {
+typedef struct pth {
     union {
         int __i[14];
         unsigned long __s[7];
