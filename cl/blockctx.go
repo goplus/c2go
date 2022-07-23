@@ -475,7 +475,10 @@ func (p *blockCtx) buildVStruct(struc *types.Struct, vfs gox.VFields) *types.Str
 }
 
 func (p *blockCtx) getVStruct(typ *types.Named) *types.Struct {
-	t := typ.Underlying().(*types.Struct)
+	t, ok := typ.Underlying().(*types.Struct)
+	if !ok {
+		log.Panicln(typ.Obj().Name(), "not found")
+	}
 	if vfs, ok := p.pkg.VFields(typ); ok {
 		t = p.buildVStruct(t, vfs)
 	}
