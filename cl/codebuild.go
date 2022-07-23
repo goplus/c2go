@@ -314,11 +314,18 @@ func isNegConst(v *gox.Element) bool {
 	return false
 }
 
-func isZeroConst(v *gox.Element) bool {
+func isNilConst(v *gox.Element) bool {
 	if cval := v.CVal; cval != nil && cval.Kind() == constant.Int {
 		if v, ok := constant.Int64Val(cval); ok {
 			return v == 0
 		}
+	}
+	return false
+}
+
+func isZeroNumber(v *gox.Element) bool {
+	if cval := v.CVal; cval != nil {
+		return constant.Sign(cval) == 0
 	}
 	return false
 }
@@ -385,6 +392,15 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			}
 			log.Panicln("binaryOp token.ADD/SUB - TODO: unexpected")
 		}
+	case token.QUO:
+		if isZeroNumber(arg2) && arg1.CVal != nil && isFloat(arg1.Type) {
+			pkg := ctx.pkg
+			ret := pkg.NewParam(token.NoPos, "", arg1.Type)
+			arg1.Val = cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg).
+				Val(arg1).Return(1).
+				End().Call(0).InternalStack().Pop().Val
+			arg1.CVal = nil
+		}
 	}
 	if !isShiftOpertor(op) {
 		isUnt1 := isUntyped(arg1.Type)
@@ -399,8 +415,8 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		kind1 := checkNilComparable(arg1)
 		kind2 := checkNilComparable(arg2)
 		if kind1 != 0 || kind2 != 0 { // ptr <cmp> ptr|nil
-			isNil1 := isZeroConst(arg1)
-			isNil2 := isZeroConst(arg2)
+			isNil1 := isNilConst(arg1)
+			isNil2 := isNilConst(arg2)
 			if isNil1 || isNil2 { // ptr <cmp> nil
 				if isNil1 {
 					untypedZeroToNil(arg1)

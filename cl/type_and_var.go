@@ -575,6 +575,10 @@ func isUntyped(typ types.Type) bool {
 	return isKind(typ, types.IsUntyped)
 }
 
+func isFloat(typ types.Type) bool {
+	return isKind(typ, types.IsFloat)
+}
+
 func isBool(typ types.Type) bool {
 	return isKind(typ, types.IsBoolean)
 }
