@@ -7,6 +7,10 @@ typedef struct {
     } __u;
 } pth_attr_t;
 
+struct pub {
+    int a;
+};
+
 typedef size_t foo_t;
 
 foo_t foo();
