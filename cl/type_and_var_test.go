@@ -158,7 +158,7 @@ void test() {
 }
 `, `func test() {
 	var a int32 = int32(255)
-	if b_cgo1 == int64(-1) {
+	if _cgos_b_ == int64(-1) {
 		a = int32(3)
 	}
 }`)
