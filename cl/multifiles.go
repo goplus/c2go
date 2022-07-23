@@ -196,9 +196,10 @@ func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
 	for _, dep := range deps.pkgs {
 		depPkg := pkg.Import(dep.path)
 		for _, pub := range dep.pubs {
-			obj := depPkg.Ref(pub.goName)
-			if old := scope.Insert(gox.NewSubst(token.NoPos, pkg.Types, pub.name, obj)); old != nil {
-				log.Panicf("conflicted name `%v` in %v, previous definition is %v\n", pub.name, dep.path, old)
+			if obj := depPkg.TryRef(pub.goName); obj != nil {
+				if old := scope.Insert(gox.NewSubst(token.NoPos, pkg.Types, pub.name, obj)); old != nil {
+					log.Panicf("conflicted name `%v` in %v, previous definition is %v\n", pub.name, dep.path, old)
+				}
 			}
 		}
 	}
