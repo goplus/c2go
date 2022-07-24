@@ -4,6 +4,7 @@ import (
 	"go/token"
 	"go/types"
 	"log"
+	"path/filepath"
 	"syscall"
 
 	goast "go/ast"
@@ -258,13 +259,15 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
+	srcfile, _ := filepath.Abs(conf.SrcFile)
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]unnamedType),
 		gblvars:  make(map[string]*gox.VarDefs),
 		ignored:  conf.Ignored,
 		public:   conf.Public,
-		srcfile:  conf.SrcFile,
+		srcdir:   filepath.Dir(srcfile),
+		srcfile:  srcfile,
 		src:      conf.Src,
 		bfm:      conf.BuiltinFuncMode,
 		testMain: conf.TestMain,

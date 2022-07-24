@@ -200,6 +200,7 @@ type blockCtx struct {
 	gblvars  map[string]*gox.VarDefs
 	public   map[string]string
 	ignored  []string
+	srcdir   string
 	srcfile  string
 	src      []byte
 	file     *token.File
