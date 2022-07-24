@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/goplus/c2go/clang/pathutil"
 	ctypes "github.com/goplus/c2go/clang/types"
 
 	"github.com/goplus/c2go/clang/ast"
@@ -26,7 +27,6 @@ type multiFileCtl struct {
 	autopub   map[string]none
 	base      *int   // for anonymous struct/union or static
 	baseOF    string // basename of file
-	baseDir   string
 	hasMulti  bool
 	inHeader  bool // in header file (only valid on hasMulti)
 	inDepPkg  bool // in dependent package (only valid on hasMulti)
@@ -127,7 +127,7 @@ func (p *blockCtx) logFile(node *ast.Node) {
 				fname = headerGoFile
 				p.inHeader = true
 				p.inDepPkg = p.skipLibcH
-				f, _ = filepath.Abs(f) // f is related to cwd, not p.baseDir
+				f = pathutil.Canonical(p.srcdir, f) // f is related to directory of source file
 				for dir, kind := range p.incs {
 					if strings.HasPrefix(f, dir) {
 						suffix := f[len(dir):]
@@ -158,13 +158,6 @@ func (p *blockCtx) checkExists(name string) (exist bool) {
 
 func (p *blockCtx) inSrcFile() bool {
 	return p.hasMulti && !p.inHeader
-}
-
-func canonical(baseDir string, uri string) string {
-	if filepath.IsAbs(uri) {
-		return uri
-	}
-	return filepath.Join(baseDir, uri)
 }
 
 // -----------------------------------------------------------------------------
@@ -220,7 +213,7 @@ func (p *depPkgs) init(conf *Config) {
 	}
 	p.incs = make(map[string]int)
 	for _, dir := range conf.Include {
-		dir = canonical(base, dir)
+		dir = pathutil.Canonical(base, dir)
 		p.incs[dir] = incInSelf
 	}
 	procDepPkg := conf.ProcDepPkg
@@ -239,7 +232,7 @@ func (p *depPkgs) init(conf *Config) {
 			log.Panicln("findIncludeDirs:", err)
 		}
 		for _, dir := range depPkgIncs {
-			dir = canonical(depPkgDir, dir)
+			dir = pathutil.Canonical(depPkgDir, dir)
 			p.incs[dir] = incInDeps
 		}
 		pubfile := filepath.Join(depPkgDir, "c2go.a.pub")

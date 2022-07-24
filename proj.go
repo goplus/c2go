@@ -26,6 +26,7 @@ import (
 
 	"github.com/goplus/c2go/cl"
 	"github.com/goplus/c2go/clang/parser"
+	"github.com/goplus/c2go/clang/pathutil"
 	"github.com/goplus/c2go/clang/preprocessor"
 	"github.com/goplus/gox"
 	"github.com/goplus/gox/cpackages"
@@ -75,7 +76,7 @@ type c2goConf struct {
 
 	cl.Reused `json:"-"`
 
-	dir         string            `json:"-"`
+	dir         string            `json:"-"` // should be absolute path
 	public      map[string]string `json:"-"`
 	needPkgInfo bool              `json:"-"`
 
@@ -96,7 +97,7 @@ func execProj(projfile string, flags int, in *Config) {
 
 	base, _ := filepath.Split(projfile)
 	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
-	conf.dir = base
+	conf.dir, _ = filepath.Abs(base)
 	noSource := len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0
 	if noSource {
 		if len(conf.Target.Cmds) == 0 {
@@ -114,7 +115,7 @@ func execProj(projfile string, flags int, in *Config) {
 		check(err)
 
 		if in != nil && in.SelectFile != "" {
-			execProjFile(canonical(base, in.SelectFile), &conf, appFlags)
+			execProjFile(pathutil.Canonical(base, in.SelectFile), &conf, appFlags)
 			return
 		}
 		execProjSource(base, appFlags, &conf)
@@ -157,7 +158,7 @@ func execProj(projfile string, flags int, in *Config) {
 			execProjSource(base, appFlags, &conf)
 			if (appFlags & FlagRunTest) != 0 {
 				cmd2 := exec.Command(clangOut)
-				cmd2.Dir = canonical(base, cmd.Dir)
+				cmd2.Dir = pathutil.Canonical(base, cmd.Dir)
 				cmd2.Stdout = os.Stdout
 				cmd2.Stderr = os.Stderr
 				fmt.Printf("==> Running %s ...\n", cmd2.Dir)
@@ -218,17 +219,17 @@ func execProjSource(base string, flags int, conf *c2goConf) {
 		if recursively {
 			dir = dir[:len(dir)-4]
 		}
-		execProjDir(canonical(base, dir), conf, flags, recursively)
+		execProjDir(pathutil.Canonical(base, dir), conf, flags, recursively)
 	}
 	for _, file := range conf.Source.Files {
-		execProjFile(canonical(base, file), conf, flags)
+		execProjFile(pathutil.Canonical(base, file), conf, flags)
 	}
 	execProjDone(base, flags, conf)
 }
 
 func execProjDone(base string, flags int, conf *c2goConf) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
-		dir := canonical(base, conf.Target.Dir)
+		dir := pathutil.Canonical(base, conf.Target.Dir)
 		os.MkdirAll(dir, 0777)
 		pkg.ForEachFile(func(fname string, file *gox.File) {
 			gofile := fname
@@ -377,11 +378,4 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		BuiltinFuncMode: bfm,
 	})
 	check(err)
-}
-
-func canonical(baseDir string, uri string) string {
-	if filepath.IsAbs(uri) {
-		return uri
-	}
-	return filepath.Join(baseDir, uri)
 }
