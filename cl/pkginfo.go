@@ -6,9 +6,11 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/goplus/c2go/clang/pathutil"
 	ctypes "github.com/goplus/c2go/clang/types"
 
 	"github.com/goplus/c2go/clang/ast"
@@ -108,17 +110,19 @@ func loadPubFile(pubfile string) (pubs []pubName) {
 	return
 }
 
-func (p *blockCtx) initPublicFrom(conf *Config, node *ast.Node) {
+// baseDir should be absolute path
+func (p *blockCtx) initPublicFrom(baseDir string, conf *Config, node *ast.Node) {
 	pubFrom := conf.PublicFrom
 	if len(pubFrom) == 0 {
 		return
 	}
-	pubIngore := conf.PublicIgnore
+	for i, from := range pubFrom {
+		pubFrom[i] = pathutil.Canonical(baseDir, from)
+	}
 	isPub := false
 	for _, decl := range node.Inner {
 		if f := decl.Loc.PresumedFile; f != "" {
-			isIngore := isPublicFrom(f, pubIngore)
-			isPub = !isIngore && isPublicFrom(f, pubFrom)
+			isPub = isPublicFrom(filepath.Clean(f), pubFrom)
 		}
 		if isPub {
 			switch decl.Kind {
@@ -141,12 +145,10 @@ func canPub(name string) bool {
 	return 'a' <= r && r <= 'z'
 }
 
+// f, pubFrom are absolute paths
 func isPublicFrom(f string, pubFrom []string) bool {
 	for _, from := range pubFrom {
-		if strings.HasPrefix(from, ".") { // relative path
-			from = strings.TrimLeft(from, "./") // remove "./", "../", etc.
-		}
-		if strings.HasSuffix(f, from) {
+		if strings.HasSuffix(f, from) { // TODO: more strict
 			return true
 		}
 	}

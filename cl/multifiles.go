@@ -33,7 +33,8 @@ type multiFileCtl struct {
 	skipLibcH bool // skip libc header
 }
 
-func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
+// baseDir should be absolute path
+func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, baseDir string, conf *Config) {
 	reused := conf.Reused
 	if reused != nil {
 		pi := reused.pkg.pi
@@ -43,7 +44,7 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, conf *Config) {
 			pi.extfns = make(map[string]none)
 			reused.pkg.pi = pi
 			reused.pkg.Package = pkg
-			reused.deps.init(conf)
+			reused.deps.init(baseDir, conf)
 			initDepPkgs(pkg, &reused.deps)
 		}
 		p.typdecls = pi.typdecls
@@ -198,7 +199,8 @@ func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
 	}
 }
 
-func (p *depPkgs) init(conf *Config) {
+// baseDir should be absolute path
+func (p *depPkgs) init(baseDir string, conf *Config) {
 	if p.loaded {
 		return
 	}
@@ -207,17 +209,13 @@ func (p *depPkgs) init(conf *Config) {
 	if len(deps) == 0 {
 		return
 	}
-	base, err := filepath.Abs(conf.Dir)
-	if err != nil {
-		log.Panicln("filepath.Abs failed:", err)
-	}
 	p.incs = make(map[string]int)
 	for _, dir := range conf.Include {
-		dir = pathutil.Canonical(base, dir)
+		dir = pathutil.Canonical(baseDir, dir)
 		p.incs[dir] = incInSelf
 	}
 	procDepPkg := conf.ProcDepPkg
-	gomod, _ := gopmod.Load(base, 0)
+	gomod, _ := gopmod.Load(baseDir, 0)
 	for _, dep := range deps {
 		if dep == "C" {
 			p.skipLibcH = true

@@ -178,9 +178,6 @@ type Config struct {
 	// PublicFrom specifies header files to fetch public symbols.
 	PublicFrom []string
 
-	// PublicIgnore specifies header files to ignore.
-	PublicIgnore []string
-
 	// BuiltinFuncMode sets compiling mode of builtin functions.
 	BuiltinFuncMode BFMode
 
@@ -259,23 +256,30 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
-	srcfile, _ := filepath.Abs(conf.SrcFile)
+	baseDir, err := filepath.Abs(conf.Dir)
+	if err != nil {
+		return
+	}
+	srcFile, err := filepath.Abs(conf.SrcFile)
+	if err != nil {
+		return
+	}
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]unnamedType),
 		gblvars:  make(map[string]*gox.VarDefs),
 		ignored:  conf.Ignored,
 		public:   conf.Public,
-		srcdir:   filepath.Dir(srcfile),
-		srcfile:  srcfile,
+		srcdir:   filepath.Dir(srcFile),
+		srcfile:  srcFile,
 		src:      conf.Src,
 		bfm:      conf.BuiltinFuncMode,
 		testMain: conf.TestMain,
 	}
-	ctx.initMultiFileCtl(p, conf)
+	ctx.initMultiFileCtl(p, baseDir, conf)
 	ctx.initCTypes()
 	ctx.initFile()
-	ctx.initPublicFrom(conf, file)
+	ctx.initPublicFrom(baseDir, conf, file)
 	for _, ign := range ctx.ignored {
 		if ctx.getPubName(&ign) {
 			ctx.ignored = append(ctx.ignored, ign)

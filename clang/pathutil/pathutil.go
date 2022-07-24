@@ -6,7 +6,7 @@ import (
 
 func Canonical(baseDir string, uri string) string {
 	if filepath.IsAbs(uri) {
-		return uri
+		return filepath.Clean(uri)
 	}
 	return filepath.Join(baseDir, uri)
 }
