@@ -59,8 +59,7 @@ type c2goTarget struct {
 }
 
 type c2goPublic struct {
-	From   []string `json:"from"`
-	Ignore []string `json:"ignore"`
+	From []string `json:"from"`
 }
 
 type c2goConf struct {
@@ -362,18 +361,17 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		bfm = cl.BFM_FromLibC
 	}
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
-		SrcFile:      outfile,
-		ProcDepPkg:   procDepPkg,
-		Public:       conf.public,
-		PublicFrom:   conf.Public.From,
-		PublicIgnore: conf.Public.Ignore,
-		NeedPkgInfo:  conf.needPkgInfo,
-		Dir:          conf.dir,
-		Deps:         conf.Deps,
-		Include:      conf.Include,
-		Ignored:      conf.Source.Ignore.Names,
-		Reused:       &conf.Reused,
-		TestMain:     (flags & FlagTestMain) != 0,
+		SrcFile:     outfile,
+		ProcDepPkg:  procDepPkg,
+		Public:      conf.public,
+		PublicFrom:  conf.Public.From,
+		NeedPkgInfo: conf.needPkgInfo,
+		Dir:         conf.dir,
+		Deps:        conf.Deps,
+		Include:     conf.Include,
+		Ignored:     conf.Source.Ignore.Names,
+		Reused:      &conf.Reused,
+		TestMain:    (flags & FlagTestMain) != 0,
 		// BuiltinFuncMode: compiling mode of builtin functions
 		BuiltinFuncMode: bfm,
 	})
