@@ -317,7 +317,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			}
 			typ, del := compileStructOrUnion(ctx, name, decl)
 			if suKind != suAnonymous {
-				if ctx.getPubName(&name) {
+				if decl.CompleteDefinition && ctx.getPubName(&name) {
 					ctx.pkg.AliasType(name, typ, ctx.goNodePos(decl))
 				}
 				break
