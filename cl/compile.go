@@ -256,13 +256,9 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
-	baseDir, err := filepath.Abs(conf.Dir)
-	if err != nil {
-		return
-	}
-	srcFile, err := filepath.Abs(conf.SrcFile)
-	if err != nil {
-		return
+	srcFile := conf.SrcFile
+	if srcFile != "" {
+		srcFile, _ = filepath.Abs(srcFile)
 	}
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
@@ -276,6 +272,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 		bfm:      conf.BuiltinFuncMode,
 		testMain: conf.TestMain,
 	}
+	baseDir, _ := filepath.Abs(conf.Dir)
 	ctx.initMultiFileCtl(p, baseDir, conf)
 	ctx.initCTypes()
 	ctx.initFile()
