@@ -317,19 +317,19 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 				}
 			}
 		case ast.RecordDecl:
+			pub := false
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			if global && suKind != suAnonymous && decl.CompleteDefinition && ctx.checkExists(name) {
-				continue
-			}
-			typ, del := compileStructOrUnion(ctx, name, decl)
-			if suKind != suAnonymous {
-				if decl.CompleteDefinition && ctx.getPubName(&name) {
-					ctx.pkg.AliasType(name, typ, ctx.goNodePos(decl))
+			if global && suKind != suAnonymous && decl.CompleteDefinition {
+				if ctx.checkExists(name) {
+					continue
 				}
-				break
-			} else {
-				ctx.unnameds[decl.ID] = unnamedType{typ: typ, del: del}
+				pub = ctx.getPubName(&name)
 			}
+			typ, del := compileStructOrUnion(ctx, name, decl, pub)
+			if suKind != suAnonymous {
+				break
+			}
+			ctx.unnameds[decl.ID] = unnamedType{typ: typ, del: del}
 			for i+1 < n {
 				next := node.Inner[i+1]
 				if next.Kind == ast.VarDecl {

@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	ctypes "github.com/goplus/c2go/clang/types"
+	"github.com/goplus/gox/cpackages"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
@@ -59,7 +60,15 @@ func toAnonymType(ctx *blockCtx, pos token.Pos, decl *ast.Node) (ret *types.Name
 	return
 }
 
-func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) (ret *types.Struct, dels delfunc) {
+func checkFieldName(pname *string, pub bool) {
+	if pub {
+		*pname = cpackages.PubName(*pname)
+	} else {
+		avoidKeyword(pname)
+	}
+}
+
+func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, pub bool) (ret *types.Struct, dels delfunc) {
 	b := newStructBuilder()
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	n := len(struc.Inner)
@@ -70,8 +79,8 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) (ret *types.St
 			if debugCompileDecl {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
-			avoidKeyword(&decl.Name)
-			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsField)
+			checkFieldName(&decl.Name, pub)
+			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsStructField)
 			if decl.IsBitfield {
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
 				b.BitField(ctx, typ, decl.Name, int(bits))
@@ -80,7 +89,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) (ret *types.St
 			}
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			typ, del := compileStructOrUnion(ctx, name, decl)
+			typ, del := compileStructOrUnion(ctx, name, decl, pub)
 			if suKind != suAnonymous {
 				break
 			}
@@ -93,6 +102,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) (ret *types.St
 						b.Field(ctx, ctx.goNodePos(decl), typ, name, true)
 						i++
 					} else if ret, ok := checkAnonymous(ctx, scope, typ, next); ok {
+						checkFieldName(&next.Name, pub)
 						b.Field(ctx, ctx.goNodePos(next), ret, next.Name, false)
 						i++
 						continue
@@ -109,7 +119,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node) (ret *types.St
 	return
 }
 
-func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) (ret types.Type, dels delfunc) {
+func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, pub bool) (ret types.Type, dels delfunc) {
 	b := newUnionBuilder()
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	n := len(unio.Inner)
@@ -120,11 +130,12 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) (ret types.Type,
 			if debugCompileDecl {
 				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
 			}
+			checkFieldName(&decl.Name, pub)
 			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
 			b.Field(ctx, ctx.goNodePos(decl), typ, decl.Name, false)
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			typ, del := compileStructOrUnion(ctx, name, decl)
+			typ, del := compileStructOrUnion(ctx, name, decl, pub)
 			if suKind != suAnonymous {
 				break
 			}
@@ -137,6 +148,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node) (ret types.Type,
 						b.Field(ctx, ctx.goNodePos(decl), typ, name, true)
 						i++
 					} else if ret, ok := checkAnonymous(ctx, scope, typ, next); ok {
+						checkFieldName(&next.Name, pub)
 						b.Field(ctx, ctx.goNodePos(next), ret, next.Name, false)
 						i++
 						continue
@@ -211,7 +223,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global bool) types.Type {
 	return typ
 }
 
-func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) (*types.Named, delfunc) {
+func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) (*types.Named, delfunc) {
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
@@ -236,9 +248,9 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node) (*types.Na
 		var del delfunc
 		switch decl.TagUsed {
 		case "struct":
-			inner, del = toStructType(ctx, t.Type(), decl)
+			inner, del = toStructType(ctx, t.Type(), decl, pub)
 		default:
-			inner, del = toUnionType(ctx, t.Type(), decl)
+			inner, del = toUnionType(ctx, t.Type(), decl, pub)
 		}
 		return t.InitType(ctx.pkg, inner), del
 	}
