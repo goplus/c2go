@@ -10,6 +10,7 @@ import (
 	goast "go/ast"
 
 	"github.com/goplus/c2go/clang/ast"
+	"github.com/goplus/c2go/clang/cmod"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
 	"github.com/goplus/gox/cpackages"
@@ -164,10 +165,11 @@ type Config struct {
 
 	// ProcDepPkg specifies how to process a dependent package.
 	// If ProcDepPkg is nil, it means nothing to do.
+	// It's for compiling depended pkgs (to gen c2go.a.pub file) if needed.
 	ProcDepPkg func(depPkgDir string)
 
-	// Deps specifies all dependent packages for the target Go package.
-	Deps []string
+	// Deps specifies all dependent packages.
+	Deps []*cmod.Package
 
 	// Include specifies include searching directories.
 	Include []string
@@ -180,6 +182,9 @@ type Config struct {
 
 	// BuiltinFuncMode sets compiling mode of builtin functions.
 	BuiltinFuncMode BFMode
+
+	// SkipLibcHeader specifies to ignore standard library headers.
+	SkipLibcHeader bool
 
 	// NeedPkgInfo allows to check dependencies and write them to c2go_autogen.go file.
 	NeedPkgInfo bool
