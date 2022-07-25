@@ -148,7 +148,7 @@ func canPub(name string) bool {
 // f, pubFrom are absolute paths
 func isPublicFrom(f string, pubFrom []string) bool {
 	for _, from := range pubFrom {
-		if strings.HasSuffix(f, from) { // TODO: more strict
+		if f == from {
 			return true
 		}
 	}
