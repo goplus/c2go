@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/goplus/c2go/cl"
+	"github.com/goplus/c2go/clang/cmod"
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/pathutil"
 	"github.com/goplus/c2go/clang/preprocessor"
@@ -75,8 +76,12 @@ type c2goConf struct {
 
 	cl.Reused `json:"-"`
 
+	depPkgs    []*cmod.Package `json:"-"`
+	allIncDirs []string        `json:"-"`
+
 	dir         string            `json:"-"` // should be absolute path
 	public      map[string]string `json:"-"`
+	skipLibcH   bool              `json:"-"`
 	needPkgInfo bool              `json:"-"`
 
 	InLibC bool `json:"libc"` // bfm = BFM_InLibC
@@ -96,7 +101,9 @@ func execProj(projfile string, flags int, in *Config) {
 
 	base, _ := filepath.Split(projfile)
 	conf.needPkgInfo = (flags & FlagDepsAutoGen) != 0
-	conf.dir, _ = filepath.Abs(base)
+	conf.dir, err = filepath.Abs(base)
+	check(err)
+
 	noSource := len(conf.Source.Dirs) == 0 && len(conf.Source.Files) == 0
 	if noSource {
 		if len(conf.Target.Cmds) == 0 {
@@ -323,11 +330,34 @@ func ignoreFile(infile string, conf *c2goConf) bool {
 func execProjFile(infile string, conf *c2goConf, flags int) {
 	fmt.Printf("==> Compiling %s ...\n", infile)
 
+	if len(conf.depPkgs) == 0 && len(conf.Deps) > 0 {
+		deps := conf.Deps
+		if len(deps) > 0 && deps[0] == "C" {
+			conf.skipLibcH = true
+			deps = deps[1:]
+		}
+		depPkgs, err := cmod.LoadDeps(conf.dir, deps)
+		check(err)
+
+		n := len(conf.Include)
+		for _, dep := range depPkgs {
+			n += len(dep.Include)
+		}
+		allIncDirs := make([]string, 0, n)
+		allIncDirs = append(allIncDirs, conf.Include...)
+		for _, dep := range depPkgs {
+			allIncDirs = append(allIncDirs, dep.Include...)
+		}
+
+		conf.depPkgs = depPkgs
+		conf.allIncDirs = allIncDirs
+	}
+
 	outfile := infile + ".i"
 	if (flags&FlagForcePreprocess) != 0 || !isFile(outfile) {
 		err := preprocessor.Do(infile, outfile, &preprocessor.Config{
 			BaseDir:     conf.dir,
-			IncludeDirs: conf.Include,
+			IncludeDirs: conf.allIncDirs,
 			Defines:     conf.Define,
 			Flags:       conf.Flags,
 			PPFlag:      conf.PPFlag,
@@ -367,13 +397,14 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		PublicFrom:  conf.Public.From,
 		NeedPkgInfo: conf.needPkgInfo,
 		Dir:         conf.dir,
-		Deps:        conf.Deps,
+		Deps:        conf.depPkgs,
 		Include:     conf.Include,
 		Ignored:     conf.Source.Ignore.Names,
 		Reused:      &conf.Reused,
 		TestMain:    (flags & FlagTestMain) != 0,
 		// BuiltinFuncMode: compiling mode of builtin functions
 		BuiltinFuncMode: bfm,
+		SkipLibcHeader:  conf.skipLibcH,
 	})
 	check(err)
 }

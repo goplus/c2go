@@ -1,11 +1,9 @@
 package cl
 
 import (
-	"encoding/json"
 	"go/token"
 	"go/types"
 	"log"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,7 +13,6 @@ import (
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
-	"github.com/goplus/mod/gopmod"
 )
 
 // -----------------------------------------------------------------------------
@@ -209,32 +206,22 @@ func (p *depPkgs) init(baseDir string, conf *Config) {
 	if len(deps) == 0 {
 		return
 	}
+	p.skipLibcH = conf.SkipLibcHeader
 	p.incs = make(map[string]int)
 	for _, dir := range conf.Include {
 		dir = pathutil.Canonical(baseDir, dir)
 		p.incs[dir] = incInSelf
 	}
 	procDepPkg := conf.ProcDepPkg
-	gomod, _ := gopmod.Load(baseDir, 0)
 	for _, dep := range deps {
-		if dep == "C" {
-			p.skipLibcH = true
-			continue
-		}
-		depPkgDir := findPkgDir(gomod, dep)
-		if procDepPkg != nil {
-			procDepPkg(depPkgDir)
-		}
-		depPkgIncs, err := findIncludeDirs(depPkgDir)
-		if err != nil {
-			log.Panicln("findIncludeDirs:", err)
-		}
-		for _, dir := range depPkgIncs {
-			dir = pathutil.Canonical(depPkgDir, dir)
+		for _, dir := range dep.Include {
 			p.incs[dir] = incInDeps
 		}
-		pubfile := filepath.Join(depPkgDir, "c2go.a.pub")
-		p.loadPubFile(dep, pubfile)
+		if procDepPkg != nil {
+			procDepPkg(dep.Dir)
+		}
+		pubfile := filepath.Join(dep.Dir, "c2go.a.pub")
+		p.loadPubFile(dep.Path, pubfile)
 	}
 }
 
@@ -244,37 +231,6 @@ func (p *depPkgs) loadPubFile(path string, pubfile string) {
 	}
 	pubs := loadPubFile(pubfile)
 	p.pkgs = append(p.pkgs, depPkg{path: path, pubs: pubs})
-}
-
-func findPkgDir(gomod *gopmod.Module, pkgPath string) (pkgDir string) {
-	if gomod == nil {
-		log.Panicln("findPkgDir TODO: no go.mod found")
-	}
-	pkg, err := gomod.Lookup(pkgPath)
-	if err != nil {
-		log.Panicln("gomod.Lookup:", err)
-	}
-	pkgDir, err = filepath.Abs(pkg.Dir)
-	if err != nil {
-		log.Panicln("filepath.Abs:", err)
-	}
-	return
-}
-
-func findIncludeDirs(pkgDir string) (incs []string, err error) {
-	var conf struct {
-		Include []string `json:"include"`
-	}
-	file := filepath.Join(pkgDir, "c2go.cfg")
-	b, err := os.ReadFile(file)
-	if err != nil {
-		return
-	}
-	err = json.Unmarshal(b, &conf)
-	if err != nil {
-		return
-	}
-	return conf.Include, nil
 }
 
 // -----------------------------------------------------------------------------
