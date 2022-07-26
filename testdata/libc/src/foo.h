@@ -7,6 +7,8 @@ typedef struct {
     } __u;
 } pth_attr_t;
 
+typedef struct pub pub_t;
+
 struct pub {
     int a;
     int b :1,
