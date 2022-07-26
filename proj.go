@@ -18,7 +18,6 @@ package c2go
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -87,6 +86,12 @@ type c2goConf struct {
 	InLibC bool `json:"libc"` // bfm = BFM_InLibC
 
 	SimpleProj bool `json:"simpleProj"` // bfm = BFM_Default
+}
+
+func clearDepsCache(conf *c2goConf) {
+	conf.allIncDirs = nil
+	conf.depPkgs = nil
+	conf.skipLibcH = false
 }
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -159,8 +164,9 @@ func execProj(projfile string, flags int, in *Config) {
 			}
 			fmt.Printf("==> Building %s ...\n", cmd.Dir)
 			conf.Source = cmd.Source
-			conf.Deps = cmd.Deps
 			conf.Target.Dir = cmd.Dir
+			conf.Deps = cmd.Deps
+			clearDepsCache(&conf)
 			execProjSource(base, appFlags, &conf)
 			if (appFlags & FlagRunTest) != 0 {
 				cmd2 := exec.Command(clangOut)
@@ -264,38 +270,10 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 	}
 }
 
-type dirCache struct {
-}
-
-const (
-	dirCacheName = ".c2go.cache"
-)
-
-func readDirCache(dir string) (cache *dirCache, err error) {
-	cachefile := filepath.Join(dir, dirCacheName)
-	_, err = os.ReadFile(cachefile)
-	return
-}
-
-func writeDirCache(dir string) {
-	cachefile := filepath.Join(dir, dirCacheName)
-	err := os.WriteFile(cachefile, nil, 0666)
-	if err != nil {
-		log.Panicln("writeDirCache:", err)
-	}
-}
-
 func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 	if strings.HasPrefix(dir, "_") {
 		return
 	}
-	/*
-		cache, err := readDirCache(dir)
-		if err == nil {
-			_ = cache
-			return
-		}
-	*/
 	fis, err := os.ReadDir(dir)
 	check(err)
 	for _, fi := range fis {
@@ -315,7 +293,6 @@ func execProjDir(dir string, conf *c2goConf, flags int, recursively bool) {
 			execProjFile(pkgFile, conf, flags)
 		}
 	}
-	// writeDirCache(dir)
 }
 
 func ignoreFile(infile string, conf *c2goConf) bool {
