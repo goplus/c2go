@@ -229,12 +229,13 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 	}
 	var t *gox.TypeDecl
 	pos := ctx.goNodePos(decl)
+	pkg := ctx.pkg
 	realName := name
 	if ctx.inSrcFile() && decl.Name != "" {
 		realName = ctx.autoStaticName(decl.Name)
 		var scope = ctx.cb.Scope()
 		t = ctx.cb.NewType(realName, pos)
-		substObj(ctx.pkg.Types, scope, name, scope, realName)
+		substObj(pkg.Types, scope, name, scope, realName)
 	} else {
 		var decled bool
 		t, decled = ctx.typdecls[name]
@@ -252,7 +253,11 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 		default:
 			inner, del = toUnionType(ctx, t.Type(), decl, pub)
 		}
-		return t.InitType(ctx.pkg, inner), del
+		ret := t.InitType(pkg, inner)
+		if pub {
+			pkg.ExportFields(ret)
+		}
+		return ret, del
 	}
 	return t.Type(), nil
 }
