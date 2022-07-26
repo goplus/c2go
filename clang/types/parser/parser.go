@@ -51,7 +51,7 @@ func IsArrayWithoutLen(err error) bool {
 
 const (
 	FlagIsParam = 1 << iota
-	FlagIsField
+	FlagIsStructField
 	FlagIsExtern
 	FlagIsTypedef
 	FlagGetRetType
@@ -263,7 +263,7 @@ func (p *parser) parseArray(t types.Type, inFlags int) (types.Type, error) {
 	p.next()
 	switch p.tok {
 	case token.RBRACK: // ]
-		if (inFlags & FlagIsField) != 0 {
+		if (inFlags & FlagIsStructField) != 0 {
 			n = 0
 		} else {
 			n = -1

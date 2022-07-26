@@ -5,6 +5,8 @@ struct cookie {
 };
 
 foo_t foo() {
-    struct cookie v = {100};
+    pth_attr_t pth;
+    pth.__u.__i[0] = 100;
+    struct cookie v = {pth.__u.__i[0]};
     return v.a;
 }

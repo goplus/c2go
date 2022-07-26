@@ -13,7 +13,6 @@ import (
 	"github.com/goplus/c2go/clang/cmod"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
-	"github.com/goplus/gox/cpackages"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 )
@@ -295,6 +294,15 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	return
 }
 
+// NOTE: call isPubTypedef only in global scope
+func isPubTypedef(ctx *blockCtx, decl *ast.Node) bool {
+	if decl.Kind == ast.TypedefDecl {
+		name := decl.Name
+		return ctx.getPubName(&name)
+	}
+	return false
+}
+
 func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 	scope := ctx.cb.Scope()
 	n := len(node.Inner)
@@ -310,26 +318,37 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		case ast.VarDecl:
 			compileVarDecl(ctx, decl, global)
 		case ast.TypedefDecl:
-			if typ := compileTypedef(ctx, decl, global); typ != nil && global {
-				name := decl.Name
-				if ctx.getPubName(&name) {
-					ctx.pkg.AliasType(name, typ, ctx.goNodePos(decl))
-				}
+			origName, pub := decl.Name, false
+			if global {
+				pub = ctx.getPubName(&decl.Name)
+			}
+			compileTypedef(ctx, decl, global, pub)
+			if pub {
+				substObj(ctx.pkg.Types, scope, origName, scope, decl.Name)
 			}
 		case ast.RecordDecl:
+			pub := false
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			if global && suKind != suAnonymous && decl.CompleteDefinition && ctx.checkExists(name) {
-				continue
+			origName := name
+			if global {
+				if suKind == suAnonymous {
+					// pub = true if this is a public typedef
+					pub = i+1 < n && isPubTypedef(ctx, node.Inner[i+1])
+				} else {
+					pub = ctx.getPubName(&name)
+					if decl.CompleteDefinition && ctx.checkExists(name) {
+						continue
+					}
+				}
 			}
-			typ, del := compileStructOrUnion(ctx, name, decl)
+			typ, del := compileStructOrUnion(ctx, name, decl, pub)
 			if suKind != suAnonymous {
-				if decl.CompleteDefinition && ctx.getPubName(&name) {
-					ctx.pkg.AliasType(name, typ, ctx.goNodePos(decl))
+				if pub {
+					substObj(ctx.pkg.Types, scope, origName, scope, name)
 				}
 				break
-			} else {
-				ctx.unnameds[decl.ID] = unnamedType{typ: typ, del: del}
 			}
+			ctx.unnameds[decl.ID] = unnamedType{typ: typ, del: del}
 			for i+1 < n {
 				next := node.Inner[i+1]
 				if next.Kind == ast.VarDecl {
@@ -483,11 +502,11 @@ func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
 	goName, ok := p.public[name]
 	if ok {
 		if goName == "" {
-			goName = cpackages.PubName(name)
+			goName = gox.CPubName(name)
 		}
 	} else if _, ok = p.autopub[name]; ok {
 		p.public[name] = ""
-		goName = cpackages.PubName(name)
+		goName = gox.CPubName(name)
 	} else {
 		return
 	}

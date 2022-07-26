@@ -15,7 +15,6 @@ import (
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
-	"github.com/goplus/gox/cpackages"
 )
 
 // -----------------------------------------------------------------------------
@@ -97,7 +96,7 @@ func loadPubFile(pubfile string) (pubs []pubName) {
 		goName := ""
 		switch len(flds) {
 		case 1:
-			goName = cpackages.PubName(flds[0])
+			goName = gox.CPubName(flds[0])
 		case 2:
 			goName = flds[1]
 		case 0:
@@ -126,10 +125,8 @@ func (p *blockCtx) initPublicFrom(baseDir string, conf *Config, node *ast.Node) 
 		}
 		if isPub {
 			switch decl.Kind {
-			case ast.VarDecl, ast.TypedefDecl, ast.FunctionDecl:
-				if canPub(decl.Name) {
-					p.autopub[decl.Name] = none{}
-				}
+			case ast.FunctionDecl, ast.TypedefDecl, ast.VarDecl:
+				p.autopub[decl.Name] = none{}
 			case ast.RecordDecl:
 				if decl.Name != "" {
 					suName := ctypes.MangledName(decl.TagUsed, decl.Name)
@@ -138,11 +135,6 @@ func (p *blockCtx) initPublicFrom(baseDir string, conf *Config, node *ast.Node) 
 			}
 		}
 	}
-}
-
-func canPub(name string) bool {
-	r := name[0]
-	return 'a' <= r && r <= 'z'
 }
 
 // f, pubFrom are absolute paths
