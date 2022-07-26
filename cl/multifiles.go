@@ -191,6 +191,11 @@ func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
 				if old := scope.Insert(gox.NewSubst(token.NoPos, pkg.Types, pub.name, obj)); old != nil {
 					log.Panicf("conflicted name `%v` in %v, previous definition is %v\n", pub.name, dep.path, old)
 				}
+				if t, ok := obj.Type().(*types.Named); ok {
+					if _, ok = t.Underlying().(*types.Struct); ok {
+						pkg.ExportFields(t)
+					}
+				}
 			}
 		}
 	}
