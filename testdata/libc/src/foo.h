@@ -9,6 +9,9 @@ typedef struct {
 
 struct pub {
     int a;
+    int b :1,
+          :2,
+        c :3;
 };
 
 typedef size_t foo_t;

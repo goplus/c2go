@@ -76,16 +76,19 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, pub bool) (ret
 		decl := struc.Inner[i]
 		switch decl.Kind {
 		case ast.FieldDecl:
+			name := decl.Name
 			if debugCompileDecl {
-				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
+				log.Println("  => field", name, "-", decl.Type.QualType)
 			}
-			checkFieldName(&decl.Name, pub)
+			if name != "" {
+				checkFieldName(&name, pub)
+			}
 			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsStructField)
 			if decl.IsBitfield {
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
-				b.BitField(ctx, typ, decl.Name, int(bits))
+				b.BitField(ctx, typ, name, int(bits))
 			} else {
-				b.Field(ctx, ctx.goNodePos(decl), typ, decl.Name, false)
+				b.Field(ctx, ctx.goNodePos(decl), typ, name, false)
 			}
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
@@ -127,12 +130,13 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, pub bool) (ret t
 		decl := unio.Inner[i]
 		switch decl.Kind {
 		case ast.FieldDecl:
+			name := decl.Name
 			if debugCompileDecl {
-				log.Println("  => field", decl.Name, "-", decl.Type.QualType)
+				log.Println("  => field", name, "-", decl.Type.QualType)
 			}
-			checkFieldName(&decl.Name, pub)
+			checkFieldName(&name, pub)
 			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
-			b.Field(ctx, ctx.goNodePos(decl), typ, decl.Name, false)
+			b.Field(ctx, ctx.goNodePos(decl), typ, name, false)
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
 			typ, del := compileStructOrUnion(ctx, name, decl, pub)
