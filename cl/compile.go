@@ -13,7 +13,6 @@ import (
 	"github.com/goplus/c2go/clang/cmod"
 	"github.com/goplus/c2go/clang/types/parser"
 	"github.com/goplus/gox"
-	"github.com/goplus/gox/cpackages"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 )
@@ -502,11 +501,11 @@ func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
 	goName, ok := p.public[name]
 	if ok {
 		if goName == "" {
-			goName = cpackages.PubName(name)
+			goName = gox.CPubName(name)
 		}
 	} else if _, ok = p.autopub[name]; ok {
 		p.public[name] = ""
-		goName = cpackages.PubName(name)
+		goName = gox.CPubName(name)
 	} else {
 		return
 	}

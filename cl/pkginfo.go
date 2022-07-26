@@ -15,7 +15,6 @@ import (
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/gox"
-	"github.com/goplus/gox/cpackages"
 )
 
 // -----------------------------------------------------------------------------
@@ -97,7 +96,7 @@ func loadPubFile(pubfile string) (pubs []pubName) {
 		goName := ""
 		switch len(flds) {
 		case 1:
-			goName = cpackages.PubName(flds[0])
+			goName = gox.CPubName(flds[0])
 		case 2:
 			goName = flds[1]
 		case 0:

@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	ctypes "github.com/goplus/c2go/clang/types"
-	"github.com/goplus/gox/cpackages"
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
@@ -18,19 +17,19 @@ import (
 // -----------------------------------------------------------------------------
 
 func toType(ctx *blockCtx, typ *ast.Type, flags int) types.Type {
-	t, _ := toTypeEx(ctx, ctx.cb.Scope(), nil, typ, flags)
+	t, _ := toTypeEx(ctx, ctx.cb.Scope(), nil, typ, flags, false)
 	return t
 }
 
-func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int) {
-	t, kind, err := parseType(ctx, scope, tyAnonym, typ, flags)
+func toTypeEx(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int, pub bool) (t types.Type, kind int) {
+	t, kind, err := parseType(ctx, scope, tyAnonym, typ, flags, pub)
 	if err != nil {
 		log.Panicln("toType:", err, "-", typ.QualType)
 	}
 	return
 }
 
-func parseType(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int) (t types.Type, kind int, err error) {
+func parseType(ctx *blockCtx, scope *types.Scope, tyAnonym types.Type, typ *ast.Type, flags int, pub bool) (t types.Type, kind int, err error) {
 	conf := &parser.Config{
 		Scope: scope, Flags: flags, Anonym: tyAnonym, ParseEnv: ctx,
 	}
@@ -38,8 +37,14 @@ retry:
 	t, kind, err = parser.ParseType(typ.QualType, conf)
 	if err != nil {
 		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
-			name := e.Literal // struct_xxx or union_xxx
-			ctx.typdecls[name] = ctx.cb.NewType(name)
+			name := e.Literal
+			if pub {
+				name = gox.CPubName(name)
+			}
+			newStructOrUnionType(ctx, token.NoPos, name)
+			if pub {
+				substObj(ctx.pkg.Types, scope, e.Literal, scope, name)
+			}
 			goto retry
 		}
 	}
@@ -51,7 +56,7 @@ func toAnonymType(ctx *blockCtx, pos token.Pos, decl *ast.Node) (ret *types.Name
 	switch decl.Kind {
 	case ast.FieldDecl:
 		pkg := ctx.pkg
-		typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
+		typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0, false)
 		fld := types.NewField(ctx.goNodePos(decl), pkg.Types, decl.Name, typ, false)
 		struc := types.NewStruct([]*types.Var{fld}, nil)
 		ret = pkg.NewType(ctx.getAnonyName(), pos).InitType(pkg, struc)
@@ -63,7 +68,7 @@ func toAnonymType(ctx *blockCtx, pos token.Pos, decl *ast.Node) (ret *types.Name
 
 func checkFieldName(pname *string, pub bool) {
 	if pub {
-		*pname = cpackages.PubName(*pname)
+		*pname = gox.CPubName(*pname)
 	} else {
 		avoidKeyword(pname)
 	}
@@ -84,7 +89,7 @@ func toStructType(ctx *blockCtx, t *types.Named, struc *ast.Node, pub bool) (ret
 			if name != "" {
 				checkFieldName(&name, pub)
 			}
-			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsStructField)
+			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsStructField, false)
 			if decl.IsBitfield {
 				bits := toInt64(ctx, decl.Inner[0], "non-constant bit field")
 				b.BitField(ctx, typ, name, int(bits))
@@ -136,7 +141,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, pub bool) (ret t
 				log.Println("  => field", name, "-", decl.Type.QualType)
 			}
 			checkFieldName(&name, pub)
-			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0)
+			typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0, false)
 			b.Field(ctx, ctx.goNodePos(decl), typ, name, false)
 		case ast.RecordDecl:
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
@@ -171,7 +176,7 @@ func toUnionType(ctx *blockCtx, t *types.Named, unio *ast.Node, pub bool) (ret t
 }
 
 func checkAnonymous(ctx *blockCtx, scope *types.Scope, typ types.Type, v *ast.Node) (ret types.Type, ok bool) {
-	ret, kind := toTypeEx(ctx, scope, typ, v.Type, 0)
+	ret, kind := toTypeEx(ctx, scope, typ, v.Type, 0, false)
 	ok = (kind & parser.KindFAnonymous) != 0
 	return
 }
@@ -212,7 +217,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 			}
 		}
 	}
-	typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsTypedef)
+	typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsTypedef, pub)
 	if isArrayUnknownLen(typ) || typ == ctypes.Void {
 		aliasType(scope, ctx.pkg.Types, name, typ)
 		return nil
@@ -228,6 +233,15 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 	return typ
 }
 
+func newStructOrUnionType(ctx *blockCtx, pos token.Pos, name string) (t *gox.TypeDecl) {
+	t, decled := ctx.typdecls[name]
+	if !decled {
+		t = ctx.cb.NewType(name, pos)
+		ctx.typdecls[name] = t
+	}
+	return
+}
+
 func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) (*types.Named, delfunc) {
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
@@ -241,12 +255,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 		t = ctx.cb.NewType(realName, pos)
 		substObj(pkg.Types, scope, name, scope, realName)
 	} else {
-		var decled bool
-		t, decled = ctx.typdecls[name]
-		if !decled {
-			t = ctx.cb.NewType(name, pos)
-			ctx.typdecls[name] = t
-		}
+		t = newStructOrUnionType(ctx, pos, name)
 	}
 	if decl.CompleteDefinition {
 		var inner types.Type
@@ -323,7 +332,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		}
 		decl.Name, rewritten = ctx.autoStaticName(origName), true
 	}
-	typ, kind, err := parseType(ctx, scope, nil, decl.Type, flags)
+	typ, kind, err := parseType(ctx, scope, nil, decl.Type, flags, false)
 	if err != nil {
 		if gblStatic && parser.IsArrayWithoutLen(err) {
 			return
