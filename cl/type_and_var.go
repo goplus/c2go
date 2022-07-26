@@ -38,7 +38,8 @@ retry:
 	t, kind, err = parser.ParseType(typ.QualType, conf)
 	if err != nil {
 		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
-			ctx.typdecls[e.Literal] = ctx.cb.NewType(e.Literal)
+			name := e.Literal // struct_xxx or union_xxx
+			ctx.typdecls[name] = ctx.cb.NewType(name)
 			goto retry
 		}
 	}
@@ -211,7 +212,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 			}
 		}
 	}
-	typ := toType(ctx, decl.Type, parser.FlagIsTypedef)
+	typ, _ := toTypeEx(ctx, scope, nil, decl.Type, parser.FlagIsTypedef)
 	if isArrayUnknownLen(typ) || typ == ctypes.Void {
 		aliasType(scope, ctx.pkg.Types, name, typ)
 		return nil
@@ -234,9 +235,8 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 	var t *gox.TypeDecl
 	pos := ctx.goNodePos(decl)
 	pkg := ctx.pkg
-	realName := name
 	if ctx.inSrcFile() && decl.Name != "" {
-		realName = ctx.autoStaticName(decl.Name)
+		realName := ctx.autoStaticName(decl.Name)
 		var scope = ctx.cb.Scope()
 		t = ctx.cb.NewType(realName, pos)
 		substObj(pkg.Types, scope, name, scope, realName)
@@ -244,7 +244,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 		var decled bool
 		t, decled = ctx.typdecls[name]
 		if !decled {
-			t = ctx.cb.NewType(realName, pos)
+			t = ctx.cb.NewType(name, pos)
 			ctx.typdecls[name] = t
 		}
 	}

@@ -126,13 +126,7 @@ func (p *blockCtx) initPublicFrom(baseDir string, conf *Config, node *ast.Node) 
 		}
 		if isPub {
 			switch decl.Kind {
-			case ast.TypedefDecl:
-				// typedef struct XXX YYY;
-				if name, ok := checkPubStructOrUnion(decl.Type.QualType); ok {
-					p.autopub[name] = none{}
-				}
-				fallthrough
-			case ast.FunctionDecl, ast.VarDecl:
+			case ast.FunctionDecl, ast.TypedefDecl, ast.VarDecl:
 				p.autopub[decl.Name] = none{}
 			case ast.RecordDecl:
 				if decl.Name != "" {
@@ -142,20 +136,6 @@ func (p *blockCtx) initPublicFrom(baseDir string, conf *Config, node *ast.Node) 
 			}
 		}
 	}
-}
-
-func checkPubStructOrUnion(qualType string) (pub string, ok bool) {
-	const blank = " \t\r\n"
-	pos := strings.IndexAny(qualType, blank)
-	if pos > 0 {
-		if tag := qualType[:pos]; tag == "struct" || tag == "union" {
-			name := strings.TrimLeft(qualType[pos+1:], blank)
-			if strings.IndexAny(name, "{"+blank) < 0 {
-				return ctypes.MangledName(tag, name), true
-			}
-		}
-	}
-	return
 }
 
 // f, pubFrom are absolute paths
