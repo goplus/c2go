@@ -295,6 +295,15 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	return
 }
 
+// NOTE: call isPubTypedef only in global scope
+func isPubTypedef(ctx *blockCtx, decl *ast.Node) bool {
+	if decl.Kind == ast.TypedefDecl {
+		name := decl.Name
+		return ctx.getPubName(&name)
+	}
+	return false
+}
+
 func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 	scope := ctx.cb.Scope()
 	n := len(node.Inner)
@@ -321,11 +330,16 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		case ast.RecordDecl:
 			pub := false
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
-			if global && suKind != suAnonymous && decl.CompleteDefinition {
-				if ctx.checkExists(name) {
-					continue
+			if global {
+				if suKind == suAnonymous {
+					// pub = true if this is a public typedef
+					pub = i+1 < n && isPubTypedef(ctx, node.Inner[i+1])
+				} else {
+					pub = ctx.getPubName(&name)
+					if decl.CompleteDefinition && ctx.checkExists(name) {
+						continue
+					}
 				}
-				pub = ctx.getPubName(&name)
 			}
 			typ, del := compileStructOrUnion(ctx, name, decl, pub)
 			if suKind != suAnonymous {
