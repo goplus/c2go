@@ -329,6 +329,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		case ast.RecordDecl:
 			pub := false
 			name, suKind := ctx.getSuName(decl, decl.TagUsed)
+			origName := name
 			if global {
 				if suKind == suAnonymous {
 					// pub = true if this is a public typedef
@@ -343,7 +344,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			typ, del := compileStructOrUnion(ctx, name, decl, pub)
 			if suKind != suAnonymous {
 				if pub {
-					substObj(ctx.pkg.Types, scope, decl.Name, scope, name)
+					substObj(ctx.pkg.Types, scope, origName, scope, name)
 				}
 				break
 			}
