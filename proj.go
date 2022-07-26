@@ -330,15 +330,18 @@ func ignoreFile(infile string, conf *c2goConf) bool {
 func execProjFile(infile string, conf *c2goConf, flags int) {
 	fmt.Printf("==> Compiling %s ...\n", infile)
 
-	if len(conf.depPkgs) == 0 && len(conf.Deps) > 0 {
-		deps := conf.Deps
-		if len(deps) > 0 && deps[0] == "C" {
-			conf.skipLibcH = true
-			deps = deps[1:]
+	var err error
+	if len(conf.allIncDirs) == 0 {
+		if len(conf.depPkgs) == 0 && len(conf.Deps) > 0 {
+			deps := conf.Deps
+			if len(deps) > 0 && deps[0] == "C" {
+				conf.skipLibcH = true
+				deps = deps[1:]
+			}
+			conf.depPkgs, err = cmod.LoadDeps(conf.dir, deps)
+			check(err)
 		}
-		depPkgs, err := cmod.LoadDeps(conf.dir, deps)
-		check(err)
-
+		depPkgs := conf.depPkgs
 		n := len(conf.Include)
 		for _, dep := range depPkgs {
 			n += len(dep.Include)
@@ -348,8 +351,6 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		for _, dep := range depPkgs {
 			allIncDirs = append(allIncDirs, dep.Include...)
 		}
-
-		conf.depPkgs = depPkgs
 		conf.allIncDirs = allIncDirs
 	}
 
