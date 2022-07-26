@@ -310,11 +310,13 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 		case ast.VarDecl:
 			compileVarDecl(ctx, decl, global)
 		case ast.TypedefDecl:
-			if typ := compileTypedef(ctx, decl, global); typ != nil && global {
-				name := decl.Name
-				if ctx.getPubName(&name) {
-					ctx.pkg.AliasType(name, typ, ctx.goNodePos(decl))
-				}
+			origName, pub := decl.Name, false
+			if global {
+				pub = ctx.getPubName(&decl.Name)
+			}
+			compileTypedef(ctx, decl, global, pub)
+			if pub {
+				substObj(ctx.pkg.Types, scope, origName, scope, decl.Name)
 			}
 		case ast.RecordDecl:
 			pub := false
@@ -327,6 +329,9 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			}
 			typ, del := compileStructOrUnion(ctx, name, decl, pub)
 			if suKind != suAnonymous {
+				if pub {
+					substObj(ctx.pkg.Types, scope, decl.Name, scope, name)
+				}
 				break
 			}
 			ctx.unnameds[decl.ID] = unnamedType{typ: typ, del: del}
