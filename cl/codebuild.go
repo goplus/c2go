@@ -87,9 +87,10 @@ func decl_builtin(ctx *blockCtx) {
 			if bfm == BFM_InLibC {
 				fn = "X" + fn
 			}
-			scope.Insert(types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature)))
+			fnObj := types.NewFunc(token.NoPos, pkg, fn, t.(*types.Signature))
+			scope.Insert(fnObj)
 			if bfm == BFM_InLibC {
-				substObj(pkg, scope, origFn, scope, fn)
+				substObj(pkg, scope, origFn, fnObj)
 			}
 		}
 	}

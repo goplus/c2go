@@ -324,7 +324,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			}
 			compileTypedef(ctx, decl, global, pub)
 			if pub {
-				substObj(ctx.pkg.Types, scope, origName, scope, decl.Name)
+				substObj(ctx.pkg.Types, scope, origName, scope.Lookup(decl.Name))
 			}
 		case ast.RecordDecl:
 			pub := false
@@ -344,7 +344,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			typ, del := compileStructOrUnion(ctx, name, decl, pub)
 			if suKind != suAnonymous {
 				if pub {
-					substObj(ctx.pkg.Types, scope, origName, scope, name)
+					substObj(ctx.pkg.Types, scope, origName, scope.Lookup(name))
 				}
 				break
 			}
@@ -433,7 +433,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 		if rewritten { // for fnName is a recursive function
 			scope := pkg.Types.Scope()
-			substObj(pkg.Types, scope, origName, scope, fnName)
+			substObj(pkg.Types, scope, origName, f.Func)
 			rewritten = false
 		}
 		cb := f.BodyStart(pkg)
@@ -493,7 +493,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	}
 	if rewritten {
 		scope := pkg.Types.Scope()
-		substObj(pkg.Types, scope, origName, scope, fnName)
+		substObj(pkg.Types, scope, origName, scope.Lookup(fnName))
 	}
 }
 
