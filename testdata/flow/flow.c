@@ -44,21 +44,26 @@ void h() {
     }
 }
 
+struct foo {
+    int a;
+    double b;
+};
+
 int main() {
-    int a = sizeof(int);
+    int a = __builtin_offsetof(struct foo, b);
     int *b = &a;
     switch (a) {
     case 4:
         printf("Hi\n");
-        printf("sizeof(int) == 4\n");
+        printf("offsetof(b) == 4\n");
         break;
     case 8:
-        printf("sizeof(int) == 8\n");
+        printf("offsetof(b) == 8\n");
         break;
     case 0:
     case 1:
     default:
-        printf("sizeof(int) == unknown\n");
+        printf("offsetof(b) == unknown\n");
     }
     while (a) {
         a--;
