@@ -43,7 +43,7 @@ retry:
 			}
 			newStructOrUnionType(ctx, token.NoPos, name)
 			if pub {
-				substObj(ctx.pkg.Types, scope, e.Literal, scope, name)
+				substObj(ctx.pkg.Types, scope, e.Literal, scope.Lookup(name))
 			}
 			goto retry
 		}
@@ -253,7 +253,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 		realName := ctx.autoStaticName(decl.Name)
 		var scope = ctx.cb.Scope()
 		t = ctx.cb.NewType(realName, pos)
-		substObj(pkg.Types, scope, name, scope, realName)
+		substObj(pkg.Types, scope, name, t.Type().Obj())
 	} else {
 		t = newStructOrUnionType(ctx, pos, name)
 	}
@@ -318,7 +318,8 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	if global {
 		rewritten = ctx.getPubName(&decl.Name)
 	}
-	scope := ctx.cb.Scope()
+	origScope := ctx.cb.Scope()
+	scope := origScope
 	flags := 0
 	gblStatic := false
 	switch decl.StorageClass {
@@ -328,7 +329,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		if global { // global static
 			gblStatic = true
 		} else { // local static variable
-			scope = ctx.pkg.Types.Scope()
+			scope = ctx.pkg.Types.Scope() // Go don't have local static variable, change to global
 		}
 		decl.Name, rewritten = ctx.autoStaticName(origName), true
 	}
@@ -345,13 +346,13 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	} else {
 		if (kind&parser.KindFConst) != 0 && isInteger(typ) && tryNewConstInteger(ctx, typ, decl) {
 			if rewritten {
-				substObj(ctx.pkg.Types, ctx.cb.Scope(), origName, scope, decl.Name)
+				substObj(ctx.pkg.Types, origScope, origName, origScope.Lookup(decl.Name))
 			}
 			return
 		}
 		newVarAndInit(ctx, scope, typ, decl, global)
 		if rewritten {
-			substObj(ctx.pkg.Types, ctx.cb.Scope(), origName, scope, decl.Name)
+			substObj(ctx.pkg.Types, ctx.cb.Scope(), origName, scope.Lookup(decl.Name))
 		} else if kind == parser.KindFVolatile && !global {
 			addr := gox.Lookup(scope, decl.Name)
 			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
@@ -359,8 +360,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 	}
 }
 
-func substObj(pkg *types.Package, scope *types.Scope, origName string, scope2 *types.Scope, name string) {
-	real := scope2.Lookup(name)
+func substObj(pkg *types.Package, scope *types.Scope, origName string, real types.Object) {
 	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, origName, real))
 	if old != nil {
 		if t, ok := old.Type().(*gox.SubstType); ok {
