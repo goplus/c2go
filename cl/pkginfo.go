@@ -63,11 +63,42 @@ func (p Package) InitDependencies() {
 			real := t.Real
 			uf, sig = real.Name(), real.Type().(*types.Signature)
 		}
-		f, _ := pkg.NewFuncWith(token.NoPos, uf, sig, nil)
+		f, _ := pkg.NewFuncWith(token.NoPos, uf, ensureSig(sig), nil)
 		f.BodyStart(pkg).
 			Val(vPanic).Val("notimpl").Call(1).EndStmt().
 			End()
 	}
+}
+
+const (
+	sigParamWithoutName = 1 << iota
+	sigParamWithName
+	sigParamInvalid = sigParamWithoutName | sigParamWithName
+)
+
+func ensureSig(sig *types.Signature) *types.Signature {
+	params := sig.Params()
+	kind := 0
+	for i, n := 0, params.Len(); i < n; i++ {
+		param := params.At(i)
+		if param.Name() != "" {
+			kind |= sigParamWithName
+		} else {
+			kind |= sigParamWithoutName
+		}
+		if kind == sigParamInvalid {
+			newParams := make([]*types.Var, n)
+			for i = 0; i < n; i++ {
+				param = params.At(i)
+				if param.Name() != "" {
+					param = types.NewParam(param.Pos(), param.Pkg(), "", param.Type())
+				}
+				newParams[i] = param
+			}
+			return types.NewSignature(nil, types.NewTuple(newParams...), sig.Results(), sig.Variadic())
+		}
+	}
+	return sig
 }
 
 func (p Package) WriteDepTo(dst io.Writer) error {
