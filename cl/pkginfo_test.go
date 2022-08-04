@@ -2,11 +2,27 @@ package cl
 
 import (
 	"bytes"
+	"go/types"
 	"os"
 	"testing"
 )
 
 // -----------------------------------------------------------------------------
+
+func TestEnsureSig(t *testing.T) {
+	a := types.NewParam(0, nil, "", types.Typ[types.Int])
+	b := types.NewParam(0, nil, "b", types.Typ[types.Bool])
+	params := types.NewTuple(a, b)
+	sig := types.NewSignature(nil, params, nil, false)
+	if tsig := ensureSig(sig); tsig == sig {
+		t.Fatal("ensureSig 1:", sig, tsig)
+	}
+	params = types.NewTuple(a)
+	sig = types.NewSignature(nil, params, nil, false)
+	if tsig := ensureSig(sig); tsig != sig {
+		t.Fatal("ensureSig 2:", sig, tsig)
+	}
+}
 
 func TestPkgInfo_Basic(t *testing.T) {
 	pkg := testFunc(t, "Basic", `
