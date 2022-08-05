@@ -10,7 +10,7 @@ static int g_arr[100][3];
 int (*g_parr)[100][3] = &g_arr;
 
 union { int a; unsigned short b; } g_foo = { 1 };
-union { short a; char b[10]; } g_bar = { .b = "Hello" };
+union { short a; char b[10]; } g_bar = { .b = "Hello\xff" };
 
 struct { int a; unsigned short b; } g_x = { 2, 3 };
 struct { short a; char b[10]; int c; } g_y = { .b = "Hi", .a = 11 };
