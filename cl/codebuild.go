@@ -478,7 +478,11 @@ func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
 		eos = int(t.Len()) > n
 	}
 	for i := 0; i < n; i++ {
-		cb.Val(rune(s[i]))
+		if c := s[i]; c <= 0x7f {
+			cb.Val(rune(c))
+		} else {
+			cb.Val(int(int8(c)))
+		}
 	}
 	if eos {
 		cb.Val(rune(0)).ArrayLit(typ, n+1)
