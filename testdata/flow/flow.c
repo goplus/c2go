@@ -49,9 +49,21 @@ struct foo {
     double b;
 };
 
+struct ff {
+	char* file;
+	int line;
+	int r;
+	float x;
+	float x2;
+	float y;
+	float dy;
+    int e;
+};
+
 int main() {
     int a = __builtin_offsetof(struct foo, b);
     int *b = &a;
+    printf("sizeof(ff) = %d\n", (int)sizeof(struct ff));
     switch (a) {
     case 4:
         printf("Hi\n");
