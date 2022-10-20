@@ -551,4 +551,15 @@ void test() {
 }`)
 }
 
+func TestFloat(t *testing.T) {
+	testFunc(t, "testFloat", `
+void f(float a, double b, ...){}
+void test() {
+	f(1.0, 1.0, 1.0);
+}
+`, `func test() {
+	f(float32(1.0), 1.0, 1.0)
+}`)
+}
+
 // -----------------------------------------------------------------------------
