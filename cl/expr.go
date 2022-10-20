@@ -6,6 +6,7 @@ import (
 	"go/types"
 	"log"
 	"strconv"
+	"strings"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 
@@ -47,7 +48,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.CharacterLiteral:
 		compileCharacterLiteral(ctx, expr)
 	case ast.FloatingLiteral:
-		compileLiteral(ctx, token.FLOAT, expr)
+		compileFloatLiteral(ctx, expr)
 	case ast.ParenExpr, ast.ConstantExpr:
 		compileExprEx(ctx, expr.Inner[0], prompt, flags)
 	case ast.CStyleCastExpr:
@@ -103,8 +104,12 @@ func compileIntegerLiteral(ctx *blockCtx, expr *ast.Node) {
 	ctx.cb.Typ(typ).Val(literal(token.INT, expr), ctx.goNode(expr)).Call(1)
 }
 
-func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
-	ctx.cb.Val(literal(kind, expr), ctx.goNode(expr))
+func compileFloatLiteral(ctx *blockCtx, expr *ast.Node) {
+	value := expr.Value.(string)
+	if !strings.Contains(value, ".") {
+		value += ".0"
+	}
+	ctx.cb.Val(&goast.BasicLit{Kind: token.FLOAT, Value: value}, ctx.goNode(expr))
 }
 
 func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
