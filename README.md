@@ -69,7 +69,7 @@ Hi,     3.1
 
 ## Tested Platform
 
-- [x] MacOS: 1.17.x
+- [x] MacOS: 11.x
 - [x] Linux: ubuntu-20.04 (temporarily skip `testdata/qsort`)
 - [ ] Windows
 
