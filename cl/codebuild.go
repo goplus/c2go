@@ -499,6 +499,19 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 		Val(arr).UnaryOp(token.AND).Call(1).Call(1)
 }
 
+func arrayToElemPtrClosure(cb *gox.CodeBuilder) {
+	arr := cb.InternalStack().Pop()
+	t, _ := gox.DerefType(arr.Type)
+	elem := t.(*types.Array).Elem()
+	pkg := cb.Pkg()
+	ret := types.NewParam(token.NoPos, pkg.Types, "", ctypes.NewPointer(elem))
+	cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg).
+		DefineVarStart(token.NoPos, "v").Val(arr).EndInit(1).
+		Typ(ctypes.NewPointer(elem)).Typ(ctypes.UnsafePointer).
+		Val(cb.Scope().Lookup("v")).UnaryOp(token.AND).Call(1).Call(1).Return(1).
+		End().Call(0)
+}
+
 func castToBoolExpr(cb *gox.CodeBuilder) {
 	elem := cb.InternalStack().Get(-1)
 	if t := elem.Type; isNumber(t) {
