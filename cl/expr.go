@@ -1,6 +1,7 @@
 package cl
 
 import (
+	"bytes"
 	goast "go/ast"
 	"go/token"
 	"go/types"
@@ -117,7 +118,13 @@ func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
 }
 
 func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
-	s, err := strconv.Unquote(expr.Value.(string))
+	value := expr.Value.(string)
+	if strings.HasPrefix(value, `L"`) {
+		s := decodeEscapeString(value[2 : len(value)-3])
+		wstringLit(ctx.cb, s, nil)
+		return
+	}
+	s, err := strconv.Unquote(value)
 	if err != nil {
 		log.Panicln("compileStringLiteral:", err)
 	}
@@ -694,6 +701,58 @@ func getCaller(cb *gox.CodeBuilder) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func decodeEscapeString(value string) string {
+	var buf bytes.Buffer
+	for i := 0; i < len(value); i++ {
+		switch c := value[i]; c {
+		case '"': //skip
+		case '\\':
+			i++
+			switch r := value[i]; r {
+			case '\'', '"', '\\':
+				buf.WriteByte(r)
+			case 'a':
+				buf.WriteByte('\a')
+			case 'b':
+				buf.WriteByte('\b')
+			case 'f':
+				buf.WriteByte('\f')
+			case 'n':
+				buf.WriteByte('\n')
+			case 'r':
+				buf.WriteByte('\r')
+			case 't':
+				buf.WriteByte('\t')
+			case 'v':
+				buf.WriteByte('\v')
+			case '0': //033
+				buf.WriteRune(rune(value[i+1]-'0')<<3 + rune(value[i+2]-'0'))
+				i += 2
+			case 'x':
+				var v rune
+				var j int
+			loop:
+				for ; j < 4; j++ {
+					x := value[i+1+j]
+					switch {
+					case x >= '0' && x <= '9':
+						v = v<<4 | rune(x-'0')
+					case x >= 'A' && x <= 'F':
+						v = v<<4 | rune(x-'A'+10)
+					default:
+						break loop
+					}
+				}
+				buf.WriteRune(v)
+				i += j
+			}
+		default:
+			buf.WriteByte(c)
+		}
+	}
+	return buf.String()
 }
 
 // -----------------------------------------------------------------------------

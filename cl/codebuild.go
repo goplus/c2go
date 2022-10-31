@@ -491,6 +491,25 @@ func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
 	}
 }
 
+func wstringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
+	var n int
+	for _, c := range s {
+		n++
+		cb.Val(c)
+	}
+	eos := true
+	if typ == nil {
+		typ = types.NewArray(types.Typ[types.Int32], int64(n+1))
+	} else if t, ok := typ.(*types.Array); ok {
+		eos = int(t.Len()) > n
+	}
+	if eos {
+		cb.Val(rune(0)).ArrayLit(typ, n+1)
+	} else {
+		cb.ArrayLit(typ, n)
+	}
+}
+
 func arrayToElemPtr(cb *gox.CodeBuilder) {
 	arr := cb.InternalStack().Pop()
 	t, _ := gox.DerefType(arr.Type)
