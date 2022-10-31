@@ -2,6 +2,7 @@ package cl
 
 import (
 	"bytes"
+	"errors"
 	goast "go/ast"
 	"go/token"
 	"go/types"
@@ -120,7 +121,10 @@ func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
 func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
 	value := expr.Value.(string)
 	if strings.HasPrefix(value, `L"`) {
-		s := decodeEscapeString(value[2 : len(value)-3])
+		s, err := decodeEscapeString(value[2 : len(value)-1])
+		if err != nil {
+			log.Panicln("compileStringLiteral:", err)
+		}
 		wstringLit(ctx.cb, s, nil)
 		return
 	}
@@ -703,13 +707,21 @@ func getCaller(cb *gox.CodeBuilder) (string, bool) {
 	return "", false
 }
 
-func decodeEscapeString(value string) string {
+func decodeEscapeString(value string) (string, error) {
+	size := len(value)
+	if size == 0 {
+		return "", nil
+	}
 	var buf bytes.Buffer
-	for i := 0; i < len(value); i++ {
+	for i := 0; i < size; i++ {
 		switch c := value[i]; c {
 		case '"': //skip
 		case '\\':
 			i++
+			if i == size {
+				buf.WriteByte(c)
+				break
+			}
 			switch r := value[i]; r {
 			case '\'', '"', '\\':
 				buf.WriteByte(r)
@@ -727,9 +739,6 @@ func decodeEscapeString(value string) string {
 				buf.WriteByte('\t')
 			case 'v':
 				buf.WriteByte('\v')
-			case '0': //033
-				buf.WriteRune(rune(value[i+1]-'0')<<3 + rune(value[i+2]-'0'))
-				i += 2
 			case 'x':
 				var v rune
 				var j int
@@ -747,12 +756,26 @@ func decodeEscapeString(value string) string {
 				}
 				buf.WriteRune(v)
 				i += j
+			default:
+				var v rune
+				var j int
+				for ; j < 3; j++ {
+					x := value[i+j]
+					switch {
+					case x >= '0' && x <= '9':
+						v = v<<3 | rune(x-'0')
+					default:
+						return "", errors.New("invalid octal sequence")
+					}
+				}
+				buf.WriteRune(v)
+				i += j
 			}
 		default:
 			buf.WriteByte(c)
 		}
 	}
-	return buf.String()
+	return buf.String(), nil
 }
 
 // -----------------------------------------------------------------------------
