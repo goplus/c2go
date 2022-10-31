@@ -588,4 +588,14 @@ void test() {
 }`)
 }
 
+func TestWideString(t *testing.T) {
+	testFunc(t, "testWideString", `
+void test() {
+	L"\\\a\b\f\n\r\t\v\e\x1\x0104中A+-@\"\'123abcABC";
+}
+`, `func test() {
+	(*int32)(unsafe.Pointer(&[26]int32{'\\', '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\x1b', '\x01', 'Ą', '中', 'A', '+', '-', '@', '"', '\'', '1', '2', '3', 'a', 'b', 'c', 'A', '\x00'}))
+}`)
+}
+
 // -----------------------------------------------------------------------------
