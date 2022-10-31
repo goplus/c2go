@@ -109,6 +109,9 @@ func checkAnonyUnion(typ types.Type) (t *types.Named, ok bool) {
 }
 
 func (p *blockCtx) autoStaticName(name string) string {
+	if p.curfn != nil {
+		name = p.curfn.orgName + "_" + name
+	}
 	return "_cgos_" + name + p.baseOF
 }
 

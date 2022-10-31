@@ -437,7 +437,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			rewritten = false
 		}
 		cb := f.BodyStart(pkg)
-		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fnName, body))
+		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fnName, body), origName)
 		compileSub(ctx, body)
 		checkNeedReturn(ctx, body)
 		ctx.curfn = nil
