@@ -562,4 +562,30 @@ void test() {
 }`)
 }
 
+func TestPointer(t *testing.T) {
+	testFunc(t, "testPointer", `
+void test() {
+	int *a;
+	int *b;
+	int c;
+	a>b;
+	a>=b;
+	a<b;
+	a<=b;
+	a=b;
+	a-b;
+}
+`, `func test() {
+	var a *int32
+	var b *int32
+	var c int32
+	uintptr(unsafe.Pointer(a)) > uintptr(unsafe.Pointer(b))
+	uintptr(unsafe.Pointer(a)) >= uintptr(unsafe.Pointer(b))
+	uintptr(unsafe.Pointer(a)) < uintptr(unsafe.Pointer(b))
+	uintptr(unsafe.Pointer(a)) <= uintptr(unsafe.Pointer(b))
+	a = b
+	(uintptr(unsafe.Pointer(a)) - uintptr(unsafe.Pointer(b))) / 4
+}`)
+}
+
 // -----------------------------------------------------------------------------
