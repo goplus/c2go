@@ -718,10 +718,6 @@ func decodeEscapeString(value string) (string, error) {
 		case '"': //skip
 		case '\\':
 			i++
-			if i == size {
-				buf.WriteByte(c)
-				break
-			}
 			switch r := value[i]; r {
 			case '\'', '"', '\\':
 				buf.WriteByte(r)
@@ -769,7 +765,7 @@ func decodeEscapeString(value string) (string, error) {
 					}
 				}
 				buf.WriteRune(v)
-				i += j
+				i += j - 1
 			}
 		default:
 			buf.WriteByte(c)
