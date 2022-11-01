@@ -207,7 +207,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 		if cb := ctx.cb; !isValist(cb.Get(-1).Type) {
-			if v.Inner[0].ValueCategory == ast.RValue {
+			if c := v.Inner[0].ValueCategory; c == ast.RValue || c == ast.PRValue {
 				arrayToElemPtrClosure(cb)
 			} else {
 				arrayToElemPtr(cb)

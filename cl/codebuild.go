@@ -387,7 +387,7 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 				castPtrType(cb, tyUintptr, arg2)
 				cb.BinaryOp(token.SUB, src)
 				if elemSize != 1 {
-					cb.Val(elemSize).BinaryOp(token.MUL)
+					cb.Val(elemSize).BinaryOp(token.QUO)
 				}
 				return
 			}

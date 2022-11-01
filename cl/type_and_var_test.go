@@ -158,7 +158,7 @@ void test() {
 }
 `, `func test() {
 	var a int32 = int32(255)
-	if _cgos_b == int64(-1) {
+	if _cgos_test_b == int64(-1) {
 		a = int32(3)
 	}
 }`)
@@ -586,6 +586,32 @@ void test() {
 	}())
 	var t struct_Test
 	put_test_arr((*int8)(unsafe.Pointer(&t.arr)))
+}`)
+}
+
+func TestPointer(t *testing.T) {
+	testFunc(t, "testPointer", `
+void test() {
+	int *a;
+	int *b;
+	int c;
+	a>b;
+	a>=b;
+	a<b;
+	a<=b;
+	a=b;
+	a-b;
+}
+`, `func test() {
+	var a *int32
+	var b *int32
+	var c int32
+	uintptr(unsafe.Pointer(a)) > uintptr(unsafe.Pointer(b))
+	uintptr(unsafe.Pointer(a)) >= uintptr(unsafe.Pointer(b))
+	uintptr(unsafe.Pointer(a)) < uintptr(unsafe.Pointer(b))
+	uintptr(unsafe.Pointer(a)) <= uintptr(unsafe.Pointer(b))
+	a = b
+	(uintptr(unsafe.Pointer(a)) - uintptr(unsafe.Pointer(b))) / 4
 }`)
 }
 
