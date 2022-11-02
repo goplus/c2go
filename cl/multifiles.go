@@ -115,6 +115,10 @@ func (p *blockCtx) autoStaticName(name string) string {
 	return "_cgos_" + name + p.baseOF
 }
 
+func (p *blockCtx) srcEnumName(name string) string {
+	return "_cgoe_" + name + p.baseOF
+}
+
 func (p *blockCtx) logFile(node *ast.Node) {
 	if f := node.Loc.PresumedFile; f != "" {
 		if p.hasMulti {

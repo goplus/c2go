@@ -306,7 +306,12 @@ func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav in
 		}
 		return 1
 	}
-	cdecl.New(fn, iotav, ctx.goNodePos(v), ctypes.Int, v.Name)
+	name := v.Name
+	if ctx.inSrcFile() {
+		name = ctx.srcEnumName(v.Name)
+		ctx.srcenums[v.ID] = name
+	}
+	cdecl.New(fn, iotav, ctx.goNodePos(v), ctypes.Int, name)
 	return iotav + 1
 }
 
