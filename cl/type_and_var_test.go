@@ -588,4 +588,17 @@ void test() {
 }`)
 }
 
+func TestInitListExpr(t *testing.T) {
+	testFunc(t, "testInitListExpr", `
+void test() {
+	int a = 255;
+	unsigned char ws = (unsigned char){a};
+	const char *buf = (const char*){"hello"};
+}`, `func test() {
+	var a int32 = int32(255)
+	var ws uint8 = uint8(a)
+	var buf *int8 = (*int8)(unsafe.Pointer(&[6]int8{'h', 'e', 'l', 'l', 'o', '\x00'}))
+}`)
+}
+
 // -----------------------------------------------------------------------------
