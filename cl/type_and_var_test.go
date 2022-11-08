@@ -588,4 +588,25 @@ void test() {
 }`)
 }
 
+func TestNegBool(t *testing.T) {
+	testFunc(t, "testNegBool", `
+void test() {
+	int c, neg;
+	c = '-';
+	neg = -(c=='-');
+}
+`, `func test() {
+	var c int32
+	var neg int32
+	c = int32('-')
+	neg = -func() int32 {
+		if c == '-' {
+			return 1
+		} else {
+			return 0
+		}
+	}()
+}`)
+}
+
 // -----------------------------------------------------------------------------
