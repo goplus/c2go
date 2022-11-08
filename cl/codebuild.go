@@ -341,6 +341,14 @@ func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			arg.Type = ctypes.NewPointer(arg.Type)
 			return
 		}
+	case token.SUB:
+		t := toType(ctx, v.Type, 0)
+		args := ctx.cb.InternalStack().GetArgs(1)
+		if isInteger(t) && isBool(args[0].Type) {
+			if v, ok := gox.CastFromBool(ctx.cb, t, args[0]); ok {
+				args[0] = v
+			}
+		}
 	}
 	cb := ctx.cb.UnaryOp(op)
 	ret := cb.Get(-1)
