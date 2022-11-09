@@ -333,7 +333,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		}
 		decl.Name, rewritten = ctx.autoStaticName(origName), true
 	}
-	typ, kind, err := parseType(ctx, scope, nil, decl.Type, flags, false)
+	typ, kind, err := parseType(ctx, origScope, nil, decl.Type, flags, false)
 	if err != nil {
 		if gblStatic && parser.IsArrayWithoutLen(err) {
 			return
