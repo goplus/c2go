@@ -124,6 +124,8 @@ const (
 	StringLiteral            Kind = "StringLiteral"
 	FloatingLiteral          Kind = "FloatingLiteral"
 	ImaginaryLiteral         Kind = "ImaginaryLiteral"
+	DLLImportAttr            Kind = "DLLImportAttr"
+	UnusedAttr               Kind = "UnusedAttr"
 )
 
 type ValueCategory string
