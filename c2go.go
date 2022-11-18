@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go/build"
 	"io"
 	"log"
 	"os"
@@ -242,24 +243,20 @@ func runTest(dir string) {
 	checkEqual("stderr", goErr.Bytes(), cErr.Bytes())
 }
 
-func runGoApp(dir string, stdout, stderr io.Writer, doRunTest bool) (dontRunTest bool) {
-	files, err := filepath.Glob("*.go")
-	check(err)
-
-	for i, n := 0, len(files); i < n; i++ {
-		fname := filepath.Base(files[i])
-		if pos := strings.LastIndex(fname, "_"); pos >= 0 {
-			switch os := fname[pos+1 : len(fname)-3]; os {
-			case "darwin", "linux", "windows":
-				if os != runtime.GOOS { // skip
-					n--
-					files[i], files[n] = files[n], files[i]
-					files = files[:n]
-					i--
-				}
-			}
-		}
+func goFiles(dir string) ([]string, error) {
+	if dir == "" {
+		dir = "."
 	}
+	bp, err := build.ImportDir(dir, 0)
+	if err != nil {
+		return nil, err
+	}
+	return append(bp.GoFiles, bp.TestGoFiles...), nil
+}
+
+func runGoApp(dir string, stdout, stderr io.Writer, doRunTest bool) (dontRunTest bool) {
+	files, err := goFiles(dir)
+	check(err)
 
 	if doRunTest {
 		for _, file := range files {
