@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-int _printf(const char *restrict fmt, ...)
+int printf_x(const char *restrict fmt, ...)
 {
 	int ret;
 	va_list ap;
