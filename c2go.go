@@ -231,6 +231,10 @@ func checkEqual(prompt string, a, expected []byte) {
 	fatal(errors.New("checkEqual: unexpected " + prompt))
 }
 
+func cleanEndLine(data []byte) []byte {
+	return bytes.ReplaceAll(data, []byte{'\r', '\n'}, []byte{'\n'})
+}
+
 func runTest(dir string) {
 	var goOut, goErr bytes.Buffer
 	var cOut, cErr bytes.Buffer
@@ -239,8 +243,8 @@ func runTest(dir string) {
 		return
 	}
 	runCApp(dir, &cOut, &cErr)
-	checkEqual("output", goOut.Bytes(), cOut.Bytes())
-	checkEqual("stderr", goErr.Bytes(), cErr.Bytes())
+	checkEqual("output", goOut.Bytes(), cleanEndLine(cOut.Bytes()))
+	checkEqual("stderr", goErr.Bytes(), cleanEndLine(cErr.Bytes()))
 }
 
 func goFiles(dir string) ([]string, error) {

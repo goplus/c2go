@@ -21,7 +21,8 @@ func printf(format *int8, args ...interface{}) int32 {
 			args[i] = gostring(v)
 		}
 	}
-	fmt.Printf(goformat, args...)
+	s := strings.ToLower(fmt.Sprintf(goformat, args...))
+	fmt.Print(s)
 	return 0
 }
 
