@@ -126,6 +126,7 @@ const (
 	ImaginaryLiteral         Kind = "ImaginaryLiteral"
 	DLLImportAttr            Kind = "DLLImportAttr"
 	UnusedAttr               Kind = "UnusedAttr"
+	NoDebugAttr              Kind = "NoDebugAttr"
 )
 
 type ValueCategory string

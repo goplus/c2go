@@ -5,6 +5,7 @@ import (
 	"go/types"
 	"log"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	goast "go/ast"
@@ -364,13 +365,13 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			compileEnum(ctx, decl, global)
 		case ast.EmptyDecl:
 		case ast.FunctionDecl:
-			if global {
+			if global || strings.HasPrefix(decl.Name, "__mingw_") {
 				compileFunc(ctx, decl)
 				continue
 			}
 			fallthrough
 		default:
-			log.Panicln("compileDeclStmt: unknown kind =", decl.Kind)
+			log.Panicln("compileDeclStmt: unknown kind =", decl.Kind, ctx.fset.Position(ctx.goNodePos(node)))
 		}
 	}
 }
@@ -400,7 +401,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ast.AlwaysInlineAttr, ast.WarnUnusedResultAttr, ast.NoThrowAttr, ast.NoInlineAttr, ast.AllocSizeAttr,
 			ast.NonNullAttr, ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr, ast.ReturnsTwiceAttr, ast.NoSanitizeAttr,
 			ast.RestrictAttr, ast.MSAllocatorAttr, ast.VisibilityAttr, ast.C11NoReturnAttr, ast.StrictFPAttr,
-			ast.DLLImportAttr, ast.UnusedAttr:
+			ast.DLLImportAttr, ast.UnusedAttr, ast.NoDebugAttr:
 		default:
 			log.Panicln("compileFunc: unknown kind =", item.Kind)
 		}

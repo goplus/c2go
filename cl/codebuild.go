@@ -39,6 +39,7 @@ const builtin_decls = `{
 	"__builtin_inff": "float32 ()",
 	"__builtin_infl": "float64 ()",
 	"__builtin_inf": "float64 ()",
+	"__builtin_llabs": "int64 (int64)",
 	"__atomic_store_n_u16": "void (uint16*, int, uint16)",
 	"__atomic_store_n_i16": "void (int16*, int, int16)",
 	"__atomic_store_n_u32": "void (uint32*, int, uint32)",
