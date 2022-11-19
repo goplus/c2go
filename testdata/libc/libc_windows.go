@@ -1,6 +1,7 @@
 package libc
 
 import (
+	"fmt"
 	unsafe "unsafe"
 )
 
@@ -32,7 +33,7 @@ type struct_threadmbcinfostruct struct {
 }
 
 func __acrt_iob_func(index uint32) *struct__iobuf {
-	panic("notimpl")
+	return nil
 }
 func X__builtin_llabs(int64) int64 {
 	panic("notimpl")
@@ -49,9 +50,16 @@ func __mingw_strtod(*int8, **int8) float64 {
 func __mingw_strtof(*int8, **int8) float32 {
 	panic("notimpl")
 }
-func __mingw_vfprintf(*struct__iobuf, *int8, []interface {
+func __mingw_vfprintf(f *struct__iobuf, format *int8, args []interface {
 }) int32 {
-	panic("notimpl")
+	goformat := gostring(format)
+	for i, arg := range args {
+		if v, ok := arg.(*int8); ok {
+			args[i] = gostring(v)
+		}
+	}
+	fmt.Printf(goformat, args...)
+	return 0
 }
 func __mingw_vfscanf(fp *struct__iobuf, Format *int8, argp []interface {
 }) int32 {

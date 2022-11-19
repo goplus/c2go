@@ -20,3 +20,4 @@ typedef size_t foo_t;
 
 foo_t foo();
 void unknown();
+int printf_x(const char *restrict fmt, ...);
