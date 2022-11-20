@@ -29,3 +29,33 @@ jobs:
 
     - name: Codecov
       uses: codecov/codecov-action@v2
+
+  TestWindows:
+    strategy:
+      matrix:
+        go-version: [1.17.x]
+        os: [windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Set up llvm-mingw
+      run: |
+        curl -LJO https://github.com/mstorsjo/llvm-mingw/releases/download/20211002/llvm-mingw-20211002-msvcrt-x86_64.zip
+        unzip -q -d c:\ llvm-mingw-20211002-msvcrt-x86_64.zip
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: |
+        $Env:PATH = "c:\llvm-mingw-20211002-msvcrt-x86_64\bin;$Env:PATH"
+        go test -v -coverprofile="coverage.txt" -covermode=atomic ./...
+
+    - name: Codecov
+      uses: codecov/codecov-action@v2
