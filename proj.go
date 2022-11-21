@@ -383,6 +383,7 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 		// BuiltinFuncMode: compiling mode of builtin functions
 		BuiltinFuncMode: bfm,
 		SkipLibcHeader:  conf.skipLibcH,
+		ClangTarget:     clangTarget,
 	})
 	check(err)
 }

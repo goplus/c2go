@@ -188,7 +188,7 @@ func execFile(pkgname string, outfile string, flags int) {
 
 	needPkgInfo := (flags & FlagDepsAutoGen) != 0
 	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{
-		SrcFile: outfile, NeedPkgInfo: needPkgInfo,
+		SrcFile: outfile, NeedPkgInfo: needPkgInfo, ClangTarget: clangTarget,
 	})
 	check(err)
 
@@ -251,7 +251,13 @@ func goFiles(dir string) ([]string, error) {
 	if dir == "" {
 		dir = "."
 	}
-	bp, err := build.ImportDir(dir, 0)
+	ctx := build.Default
+	if strings.HasSuffix(clangTarget, "-windows-msvc") {
+		ctx.BuildTags = []string{"windows_msvc"}
+	} else if strings.HasSuffix(clangTarget, "-windows-gnu") {
+		ctx.BuildTags = []string{"windows_gnu"}
+	}
+	bp, err := ctx.ImportDir(dir, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -299,13 +305,15 @@ func runCApp(dir string, stdout, stderr io.Writer) {
 }
 
 var (
-	clangOut = "./a.out"
+	clangOut    = "./a.out"
+	clangTarget string
 )
 
 func init() {
 	if runtime.GOOS == "windows" {
 		clangOut = "./a.exe"
 	}
+	clangTarget = getClangTarget()
 }
 
 func chdir(dir string) string {
@@ -366,4 +374,16 @@ func getBytes(stdout, stderr io.Writer) (o iBytes, ok bool) {
 	}
 	o, ok = stdout.(iBytes)
 	return
+}
+
+func getClangTarget() string {
+	cmd := exec.Command("clang", "--version")
+	data, err := cmd.CombinedOutput()
+	check(err)
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "Target:") {
+			return strings.TrimSpace(line[7:])
+		}
+	}
+	return ""
 }
