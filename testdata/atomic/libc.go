@@ -1,6 +1,3 @@
-//go:build !windows
-// +build !windows
-
 package main
 
 import (
@@ -17,7 +14,7 @@ func gostring(s *int8) string {
 	return string(arr[:n])
 }
 
-func printf(format *int8, args ...interface{}) int32 {
+func goprintf(format *int8, args ...interface{}) int32 {
 	goformat := strings.ReplaceAll(gostring(format), "%lld", "%d")
 	for i, arg := range args {
 		if v, ok := arg.(*int8); ok {
@@ -43,13 +40,3 @@ func __atomic_load_n_i32(p *int32, memorder int32) int32 {
 func __atomic_load_n_i64(p *int64, memorder int32) int64 {
 	return *p
 }
-
-func __swbuf(_c int32, _p *FILE) int32 {
-	return _c
-}
-
-type struct___sFILEX struct{}
-
-type struct__IO_marker struct{} // Linux
-type struct__IO_codecvt struct{}
-type struct__IO_wide_data struct{}

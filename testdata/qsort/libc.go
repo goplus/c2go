@@ -1,20 +1,12 @@
-//go:build !windows
-// +build !windows
-
 package main
 
 import (
 	"fmt"
-	"log"
+	"strings"
 	"unsafe"
 
 	c "github.com/goplus/c2go/clang"
 )
-
-func a_cas(p *int32, t, s int32) int32 {
-	log.Panicln("a_cas: notimpl")
-	return 0
-}
 
 func C(s string) *int8 {
 	n := len(s)
@@ -32,8 +24,8 @@ func gostring(s *int8) string {
 	return string(arr[:n])
 }
 
-func printf(format *int8, args ...interface{}) int32 {
-	goformat := gostring(format)
+func goprintf(format *int8, args ...interface{}) int32 {
+	goformat := strings.ReplaceAll(gostring(format), "%lld", "%d")
 	for i, arg := range args {
 		if v, ok := arg.(*int8); ok {
 			args[i] = gostring(v)
@@ -52,23 +44,6 @@ func memcpy(dst unsafe.Pointer, src unsafe.Pointer, n c.SizeT) unsafe.Pointer {
 	return dst
 }
 
-func __builtin___memcpy_chk(dst unsafe.Pointer, src unsafe.Pointer, n c.SizeT, elem c.SizeT) unsafe.Pointer {
-	copy(sliceOf(dst, n), sliceOf(src, n))
-	return dst
+func a_cas(p *int32, t int32, s int32) int32 {
+	panic("notimpl")
 }
-
-func __builtin_object_size(unsafe.Pointer, int32) c.SizeT {
-	return 1
-}
-
-func __builtin_bswap32(v uint32) uint32 {
-	log.Panicln("__builtin_bswap32: notimpl")
-	return v
-}
-
-func __builtin_bswap64(v uint64) uint64 {
-	log.Panicln("__builtin_bswap32: notimpl")
-	return v
-}
-
-type struct___locale_data struct{}
