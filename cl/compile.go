@@ -191,6 +191,9 @@ type Config struct {
 
 	// TestMain specifies to generate TestMain func as entry, not main func.
 	TestMain bool
+
+	// ClangTarget specifies clang default target by clang --version.
+	ClangTarget string
 }
 
 const (
@@ -286,6 +289,9 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 		if ctx.getPubName(&ign) {
 			ctx.ignored = append(ctx.ignored, ign)
 		}
+	}
+	if strings.HasSuffix(conf.ClangTarget, "-windows-msvc") {
+		ctx.needValist = true
 	}
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
