@@ -18,6 +18,7 @@ type struct___sFILEX struct{}
 type struct__IO_marker struct{} // Linux
 type struct__IO_codecvt struct{}
 type struct__IO_wide_data struct{}
+type struct___locale_data struct{}
 
 func sliceOf(v unsafe.Pointer, bytes uint) []byte {
 	return (*[1 << 20]byte)(v)[:bytes]
