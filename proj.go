@@ -255,12 +255,19 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 			err := pkg.WriteDepFile(filepath.Join(dir, "c2go_autogen.go"))
 			check(err)
 		}
-		var cmd *exec.Cmd
+		var args []string
 		if (flags&FlagRunTest) != 0 && conf.Target.Name == "main" {
-			cmd = exec.Command("go", "build", "-o", clangOut, ".")
+			args = []string{"build", "-o", clangOut}
 		} else {
-			cmd = exec.Command("go", "install", ".")
+			args = []string{"install"}
 		}
+		if strings.HasSuffix(clangTarget, "-windows-msvc") {
+			args = append(args, "-tags", "windows_msvc")
+		} else if strings.HasSuffix(clangTarget, "-windows-gnu") {
+			args = append(args, "-tags", "windows_gnu")
+		}
+		args = append(args, ".")
+		cmd := exec.Command("go", args...)
 		cmd.Dir = dir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
