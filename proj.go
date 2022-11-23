@@ -18,6 +18,7 @@ package c2go
 
 import (
 	"fmt"
+	"go/token"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -28,9 +29,9 @@ import (
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/pathutil"
 	"github.com/goplus/c2go/clang/preprocessor"
+	"github.com/goplus/c2go/packages"
 	"github.com/goplus/gox"
 	"github.com/goplus/gox/cpackages"
-
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -261,10 +262,8 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 		} else {
 			args = []string{"install"}
 		}
-		if strings.HasSuffix(clangTarget, "-windows-msvc") {
-			args = append(args, "-tags", "windows_msvc")
-		} else if strings.HasSuffix(clangTarget, "-windows-gnu") {
-			args = append(args, "-tags", "windows_gnu")
+		if tags := getBuildTags(); len(tags) > 0 {
+			args = append(args, "-tags", tags)
 		}
 		args = append(args, ".")
 		cmd := exec.Command("go", args...)
@@ -375,7 +374,11 @@ func execProjFile(infile string, conf *c2goConf, flags int) {
 	} else if !conf.SimpleProj {
 		bfm = cl.BFM_FromLibC
 	}
+	fset := token.NewFileSet()
+	importer := packages.NewImporter(fset, getBuildTags())
 	_, err = cl.NewPackage("", conf.Target.Name, doc, &cl.Config{
+		Fset:        fset,
+		Importer:    importer,
 		SrcFile:     outfile,
 		ProcDepPkg:  procDepPkg,
 		Public:      conf.public,

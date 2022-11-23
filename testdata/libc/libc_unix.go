@@ -11,27 +11,6 @@ import (
 	c "github.com/goplus/c2go/clang"
 )
 
-func a_cas(p *int32, t, s int32) int32 {
-	log.Panicln("a_cas: notimpl")
-	return 0
-}
-
-func C(s string) *int8 {
-	n := len(s)
-	ret := make([]byte, n+1)
-	copy(ret, s)
-	ret[n] = '\x00'
-	return (*int8)(unsafe.Pointer(&ret[0]))
-}
-
-func gostring(s *int8) string {
-	n, arr := 0, (*[1 << 20]byte)(unsafe.Pointer(s))
-	for arr[n] != 0 {
-		n++
-	}
-	return string(arr[:n])
-}
-
 func vfprintf(fp *FILE, format *int8, args []interface{}) int32 {
 	goformat := gostring(format)
 	for i, arg := range args {

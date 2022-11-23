@@ -252,11 +252,7 @@ func goFiles(dir string) ([]string, error) {
 		dir = "."
 	}
 	ctx := build.Default
-	if strings.HasSuffix(clangTarget, "-windows-msvc") {
-		ctx.BuildTags = []string{"windows_msvc"}
-	} else if strings.HasSuffix(clangTarget, "-windows-gnu") {
-		ctx.BuildTags = []string{"windows_gnu"}
-	}
+	ctx.BuildTags = []string{getBuildTags()}
 	bp, err := ctx.ImportDir(dir, 0)
 	if err != nil {
 		return nil, err
@@ -384,6 +380,15 @@ func getClangTarget() string {
 		if strings.HasPrefix(line, "Target:") {
 			return strings.TrimSpace(line[7:])
 		}
+	}
+	return ""
+}
+
+func getBuildTags() string {
+	if strings.HasSuffix(clangTarget, "-windows-msvc") {
+		return "windows_msvc"
+	} else if strings.HasSuffix(clangTarget, "-windows-gnu") {
+		return "windows_gnu"
 	}
 	return ""
 }
