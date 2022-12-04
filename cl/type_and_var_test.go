@@ -316,7 +316,6 @@ void test() {
 		a int32 = int32(3)
 		b int32 = 4
 	)
-	type foo = int32
 }`)
 }
 
@@ -334,9 +333,10 @@ void test() {
 	testFunc(t, "testValistTypedef", `
 void test() {
 	typedef __builtin_va_list foo;
+	foo a;
 }
 `, `func test() {
-	type foo = []interface {
+	var a []interface {
 	}
 }`)
 }
@@ -542,12 +542,13 @@ void test() {
 	typedef struct foo {
 		int a;
 	} foo;
+	foo a;
 }
 `, `func test() {
 	type struct_foo struct {
 		a int32
 	}
-	type foo = struct_foo
+	var a struct_foo
 }`)
 }
 
