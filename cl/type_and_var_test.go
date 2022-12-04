@@ -562,6 +562,33 @@ void test() {
 }`)
 }
 
+func TestArrayToPointerDecay(t *testing.T) {
+	testFunc(t, "TestArrayToPointerDecay", `
+typedef struct Test {
+	char arr[48];
+} Test;
+Test create_test() {
+	Test test = {
+		{'a', 'b'}
+	};
+	return test;
+}
+void put_test_arr(const char *arr);
+void test() {
+	put_test_arr(create_test().arr);
+	Test t;
+	put_test_arr(t.arr);
+}
+`, `func test() {
+	put_test_arr(func() *int8 {
+		v := create_test().arr
+		return (*int8)(unsafe.Pointer(&v))
+	}())
+	var t struct_Test
+	put_test_arr((*int8)(unsafe.Pointer(&t.arr)))
+}`)
+}
+
 func TestPointer(t *testing.T) {
 	testFunc(t, "testPointer", `
 void test() {
