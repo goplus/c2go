@@ -214,9 +214,36 @@ func compileCompoundStmt(ctx *blockCtx, cStmt *ast.Node) {
 
 // -----------------------------------------------------------------------------
 
+func compileComplicatedForStmt(ctx *blockCtx, stmt *ast.Node) {
+	loop := ctx.enterLoop()
+	defer ctx.leave(loop)
+
+	compileInitStmt(ctx, stmt.Inner[0])
+	if stmt := stmt.Inner[1]; stmt.Kind != "" {
+		log.Panicln("compileForStmt: unexpected -", stmt.Kind)
+	}
+
+	loop.labelStart(ctx)
+	done := loop.EndLabel(ctx)
+
+	cb := ctx.cb
+	if cond := stmt.Inner[2]; cond.Kind != "" {
+		cb = cb.If()
+		compileExpr(ctx, stmt.Inner[2])
+		castToBoolExpr(cb)
+		cb.UnaryOp(token.NOT).Then().Goto(done).End()
+	}
+	compileSub(ctx, stmt.Inner[4])
+	if postStmt := stmt.Inner[3]; postStmt.Kind != "" {
+		compileStmt(ctx, postStmt)
+	}
+	cb.Goto(loop.start).Label(done)
+}
+
 func compileForStmt(ctx *blockCtx, stmt *ast.Node) {
 	if stmt.Complicated {
-		log.Panicln("TODO: compileComplicatedForStmt")
+		compileComplicatedForStmt(ctx, stmt)
+		return
 	}
 
 	flow := ctx.enterFlow(flowKindLoop)
