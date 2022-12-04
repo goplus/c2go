@@ -119,6 +119,7 @@ const (
 	UnaryOperator            Kind = "UnaryOperator"
 	ConditionalOperator      Kind = "ConditionalOperator"
 	CompoundLiteralExpr      Kind = "CompoundLiteralExpr"
+	PredefinedExpr           Kind = "PredefinedExpr"
 	CharacterLiteral         Kind = "CharacterLiteral"
 	IntegerLiteral           Kind = "IntegerLiteral"
 	StringLiteral            Kind = "StringLiteral"
