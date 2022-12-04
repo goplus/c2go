@@ -341,6 +341,14 @@ func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 			arg.Type = ctypes.NewPointer(arg.Type)
 			return
 		}
+	case token.SUB:
+		t := toType(ctx, v.Type, 0)
+		args := ctx.cb.InternalStack().GetArgs(1)
+		if isInteger(t) && isBool(args[0].Type) {
+			if v, ok := gox.CastFromBool(ctx.cb, t, args[0]); ok {
+				args[0] = v
+			}
+		}
 	}
 	cb := ctx.cb.UnaryOp(op)
 	ret := cb.Get(-1)
@@ -516,6 +524,19 @@ func arrayToElemPtr(cb *gox.CodeBuilder) {
 	elem := t.(*types.Array).Elem()
 	cb.Typ(ctypes.NewPointer(elem)).Typ(ctypes.UnsafePointer).
 		Val(arr).UnaryOp(token.AND).Call(1).Call(1)
+}
+
+func arrayToElemPtrClosure(cb *gox.CodeBuilder) {
+	arr := cb.InternalStack().Pop()
+	t, _ := gox.DerefType(arr.Type)
+	elem := t.(*types.Array).Elem()
+	pkg := cb.Pkg()
+	ret := types.NewParam(token.NoPos, pkg.Types, "", ctypes.NewPointer(elem))
+	cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg).
+		DefineVarStart(token.NoPos, "v").Val(arr).EndInit(1).
+		Typ(ctypes.NewPointer(elem)).Typ(ctypes.UnsafePointer).
+		Val(cb.Scope().Lookup("v")).UnaryOp(token.AND).Call(1).Call(1).Return(1).
+		End().Call(0)
 }
 
 func castToBoolExpr(cb *gox.CodeBuilder) {

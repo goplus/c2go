@@ -129,8 +129,9 @@ const (
 type ValueCategory string
 
 const (
-	RValue ValueCategory = "rvalue"
-	LValue ValueCategory = "lvalue"
+	RValue  ValueCategory = "rvalue"
+	PRValue ValueCategory = "prvalue"
+	LValue  ValueCategory = "lvalue"
 )
 
 type CC string
