@@ -219,10 +219,31 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		ast.FloatingToIntegral, ast.PointerToIntegral,
 		ast.FloatingComplexCast, ast.FloatingRealToComplex, ast.IntegralRealToComplex:
 		compileTypeCast(ctx, v, nil)
+	case ast.IntegralToBoolean, ast.FloatingToBoolean,
+		ast.IntegralComplexToBoolean, ast.FloatingComplexToBoolean,
+		ast.PointerToBoolean:
+		compileToBoolean(ctx, v)
 	case ast.NullToPointer:
 		ctx.cb.Val(nil)
 	default:
 		log.Panicln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
+	}
+}
+
+func compileToBoolean(ctx *blockCtx, v *ast.Node) {
+	compileExpr(ctx, v.Inner[0])
+	switch v.CastKind {
+	case ast.IntegralToBoolean:
+		elem := ctx.cb.InternalStack().Get(-1)
+		if !isBool(elem.Type) {
+			ctx.cb.Val(0).BinaryOp(token.NEQ)
+		}
+	case ast.FloatingToBoolean, ast.IntegralComplexToBoolean, ast.FloatingComplexToBoolean:
+		ctx.cb.Val(0.0).BinaryOp(token.NEQ)
+	case ast.PointerToBoolean:
+		ctx.cb.Val(nil).BinaryOp(token.NEQ)
+	default:
+		log.Panicln("compileToBoolean: unknown castKind =", v.CastKind)
 	}
 }
 
