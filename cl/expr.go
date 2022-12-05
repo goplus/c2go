@@ -125,11 +125,13 @@ func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
 }
 
 func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
-	compileExpr(ctx, expr.Inner[0])
-	v := ctx.cb.Get(-1)
-	lit := v.Val.(*goast.BasicLit)
-	lit.Kind = token.IMAG
-	lit.Value += "i"
+	switch expr.Inner[0].Kind {
+	case ast.IntegerLiteral, ast.FloatingLiteral:
+		value := expr.Inner[0].Value.(string)
+		ctx.cb.Val(&goast.BasicLit{Kind: token.IMAG, Value: value + "i"}, ctx.goNode(expr))
+	default:
+		log.Panicln("compileImaginaryLiteral: unexpected:", expr.Inner[0].Kind)
+	}
 }
 
 func literal(kind token.Token, expr *ast.Node) *goast.BasicLit {
@@ -215,7 +217,7 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		}
 	case ast.IntegralCast, ast.FloatingCast, ast.BitCast, ast.IntegralToFloating,
 		ast.FloatingToIntegral, ast.PointerToIntegral,
-		ast.FloatingComplexCast, ast.FloatingRealToComplex:
+		ast.FloatingComplexCast, ast.FloatingRealToComplex, ast.IntegralRealToComplex:
 		compileTypeCast(ctx, v, nil)
 	case ast.NullToPointer:
 		ctx.cb.Val(nil)

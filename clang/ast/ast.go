@@ -155,6 +155,7 @@ const (
 	FloatingToIntegral     CastKind = "FloatingToIntegral"
 	FloatingComplexCast    CastKind = "FloatingComplexCast"
 	FloatingRealToComplex  CastKind = "FloatingRealToComplex"
+	IntegralRealToComplex  CastKind = "IntegralRealToComplex"
 	FloatingCast           CastKind = "FloatingCast"
 	IntegralCast           CastKind = "IntegralCast"
 	IntegralToPointer      CastKind = "IntegralToPointer"
