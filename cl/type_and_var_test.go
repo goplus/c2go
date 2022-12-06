@@ -316,7 +316,6 @@ void test() {
 		a int32 = int32(3)
 		b int32 = 4
 	)
-	type foo = int32
 }`)
 }
 
@@ -334,9 +333,10 @@ void test() {
 	testFunc(t, "testValistTypedef", `
 void test() {
 	typedef __builtin_va_list foo;
+	foo a;
 }
 `, `func test() {
-	type foo = []interface {
+	var a []interface {
 	}
 }`)
 }
@@ -542,12 +542,13 @@ void test() {
 	typedef struct foo {
 		int a;
 	} foo;
+	foo a;
 }
 `, `func test() {
 	type struct_foo struct {
 		a int32
 	}
-	type foo = struct_foo
+	var a struct_foo
 }`)
 }
 
@@ -559,6 +560,33 @@ void test() {
 }
 `, `func test() {
 	f(float32(1.0), 1.0, 1.0)
+}`)
+}
+
+func TestArrayToPointerDecay(t *testing.T) {
+	testFunc(t, "TestArrayToPointerDecay", `
+typedef struct Test {
+	char arr[48];
+} Test;
+Test create_test() {
+	Test test = {
+		{'a', 'b'}
+	};
+	return test;
+}
+void put_test_arr(const char *arr);
+void test() {
+	put_test_arr(create_test().arr);
+	Test t;
+	put_test_arr(t.arr);
+}
+`, `func test() {
+	put_test_arr(func() *int8 {
+		v := create_test().arr
+		return (*int8)(unsafe.Pointer(&v))
+	}())
+	var t struct_Test
+	put_test_arr((*int8)(unsafe.Pointer(&t.arr)))
 }`)
 }
 
@@ -605,6 +633,27 @@ void test() {
 		type w32 = int32
 		set = (*int32)(unsafe.Pointer(&_cgos_test_spaces))
 	}
+}`)
+}
+
+func TestNegBool(t *testing.T) {
+	testFunc(t, "testNegBool", `
+void test() {
+	int c, neg;
+	c = '-';
+	neg = -(c=='-');
+}
+`, `func test() {
+	var c int32
+	var neg int32
+	c = int32('-')
+	neg = -func() int32 {
+		if c == '-' {
+			return 1
+		} else {
+			return 0
+		}
+	}()
 }`)
 }
 
