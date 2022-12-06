@@ -226,4 +226,71 @@ void test(int var) {
 	}
 }
 
+func TestComplicatedFor(t *testing.T) {
+	testFunc(t, "testFor1", `
+void printf(int);
+void test() {
+    int i = 10;
+    if (i < 20) {
+       goto resume;
+    }
+    for (i=5;i>0;i--) {
+resume:
+        printf(i);
+    };
+}`, `func test() {
+	var
+	var i int32 = int32(10)
+	if !(i < int32(20)) {
+		goto _cgol_1
+	}
+	goto resume
+_cgol_1:
+	i = int32(5)
+_cgol_2:
+	if !(i > int32(0)) {
+		goto _cgol_3
+	}
+resume:
+	printf(i)
+	i--
+	goto _cgol_2
+_cgol_3:
+}`)
+	testFunc(t, "testFor2", `
+void printf(int);
+void test() {
+    int i = 10;
+    if (i < 20) {
+       goto resume;
+    }
+    for (;;) {
+       i--;
+       if (i<0) {
+          break;
+       }
+resume:
+       printf(i);
+    };
+}`, `func test() {
+	var
+	var i int32 = int32(10)
+	if !(i < int32(20)) {
+		goto _cgol_1
+	}
+	goto resume
+_cgol_1:
+	;
+_cgol_2:
+	i--
+	if i < int32(0) {
+		goto _cgol_3
+	}
+resume:
+	printf(i)
+	goto _cgol_2
+_cgol_3:
+}`)
+}
+
 // -----------------------------------------------------------------------------

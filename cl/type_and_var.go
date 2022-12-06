@@ -229,7 +229,11 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 			}
 		}
 	}
-	ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+	if scope == ctx.pkg.Types.Scope() {
+		ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+	} else {
+		aliasType(scope, ctx.pkg.Types, name, typ)
+	}
 	return typ
 }
 
