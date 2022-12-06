@@ -616,6 +616,25 @@ void test() {
 }`)
 }
 
+func TestStaticAliasInFunc(t *testing.T) {
+	testFunc(t, "testStaticAliasInFunc", `
+void test() {
+	int t = 's';
+	const int *set;
+	if (t == 's') {
+		typedef int __attribute__((__may_alias__)) w32;
+		static const w32 spaces[] = {'\0'};
+		set = spaces;
+	}
+}`, `func test() {
+	var t int32 = 's'
+	var set *int32
+	if t == 's' {
+		set = (*int32)(unsafe.Pointer(&_cgos_test_spaces))
+	}
+}`)
+}
+
 func TestNegBool(t *testing.T) {
 	testFunc(t, "testNegBool", `
 void test() {

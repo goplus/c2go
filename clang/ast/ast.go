@@ -124,6 +124,7 @@ const (
 	StringLiteral            Kind = "StringLiteral"
 	FloatingLiteral          Kind = "FloatingLiteral"
 	ImaginaryLiteral         Kind = "ImaginaryLiteral"
+	AllocAlignAttr           Kind = "AllocAlignAttr"
 )
 
 type ValueCategory string
