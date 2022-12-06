@@ -215,6 +215,8 @@ func (p *parser) lookupType(tylit string, flags int) (t types.Type, err error) {
 				return types.Typ[types.Complex64], nil
 			case types.Float64:
 				return types.Typ[types.Complex128], nil
+			case types.Int:
+				return types.Typ[types.Complex128], nil
 			}
 		} else {
 			switch tt.Kind() {
