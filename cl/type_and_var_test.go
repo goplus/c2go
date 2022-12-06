@@ -640,6 +640,46 @@ void test() {
 }`)
 }
 
+func TestStaticInVblock(t *testing.T) {
+	testFunc(t, "testStaticInVblock", `
+void test() {
+	int t;
+	int *set;
+	if (t == 's') {
+		static const int spaces[] = {0};
+		set = spaces;
+	} else {
+	 goto end;
+	}
+	if (0) {
+	goto end;
+end:
+		return;
+	}
+	return;
+}`, `func test() {
+	var
+	var t int32
+	var set *int32
+	if !(t == 's') {
+		goto _cgol_2
+	}
+	set = (*int32)(unsafe.Pointer(&_cgos_test_spaces))
+	goto _cgol_1
+_cgol_2:
+	goto end
+_cgol_1:
+	if true {
+		goto _cgol_3
+	}
+	goto end
+end:
+	return
+_cgol_3:
+	return
+}`)
+}
+
 func TestStaticAliasInFunc(t *testing.T) {
 	testFunc(t, "testStaticAliasInFunc", `
 void test() {
