@@ -656,4 +656,17 @@ void test() {
 }`)
 }
 
+func TestPredefined(t *testing.T) {
+	testFunc(t, "testPredefined", `
+void test() {
+	const char *func = __func__;
+	// const char *file = __FILE__;
+	const int line = __LINE__;
+}
+`, `func test() {
+	var func_ *int8 = (*int8)(unsafe.Pointer(&[5]int8{'t', 'e', 's', 't', '\x00'}))
+	const line int32 = int32(5)
+}`)
+}
+
 // -----------------------------------------------------------------------------
