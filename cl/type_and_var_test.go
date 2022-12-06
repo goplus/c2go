@@ -656,6 +656,28 @@ void test() {
 }`)
 }
 
+func TestToBoolean(t *testing.T) {
+	testFunc(t, "testToBoolean", `
+void chk(_Bool b){}
+void test() {
+	char *p;
+	chk(1 == 1);
+	chk(1);
+	chk(1.0);
+	chk(1+2i);
+	chk(1+2.0i);
+	chk(p);
+}`, `func test() {
+	var p *int8
+	chk(int32(1) == int32(1))
+	chk(int32(1) != 0)
+	chk(1.0 != 0.0)
+	chk(complex128(int32(1))+2i != 0.0)
+	chk(complex128(float64(int32(1)))+2i != 0.0)
+	chk(p != nil)
+}`)
+}
+
 func TestPredefined(t *testing.T) {
 	testFunc(t, "testPredefined", `
 void test() {

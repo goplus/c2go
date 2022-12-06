@@ -127,11 +127,13 @@ func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
 }
 
 func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
-	compileExpr(ctx, expr.Inner[0])
-	v := ctx.cb.Get(-1)
-	lit := v.Val.(*goast.BasicLit)
-	lit.Kind = token.IMAG
-	lit.Value += "i"
+	switch expr.Inner[0].Kind {
+	case ast.IntegerLiteral, ast.FloatingLiteral:
+		value := expr.Inner[0].Value.(string)
+		ctx.cb.Val(&goast.BasicLit{Kind: token.IMAG, Value: value + "i"}, ctx.goNode(expr))
+	default:
+		log.Panicln("compileImaginaryLiteral: unexpected:", expr.Inner[0].Kind)
+	}
 }
 
 func literal(kind token.Token, expr *ast.Node) *goast.BasicLit {
@@ -217,12 +219,33 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 		}
 	case ast.IntegralCast, ast.FloatingCast, ast.BitCast, ast.IntegralToFloating,
 		ast.FloatingToIntegral, ast.PointerToIntegral,
-		ast.FloatingComplexCast, ast.FloatingRealToComplex:
+		ast.FloatingComplexCast, ast.FloatingRealToComplex, ast.IntegralRealToComplex:
 		compileTypeCast(ctx, v, nil)
+	case ast.IntegralToBoolean, ast.FloatingToBoolean,
+		ast.IntegralComplexToBoolean, ast.FloatingComplexToBoolean,
+		ast.PointerToBoolean:
+		compileToBoolean(ctx, v)
 	case ast.NullToPointer:
 		ctx.cb.Val(nil)
 	default:
 		log.Panicln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
+	}
+}
+
+func compileToBoolean(ctx *blockCtx, v *ast.Node) {
+	compileExpr(ctx, v.Inner[0])
+	switch v.CastKind {
+	case ast.IntegralToBoolean:
+		elem := ctx.cb.InternalStack().Get(-1)
+		if !isBool(elem.Type) {
+			ctx.cb.Val(0).BinaryOp(token.NEQ)
+		}
+	case ast.FloatingToBoolean, ast.IntegralComplexToBoolean, ast.FloatingComplexToBoolean:
+		ctx.cb.Val(0.0).BinaryOp(token.NEQ)
+	case ast.PointerToBoolean:
+		ctx.cb.Val(nil).BinaryOp(token.NEQ)
+	default:
+		log.Panicln("compileToBoolean: unknown castKind =", v.CastKind)
 	}
 }
 
