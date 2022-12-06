@@ -226,4 +226,120 @@ void test(int var) {
 	}
 }
 
+func TestComplicatedFor(t *testing.T) {
+	testFunc(t, "testFor1", `
+void printf(int);
+void test() {
+    int i = 10;
+    if (i < 20) {
+       goto resume;
+    }
+    for (i=5;i>0;i--) {
+resume:
+        printf(i);
+    };
+}`, `func test() {
+	var
+	var i int32 = int32(10)
+	if !(i < int32(20)) {
+		goto _cgol_1
+	}
+	goto resume
+_cgol_1:
+	i = int32(5)
+_cgol_2:
+	if !(i > int32(0)) {
+		goto _cgol_3
+	}
+resume:
+	printf(i)
+	i--
+	goto _cgol_2
+_cgol_3:
+}`)
+	testFunc(t, "testFor2", `
+void printf(int);
+void test() {
+    int i = 10;
+    if (i < 20) {
+       goto resume;
+    }
+    for (;;) {
+       i--;
+       if (i<0) {
+          break;
+       }
+resume:
+       printf(i);
+    };
+}`, `func test() {
+	var
+	var i int32 = int32(10)
+	if !(i < int32(20)) {
+		goto _cgol_1
+	}
+	goto resume
+_cgol_1:
+	;
+_cgol_2:
+	i--
+	if i < int32(0) {
+		goto _cgol_3
+	}
+resume:
+	printf(i)
+	goto _cgol_2
+_cgol_3:
+}`)
+}
+
+func TestSimpleForStmt(t *testing.T) {
+	testFunc(t, "testSimpleFor1", `
+void printf(int,int);
+void test() {
+    int j = 0;
+    for (int i = 0; i < 5; ++i, j += 7)
+    {
+        printf(i,j);
+    }
+}
+`, `func test() {
+	var j int32 = int32(0)
+	for i := int32(int32(0)); i < int32(5); func() int32 {
+		i++
+		return func() (_cgo_ret int32) {
+			_cgo_addr := &j
+			*_cgo_addr += int32(7)
+			return *_cgo_addr
+		}()
+	}() {
+		printf(i, j)
+	}
+}`)
+	testFunc(t, "testSimpleFor2", `
+void printf(int,int);
+void test() {
+    for (int i = 0, j = 0; i < 5; ++i, j += 7)
+    {
+        printf(i,j);
+    }
+}
+`, `func test() {
+	{
+		var i int32 = int32(0)
+		var j int32 = int32(0)
+		for ; i < int32(5); func() int32 {
+			i++
+			return func() (_cgo_ret int32) {
+				_cgo_addr := &j
+				*_cgo_addr += int32(7)
+				return *_cgo_addr
+			}()
+		}() {
+			printf(i, j)
+		}
+	}
+}`)
+}
+
 // -----------------------------------------------------------------------------

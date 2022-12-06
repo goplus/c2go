@@ -407,7 +407,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ast.AlwaysInlineAttr, ast.WarnUnusedResultAttr, ast.NoThrowAttr, ast.NoInlineAttr, ast.AllocSizeAttr,
 			ast.NonNullAttr, ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr, ast.ReturnsTwiceAttr, ast.NoSanitizeAttr,
 			ast.RestrictAttr, ast.MSAllocatorAttr, ast.VisibilityAttr, ast.C11NoReturnAttr, ast.StrictFPAttr,
-			ast.DLLImportAttr, ast.UnusedAttr, ast.NoDebugAttr:
+			ast.DLLImportAttr, ast.UnusedAttr, ast.NoDebugAttr, ast.AllocAlignAttr:
 		default:
 			log.Panicln("compileFunc: unknown kind =", item.Kind)
 		}
@@ -445,7 +445,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			rewritten = false
 		}
 		cb := f.BodyStart(pkg)
-		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fnName, body))
+		ctx.curfn = newFuncCtx(pkg, ctx.markComplicated(fnName, body), origName)
 		compileSub(ctx, body)
 		checkNeedReturn(ctx, body)
 		ctx.curfn = nil

@@ -24,15 +24,17 @@ const (
 // -----------------------------------------------------------------------------
 
 type funcCtx struct {
-	labels map[string]*gox.Label
-	vdefs  *gox.VarDefs
-	basel  int
-	basev  int
+	labels  map[string]*gox.Label
+	vdefs   *gox.VarDefs
+	basel   int
+	basev   int
+	orgName string
 }
 
-func newFuncCtx(pkg *gox.Package, complicated bool) *funcCtx {
+func newFuncCtx(pkg *gox.Package, complicated bool, orgName string) *funcCtx {
 	ctx := &funcCtx{
-		labels: make(map[string]*gox.Label),
+		labels:  make(map[string]*gox.Label),
+		orgName: orgName,
 	}
 	if complicated {
 		ctx.vdefs = pkg.NewVarDefs(pkg.CB().Scope())

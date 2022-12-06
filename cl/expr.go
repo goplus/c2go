@@ -6,6 +6,7 @@ import (
 	"go/types"
 	"log"
 	"strconv"
+	"strings"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 
@@ -47,7 +48,7 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.CharacterLiteral:
 		compileCharacterLiteral(ctx, expr)
 	case ast.FloatingLiteral:
-		compileLiteral(ctx, token.FLOAT, expr)
+		compileFloatLiteral(ctx, expr)
 	case ast.ParenExpr, ast.ConstantExpr:
 		compileExprEx(ctx, expr.Inner[0], prompt, flags)
 	case ast.CStyleCastExpr:
@@ -71,6 +72,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.VisibilityAttr:
 	case ast.CompoundLiteralExpr:
 		compileCompoundLiteralExpr(ctx, expr)
+	case ast.PredefinedExpr:
+		compileExpr(ctx, expr.Inner[0])
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}
@@ -103,8 +106,12 @@ func compileIntegerLiteral(ctx *blockCtx, expr *ast.Node) {
 	ctx.cb.Typ(typ).Val(literal(token.INT, expr), ctx.goNode(expr)).Call(1)
 }
 
-func compileLiteral(ctx *blockCtx, kind token.Token, expr *ast.Node) {
-	ctx.cb.Val(literal(kind, expr), ctx.goNode(expr))
+func compileFloatLiteral(ctx *blockCtx, expr *ast.Node) {
+	value := expr.Value.(string)
+	if !strings.Contains(value, ".") {
+		value += ".0"
+	}
+	ctx.cb.Val(&goast.BasicLit{Kind: token.FLOAT, Value: value}, ctx.goNode(expr))
 }
 
 func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
@@ -120,11 +127,13 @@ func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
 }
 
 func compileImaginaryLiteral(ctx *blockCtx, expr *ast.Node) {
-	compileExpr(ctx, expr.Inner[0])
-	v := ctx.cb.Get(-1)
-	lit := v.Val.(*goast.BasicLit)
-	lit.Kind = token.IMAG
-	lit.Value += "i"
+	switch expr.Inner[0].Kind {
+	case ast.IntegerLiteral, ast.FloatingLiteral:
+		value := expr.Inner[0].Value.(string)
+		ctx.cb.Val(&goast.BasicLit{Kind: token.IMAG, Value: value + "i"}, ctx.goNode(expr))
+	default:
+		log.Panicln("compileImaginaryLiteral: unexpected:", expr.Inner[0].Kind)
+	}
 }
 
 func literal(kind token.Token, expr *ast.Node) *goast.BasicLit {
@@ -202,16 +211,41 @@ func compileImplicitCastExpr(ctx *blockCtx, v *ast.Node) {
 	case ast.ArrayToPointerDecay:
 		compileExpr(ctx, v.Inner[0])
 		if cb := ctx.cb; !isValist(cb.Get(-1).Type) {
-			arrayToElemPtr(cb)
+			if c := v.Inner[0].ValueCategory; c == ast.RValue || c == ast.PRValue {
+				arrayToElemPtrClosure(cb)
+			} else {
+				arrayToElemPtr(cb)
+			}
 		}
 	case ast.IntegralCast, ast.FloatingCast, ast.BitCast, ast.IntegralToFloating,
 		ast.FloatingToIntegral, ast.PointerToIntegral,
-		ast.FloatingComplexCast, ast.FloatingRealToComplex:
+		ast.FloatingComplexCast, ast.FloatingRealToComplex, ast.IntegralRealToComplex:
 		compileTypeCast(ctx, v, nil)
+	case ast.IntegralToBoolean, ast.FloatingToBoolean,
+		ast.IntegralComplexToBoolean, ast.FloatingComplexToBoolean,
+		ast.PointerToBoolean:
+		compileToBoolean(ctx, v)
 	case ast.NullToPointer:
 		ctx.cb.Val(nil)
 	default:
 		log.Panicln("compileImplicitCastExpr: unknown castKind =", v.CastKind)
+	}
+}
+
+func compileToBoolean(ctx *blockCtx, v *ast.Node) {
+	compileExpr(ctx, v.Inner[0])
+	switch v.CastKind {
+	case ast.IntegralToBoolean:
+		elem := ctx.cb.InternalStack().Get(-1)
+		if !isBool(elem.Type) {
+			ctx.cb.Val(0).BinaryOp(token.NEQ)
+		}
+	case ast.FloatingToBoolean, ast.IntegralComplexToBoolean, ast.FloatingComplexToBoolean:
+		ctx.cb.Val(0.0).BinaryOp(token.NEQ)
+	case ast.PointerToBoolean:
+		ctx.cb.Val(nil).BinaryOp(token.NEQ)
+	default:
+		log.Panicln("compileToBoolean: unknown castKind =", v.CastKind)
 	}
 }
 

@@ -232,7 +232,11 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 			typ = ctypes.Valist
 		}
 	}
-	ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+	if scope == ctx.pkg.Types.Scope() {
+		ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+	} else {
+		aliasType(scope, ctx.pkg.Types, name, typ)
+	}
 	return typ
 }
 
@@ -336,7 +340,7 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		}
 		decl.Name, rewritten = ctx.autoStaticName(origName), true
 	}
-	typ, kind, err := parseType(ctx, scope, nil, decl.Type, flags, false)
+	typ, kind, err := parseType(ctx, origScope, nil, decl.Type, flags, false)
 	if err != nil {
 		if gblStatic && parser.IsArrayWithoutLen(err) {
 			return

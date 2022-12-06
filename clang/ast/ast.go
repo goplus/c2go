@@ -119,6 +119,7 @@ const (
 	UnaryOperator            Kind = "UnaryOperator"
 	ConditionalOperator      Kind = "ConditionalOperator"
 	CompoundLiteralExpr      Kind = "CompoundLiteralExpr"
+	PredefinedExpr           Kind = "PredefinedExpr"
 	CharacterLiteral         Kind = "CharacterLiteral"
 	IntegerLiteral           Kind = "IntegerLiteral"
 	StringLiteral            Kind = "StringLiteral"
@@ -127,13 +128,15 @@ const (
 	DLLImportAttr            Kind = "DLLImportAttr"
 	UnusedAttr               Kind = "UnusedAttr"
 	NoDebugAttr              Kind = "NoDebugAttr"
+	AllocAlignAttr           Kind = "AllocAlignAttr"
 )
 
 type ValueCategory string
 
 const (
-	RValue ValueCategory = "rvalue"
-	LValue ValueCategory = "lvalue"
+	RValue  ValueCategory = "rvalue"
+	PRValue ValueCategory = "prvalue"
+	LValue  ValueCategory = "lvalue"
 )
 
 type CC string
@@ -152,22 +155,28 @@ const (
 type CastKind string
 
 const (
-	LValueToRValue         CastKind = "LValueToRValue"
-	BitCast                CastKind = "BitCast"
-	FloatingToIntegral     CastKind = "FloatingToIntegral"
-	FloatingComplexCast    CastKind = "FloatingComplexCast"
-	FloatingRealToComplex  CastKind = "FloatingRealToComplex"
-	FloatingCast           CastKind = "FloatingCast"
-	IntegralCast           CastKind = "IntegralCast"
-	IntegralToPointer      CastKind = "IntegralToPointer"
-	IntegralToFloating     CastKind = "IntegralToFloating"
-	PointerToIntegral      CastKind = "PointerToIntegral"
-	FunctionToPointerDecay CastKind = "FunctionToPointerDecay"
-	ArrayToPointerDecay    CastKind = "ArrayToPointerDecay"
-	BuiltinFnToFnPtr       CastKind = "BuiltinFnToFnPtr"
-	ToVoid                 CastKind = "ToVoid"
-	NullToPointer          CastKind = "NullToPointer"
-	NoOp                   CastKind = "NoOp"
+	LValueToRValue           CastKind = "LValueToRValue"
+	BitCast                  CastKind = "BitCast"
+	FloatingToIntegral       CastKind = "FloatingToIntegral"
+	FloatingComplexCast      CastKind = "FloatingComplexCast"
+	FloatingRealToComplex    CastKind = "FloatingRealToComplex"
+	IntegralRealToComplex    CastKind = "IntegralRealToComplex"
+	FloatingCast             CastKind = "FloatingCast"
+	IntegralCast             CastKind = "IntegralCast"
+	IntegralToPointer        CastKind = "IntegralToPointer"
+	IntegralToFloating       CastKind = "IntegralToFloating"
+	IntegralToBoolean        CastKind = "IntegralToBoolean"
+	FloatingToBoolean        CastKind = "FloatingToBoolean"
+	IntegralComplexToBoolean CastKind = "IntegralComplexToBoolean"
+	FloatingComplexToBoolean CastKind = "FloatingComplexToBoolean"
+	PointerToBoolean         CastKind = "PointerToBoolean"
+	PointerToIntegral        CastKind = "PointerToIntegral"
+	FunctionToPointerDecay   CastKind = "FunctionToPointerDecay"
+	ArrayToPointerDecay      CastKind = "ArrayToPointerDecay"
+	BuiltinFnToFnPtr         CastKind = "BuiltinFnToFnPtr"
+	ToVoid                   CastKind = "ToVoid"
+	NullToPointer            CastKind = "NullToPointer"
+	NoOp                     CastKind = "NoOp"
 )
 
 type (
