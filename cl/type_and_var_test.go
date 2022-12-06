@@ -630,7 +630,6 @@ void test() {
 	var t int32 = 's'
 	var set *int32
 	if t == 's' {
-		type w32 = int32
 		set = (*int32)(unsafe.Pointer(&_cgos_test_spaces))
 	}
 }`)
