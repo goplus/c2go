@@ -72,6 +72,8 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.VisibilityAttr:
 	case ast.CompoundLiteralExpr:
 		compileCompoundLiteralExpr(ctx, expr)
+	case ast.PredefinedExpr:
+		compileExpr(ctx, expr.Inner[0])
 	default:
 		log.Panicln(prompt, expr.Kind)
 	}
