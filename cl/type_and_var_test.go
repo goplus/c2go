@@ -630,6 +630,25 @@ void test() {
 }`)
 }
 
+func TestStaticAliasInFunc(t *testing.T) {
+	testFunc(t, "testStaticAliasInFunc", `
+void test() {
+	int t = 's';
+	const int *set;
+	if (t == 's') {
+		typedef int __attribute__((__may_alias__)) w32;
+		static const w32 spaces[] = {'\0'};
+		set = spaces;
+	}
+}`, `func test() {
+	var t int32 = 's'
+	var set *int32
+	if t == 's' {
+		set = (*int32)(unsafe.Pointer(&_cgos_test_spaces))
+	}
+}`)
+}
+
 func TestNegBool(t *testing.T) {
 	testFunc(t, "testNegBool", `
 void test() {
@@ -648,6 +667,41 @@ void test() {
 			return 0
 		}
 	}()
+}`)
+}
+
+func TestToBoolean(t *testing.T) {
+	testFunc(t, "testToBoolean", `
+void chk(_Bool b){}
+void test() {
+	char *p;
+	chk(1 == 1);
+	chk(1);
+	chk(1.0);
+	chk(1+2i);
+	chk(1+2.0i);
+	chk(p);
+}`, `func test() {
+	var p *int8
+	chk(int32(1) == int32(1))
+	chk(int32(1) != 0)
+	chk(1.0 != 0.0)
+	chk(complex128(int32(1))+2i != 0.0)
+	chk(complex128(float64(int32(1)))+2i != 0.0)
+	chk(p != nil)
+}`)
+}
+
+func TestPredefined(t *testing.T) {
+	testFunc(t, "testPredefined", `
+void test() {
+	const char *func = __func__;
+	// const char *file = __FILE__;
+	const int line = __LINE__;
+}
+`, `func test() {
+	var func_ *int8 = (*int8)(unsafe.Pointer(&[5]int8{'t', 'e', 's', 't', '\x00'}))
+	const line int32 = int32(5)
 }`)
 }
 
