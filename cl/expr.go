@@ -74,6 +74,10 @@ func compileExprEx(ctx *blockCtx, expr *ast.Node, prompt string, flags int) {
 	case ast.VisibilityAttr:
 	case ast.CompoundLiteralExpr:
 		compileCompoundLiteralExpr(ctx, expr)
+	case ast.InitListExpr:
+		compileExprEx(ctx, expr.Inner[0], prompt, flags)
+		t := toType(ctx, expr.Type, flags)
+		ctx.cb.SliceLit(types.NewSlice(t), 1).Val(0).Index(1, false)
 	case ast.PredefinedExpr:
 		compileExpr(ctx, expr.Inner[0])
 	default:
