@@ -293,4 +293,53 @@ _cgol_3:
 }`)
 }
 
+func TestSimpleForStmt(t *testing.T) {
+	testFunc(t, "testSimpleFor1", `
+void printf(int,int);
+void test() {
+    int j = 0;
+    for (int i = 0; i < 5; ++i, j += 7)
+    {
+        printf(i,j);
+    }
+}
+`, `func test() {
+	var j int32 = int32(0)
+	for i := int32(int32(0)); i < int32(5); func() int32 {
+		i++
+		return func() (_cgo_ret int32) {
+			_cgo_addr := &j
+			*_cgo_addr += int32(7)
+			return *_cgo_addr
+		}()
+	}() {
+		printf(i, j)
+	}
+}`)
+	testFunc(t, "testSimpleFor2", `
+void printf(int,int);
+void test() {
+    for (int i = 0, j = 0; i < 5; ++i, j += 7)
+    {
+        printf(i,j);
+    }
+}
+`, `func test() {
+	{
+		var i int32 = int32(0)
+		var j int32 = int32(0)
+		for ; i < int32(5); func() int32 {
+			i++
+			return func() (_cgo_ret int32) {
+				_cgo_addr := &j
+				*_cgo_addr += int32(7)
+				return *_cgo_addr
+			}()
+		}() {
+			printf(i, j)
+		}
+	}
+}`)
+}
+
 // -----------------------------------------------------------------------------
