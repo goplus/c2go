@@ -28,6 +28,8 @@ const builtin_decls = `{
 	"__builtin___memmove_chk": "void* (void*, void*, size_t, size_t)",
 	"__builtin___strlcpy_chk": "size_t (char*, char*, size_t, size_t)",
 	"__builtin___strlcat_chk": "size_t (char*, char*, size_t, size_t)",
+	"__builtin___strncpy_chk": "char *(char *, const char *, size_t, size_t)",
+	"__builtin___snprintf_chk": "int (char *, size_t, int, size_t, const char *, ...)",
 	"__builtin_object_size": "size_t (void*, int32)",
 	"__builtin_fabsf": "float32 (float32)",
 	"__builtin_fabsl": "float64 (float64)",
