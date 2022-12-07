@@ -127,6 +127,7 @@ const (
 	ImaginaryLiteral         Kind = "ImaginaryLiteral"
 	AllocAlignAttr           Kind = "AllocAlignAttr"
 	DisableTailCallsAttr     Kind = "DisableTailCallsAttr"
+	StaticAssertDecl         Kind = "StaticAssertDecl"
 )
 
 type ValueCategory string

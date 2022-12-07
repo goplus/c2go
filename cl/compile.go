@@ -369,6 +369,8 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 				continue
 			}
 			fallthrough
+		case ast.StaticAssertDecl:
+			continue
 		default:
 			log.Panicln("compileDeclStmt: unknown kind =", decl.Kind)
 		}
