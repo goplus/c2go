@@ -400,7 +400,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ast.AlwaysInlineAttr, ast.WarnUnusedResultAttr, ast.NoThrowAttr, ast.NoInlineAttr, ast.AllocSizeAttr,
 			ast.NonNullAttr, ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr, ast.ReturnsTwiceAttr, ast.NoSanitizeAttr,
 			ast.RestrictAttr, ast.MSAllocatorAttr, ast.VisibilityAttr, ast.C11NoReturnAttr, ast.StrictFPAttr,
-			ast.AllocAlignAttr:
+			ast.AllocAlignAttr, ast.DisableTailCallsAttr:
 		default:
 			log.Panicln("compileFunc: unknown kind =", item.Kind)
 		}
