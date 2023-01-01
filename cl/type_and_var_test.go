@@ -616,6 +616,20 @@ void test() {
 }`)
 }
 
+func TestWideString(t *testing.T) {
+	testFunc(t, "testWideString", `
+void test() {
+	L"";
+	L"\253\xab\\\u4E2D";
+	L"\\\a\b\f\n\r\t\v\e\x1\x0104中A+-@\"\'123abcABC";
+}
+`, `func test() {
+	(*int32)(unsafe.Pointer(&[1]int32{'\x00'}))
+	(*int32)(unsafe.Pointer(&[5]int32{'«', '«', '\\', '中', '\x00'}))
+	(*int32)(unsafe.Pointer(&[28]int32{'\\', '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\x1b', '\x01', 'Ą', '中', 'A', '+', '-', '@', '"', '\'', '1', '2', '3', 'a', 'b', 'c', 'A', 'B', 'C', '\x00'}))
+}`)
+}
+
 func TestInitList(t *testing.T) {
 	testFunc(t, "testInitList", `
 void test1(int);

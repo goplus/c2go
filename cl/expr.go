@@ -1,6 +1,8 @@
 package cl
 
 import (
+	"bytes"
+	"errors"
 	goast "go/ast"
 	"go/token"
 	"go/types"
@@ -123,7 +125,16 @@ func compileCharacterLiteral(ctx *blockCtx, expr *ast.Node) {
 }
 
 func compileStringLiteral(ctx *blockCtx, expr *ast.Node) {
-	s, err := strconv.Unquote(expr.Value.(string))
+	value := expr.Value.(string)
+	if strings.HasPrefix(value, `L"`) {
+		s, err := decodeEscapeString(value[2 : len(value)-1])
+		if err != nil {
+			log.Panicln("compileStringLiteral:", err)
+		}
+		wstringLit(ctx.cb, s, nil)
+		return
+	}
+	s, err := strconv.Unquote(value)
 	if err != nil {
 		log.Panicln("compileStringLiteral:", err)
 	}
@@ -727,6 +738,73 @@ func getCaller(cb *gox.CodeBuilder) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func decodeEscapeString(value string) (string, error) {
+	size := len(value)
+	if size == 0 {
+		return "", nil
+	}
+	var buf bytes.Buffer
+	for i := 0; i < size; i++ {
+		switch c := value[i]; c {
+		case '"': //skip
+		case '\\':
+			i++
+			switch r := value[i]; r {
+			case '\'', '"', '\\':
+				buf.WriteByte(r)
+			case 'a':
+				buf.WriteByte('\a')
+			case 'b':
+				buf.WriteByte('\b')
+			case 'f':
+				buf.WriteByte('\f')
+			case 'n':
+				buf.WriteByte('\n')
+			case 'r':
+				buf.WriteByte('\r')
+			case 't':
+				buf.WriteByte('\t')
+			case 'v':
+				buf.WriteByte('\v')
+			case 'x':
+				var v rune
+				var j int
+			loop:
+				for ; j < 4; j++ {
+					x := value[i+1+j]
+					switch {
+					case x >= '0' && x <= '9':
+						v = v<<4 | rune(x-'0')
+					case x >= 'A' && x <= 'F':
+						v = v<<4 | rune(x-'A'+10)
+					default:
+						break loop
+					}
+				}
+				buf.WriteRune(v)
+				i += j
+			default:
+				var v rune
+				var j int
+				for ; j < 3; j++ {
+					x := value[i+j]
+					switch {
+					case x >= '0' && x <= '9':
+						v = v<<3 | rune(x-'0')
+					default:
+						return "", errors.New("invalid octal sequence")
+					}
+				}
+				buf.WriteRune(v)
+				i += j - 1
+			}
+		default:
+			buf.WriteByte(c)
+		}
+	}
+	return buf.String(), nil
 }
 
 // -----------------------------------------------------------------------------
