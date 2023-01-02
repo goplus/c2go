@@ -257,14 +257,17 @@ func (p *blockCtx) lookupParent(name string) types.Object {
 
 func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, name string) (ret *gox.VarDecl, inVBlock bool) {
 	cb, pkg := p.cb, p.pkg
-	if inVBlock = cb.InVBlock(); inVBlock {
+	inGlobal := scope == pkg.Types.Scope()
+	if !inGlobal {
+		inVBlock = cb.InVBlock()
+	}
+	if inVBlock {
 		var obj types.Object
 		ret, obj = p.curfn.newAutoVar(pos, typ, name)
 		if scope.Insert(gox.NewSubst(pos, pkg.Types, name, obj)) != nil {
 			log.Panicf("newVar: variable %v exists already\n", name)
 		}
 	} else {
-		inGlobal := scope == pkg.Types.Scope()
 		if inGlobal {
 			if defs, ok := p.gblvars[name]; ok {
 				defs.Delete(name)

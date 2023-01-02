@@ -616,6 +616,84 @@ void test() {
 }`)
 }
 
+func TestWideString(t *testing.T) {
+	testFunc(t, "testWideString", `
+void test() {
+	L"";
+	L"\253\xab\\\u4E2D";
+	L"\\\a\b\f\n\r\t\v\e\x1\x0104中A+-@\"\'123abcABC";
+}
+`, `func test() {
+	(*int32)(unsafe.Pointer(&[1]int32{'\x00'}))
+	(*int32)(unsafe.Pointer(&[5]int32{'«', '«', '\\', '中', '\x00'}))
+	(*int32)(unsafe.Pointer(&[28]int32{'\\', '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\x1b', '\x01', 'Ą', '中', 'A', '+', '-', '@', '"', '\'', '1', '2', '3', 'a', 'b', 'c', 'A', 'B', 'C', '\x00'}))
+}`)
+}
+
+func TestInitList(t *testing.T) {
+	testFunc(t, "testInitList", `
+void test1(int);
+void test2(int *);
+void test3(char *);
+void test4(const char**);
+void test() {
+	int a;
+	const char *b = "hello";
+	test1((int){a});
+	test2(&(int){a});
+	test3(&(char){a});
+	test4(&(const char*){b});
+}
+`, `func test() {
+	var a int32
+	var b *int8 = (*int8)(unsafe.Pointer(&[6]int8{'h', 'e', 'l', 'l', 'o', '\x00'}))
+	test1([]int32{a}[0])
+	test2(&[]int32{a}[0])
+	test3(&[]int8{int8(a)}[0])
+	test4(&[]*int8{b}[0])
+}`)
+}
+
+func TestStaticInVblock(t *testing.T) {
+	testFunc(t, "testStaticInVblock", `
+void test() {
+	int t;
+	int *set;
+	if (t == 's') {
+		static const int spaces[] = {0};
+		set = spaces;
+	} else {
+	 goto end;
+	}
+	if (0) {
+	goto end;
+end:
+		return;
+	}
+	return;
+}`, `func test() {
+	var
+	var t int32
+	var set *int32
+	if !(t == 's') {
+		goto _cgol_2
+	}
+	set = (*int32)(unsafe.Pointer(&_cgos_test_spaces))
+	goto _cgol_1
+_cgol_2:
+	goto end
+_cgol_1:
+	if true {
+		goto _cgol_3
+	}
+	goto end
+end:
+	return
+_cgol_3:
+	return
+}`)
+}
+
 func TestStaticAliasInFunc(t *testing.T) {
 	testFunc(t, "testStaticAliasInFunc", `
 void test() {

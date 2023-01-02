@@ -28,6 +28,8 @@ const builtin_decls = `{
 	"__builtin___memmove_chk": "void* (void*, void*, size_t, size_t)",
 	"__builtin___strlcpy_chk": "size_t (char*, char*, size_t, size_t)",
 	"__builtin___strlcat_chk": "size_t (char*, char*, size_t, size_t)",
+	"__builtin___strncpy_chk": "char *(char *, const char *, size_t, size_t)",
+	"__builtin___snprintf_chk": "int (char *, size_t, int, size_t, const char *, ...)",
 	"__builtin_object_size": "size_t (void*, int32)",
 	"__builtin_fabsf": "float32 (float32)",
 	"__builtin_fabsl": "float64 (float64)",
@@ -492,6 +494,25 @@ func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
 		} else {
 			cb.Val(int(int8(c)))
 		}
+	}
+	if eos {
+		cb.Val(rune(0)).ArrayLit(typ, n+1)
+	} else {
+		cb.ArrayLit(typ, n)
+	}
+}
+
+func wstringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
+	var n int
+	for _, c := range s {
+		n++
+		cb.Val(c)
+	}
+	eos := true
+	if typ == nil {
+		typ = types.NewArray(types.Typ[types.Int32], int64(n+1))
+	} else if t, ok := typ.(*types.Array); ok {
+		eos = int(t.Len()) > n
 	}
 	if eos {
 		cb.Val(rune(0)).ArrayLit(typ, n+1)

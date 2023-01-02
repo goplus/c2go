@@ -129,6 +129,8 @@ const (
 	UnusedAttr               Kind = "UnusedAttr"
 	NoDebugAttr              Kind = "NoDebugAttr"
 	AllocAlignAttr           Kind = "AllocAlignAttr"
+	DisableTailCallsAttr     Kind = "DisableTailCallsAttr"
+	StaticAssertDecl         Kind = "StaticAssertDecl"
 )
 
 type ValueCategory string
