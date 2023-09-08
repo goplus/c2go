@@ -5,6 +5,7 @@ import (
 	"go/types"
 	"log"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	goast "go/ast"
@@ -190,6 +191,9 @@ type Config struct {
 
 	// TestMain specifies to generate TestMain func as entry, not main func.
 	TestMain bool
+
+	// ClangTarget specifies clang default target by clang --version.
+	ClangTarget string
 }
 
 const (
@@ -286,6 +290,9 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 			ctx.ignored = append(ctx.ignored, ign)
 		}
 	}
+	if strings.HasSuffix(conf.ClangTarget, "-windows-msvc") {
+		ctx.needValist = true
+	}
 	compileDeclStmt(ctx, file, true)
 	if conf.NeedPkgInfo {
 		pkgInfo := ctx.PkgInfo // make a copy: don't keep a ref to blockCtx
@@ -364,7 +371,7 @@ func compileDeclStmt(ctx *blockCtx, node *ast.Node, global bool) {
 			compileEnum(ctx, decl, global)
 		case ast.EmptyDecl:
 		case ast.FunctionDecl:
-			if global {
+			if global || strings.HasPrefix(decl.Name, "__mingw_") {
 				compileFunc(ctx, decl)
 				continue
 			}
@@ -402,7 +409,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ast.AlwaysInlineAttr, ast.WarnUnusedResultAttr, ast.NoThrowAttr, ast.NoInlineAttr, ast.AllocSizeAttr,
 			ast.NonNullAttr, ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr, ast.ReturnsTwiceAttr, ast.NoSanitizeAttr,
 			ast.RestrictAttr, ast.MSAllocatorAttr, ast.VisibilityAttr, ast.C11NoReturnAttr, ast.StrictFPAttr,
-			ast.AllocAlignAttr, ast.DisableTailCallsAttr:
+			ast.DLLImportAttr, ast.UnusedAttr, ast.NoDebugAttr, ast.AllocAlignAttr, ast.DisableTailCallsAttr:
 		default:
 			log.Panicln("compileFunc: unknown kind =", item.Kind)
 		}

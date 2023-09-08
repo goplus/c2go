@@ -169,6 +169,7 @@ var cases = []testCase{
 	{qualType: "int (*)(void *, int, const char *, void (**)(void *, int, void **), void **)"},
 	{qualType: "struct (anonymous) [2]", anonym: tyInt, typ: types.NewArray(tyInt, 2)},
 	{qualType: "enum a", typ: ctypes.Int},
+	{qualType: "int (*)(void) __attribute__((__cdecl))", typ: newFn(nil, typesInt)},
 }
 
 type baseEnv struct {

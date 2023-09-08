@@ -1,3 +1,6 @@
+#ifdef _MSC_VER
+#include <stdio.h>
+#endif
 #include <stdarg.h>
 #include <string.h>
 

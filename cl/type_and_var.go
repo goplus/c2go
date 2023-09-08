@@ -228,6 +228,9 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 				return nil
 			}
 		}
+		if name == "va_list" && ctx.needValist {
+			typ = ctypes.Valist
+		}
 	}
 	if scope == ctx.pkg.Types.Scope() {
 		ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))

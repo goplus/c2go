@@ -1,5 +1,5 @@
 package main
 
 func main() {
-	printf(C("Hello, world\n"))
+	printf_x(C("Hello, world\n"))
 }

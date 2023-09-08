@@ -11,13 +11,13 @@ typedef struct {
         z :5;
 } foo;
 
-typedef long time_t;
+typedef long time_x;
 
 typedef struct {
-    time_t tv_sec;
-    int :8*(sizeof(time_t)-sizeof(long))*(1234==4321);
+    time_x tv_sec;
+    int :8*(sizeof(time_x)-sizeof(long))*(1234==4321);
     long tv_nsec;
-    int :8*(sizeof(time_t)-sizeof(long))*(1234!=4321);
+    int :8*(sizeof(time_x)-sizeof(long))*(1234!=4321);
 } timespec_t;
 
 int main() {

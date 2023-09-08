@@ -3,7 +3,11 @@
 typedef signed long long intmax_t;
 typedef unsigned long long uintmax_t;
 typedef unsigned long uintptr_t;
+#ifdef _MSC_VER
+typedef unsigned long long size_t;
+#else
 typedef unsigned long size_t;
+#endif
 typedef int ptrdiff_t;
 
 union arg

@@ -210,7 +210,8 @@ type blockCtx struct {
 	curflow  flowCtx
 	bfm      BFMode
 	multiFileCtl
-	testMain bool
+	testMain  bool
+	needValist bool
 }
 
 func (p *blockCtx) Pkg() *types.Package {

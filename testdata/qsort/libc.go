@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"unsafe"
 
@@ -27,17 +26,6 @@ func gostring(s *int8) string {
 		n++
 	}
 	return string(arr[:n])
-}
-
-func printf(format *int8, args ...interface{}) int32 {
-	goformat := gostring(format)
-	for i, arg := range args {
-		if v, ok := arg.(*int8); ok {
-			args[i] = gostring(v)
-		}
-	}
-	fmt.Printf(goformat, args...)
-	return 0
 }
 
 func sliceOf(v unsafe.Pointer, bytes c.SizeT) []byte {
@@ -67,5 +55,3 @@ func __builtin_bswap64(v uint64) uint64 {
 	log.Panicln("__builtin_bswap32: notimpl")
 	return v
 }
-
-type struct___locale_data struct{}

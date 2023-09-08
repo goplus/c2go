@@ -14,8 +14,8 @@ func gostring(s *int8) string {
 	return string(arr[:n])
 }
 
-func printf(format *int8, args ...interface{}) int32 {
-	goformat := gostring(format)
+func goprintf(format *int8, args ...interface{}) int32 {
+	goformat := strings.ReplaceAll(gostring(format), "%lld", "%d")
 	for i, arg := range args {
 		if v, ok := arg.(*int8); ok {
 			args[i] = gostring(v)
@@ -25,13 +25,3 @@ func printf(format *int8, args ...interface{}) int32 {
 	fmt.Print(s)
 	return 0
 }
-
-func __swbuf(_c int32, _p *FILE) int32 {
-	return _c
-}
-
-type struct___sFILEX struct{}
-
-type struct__IO_marker struct{}
-type struct__IO_codecvt struct{}
-type struct__IO_wide_data struct{}

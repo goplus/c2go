@@ -7,4 +7,5 @@ require (
 	github.com/goplus/mod v0.11.2
 	github.com/json-iterator/go v1.1.12
 	github.com/qiniu/x v1.11.9
+	golang.org/x/tools v0.4.0
 )

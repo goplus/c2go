@@ -401,6 +401,13 @@ func (p *parser) parse(inFlags int) (t types.Type, kind int, err error) {
 				fallthrough
 			default:
 				if t != nil {
+					if _, ok := t.(*types.Signature); ok {
+						if p.lit == "__attribute__" {
+							p.tok, p.lit = token.EOF, ""
+							p.unget(token.EOF, "")
+							break
+						}
+					}
 					return nil, 0, p.newError("illegal syntax: multiple types?")
 				}
 				if t, err = p.lookupType(lit, flags); err != nil {

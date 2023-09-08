@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go/build"
 	"io"
 	"log"
 	"os"
@@ -187,7 +188,7 @@ func execFile(pkgname string, outfile string, flags int) {
 
 	needPkgInfo := (flags & FlagDepsAutoGen) != 0
 	pkg, err := cl.NewPackage("", pkgname, doc, &cl.Config{
-		SrcFile: outfile, NeedPkgInfo: needPkgInfo,
+		SrcFile: outfile, NeedPkgInfo: needPkgInfo, ClangTarget: clangTarget,
 	})
 	check(err)
 
@@ -230,6 +231,10 @@ func checkEqual(prompt string, a, expected []byte) {
 	fatal(errors.New("checkEqual: unexpected " + prompt))
 }
 
+func cleanEndLine(data []byte) []byte {
+	return bytes.ReplaceAll(data, []byte{'\r', '\n'}, []byte{'\n'})
+}
+
 func runTest(dir string) {
 	var goOut, goErr bytes.Buffer
 	var cOut, cErr bytes.Buffer
@@ -238,28 +243,26 @@ func runTest(dir string) {
 		return
 	}
 	runCApp(dir, &cOut, &cErr)
-	checkEqual("output", goOut.Bytes(), cOut.Bytes())
-	checkEqual("stderr", goErr.Bytes(), cErr.Bytes())
+	checkEqual("output", goOut.Bytes(), cleanEndLine(cOut.Bytes()))
+	checkEqual("stderr", goErr.Bytes(), cleanEndLine(cErr.Bytes()))
+}
+
+func goFiles(dir string) ([]string, error) {
+	if dir == "" {
+		dir = "."
+	}
+	ctx := build.Default
+	ctx.BuildTags = []string{getBuildTags()}
+	bp, err := ctx.ImportDir(dir, 0)
+	if err != nil {
+		return nil, err
+	}
+	return append(bp.GoFiles, bp.TestGoFiles...), nil
 }
 
 func runGoApp(dir string, stdout, stderr io.Writer, doRunTest bool) (dontRunTest bool) {
-	files, err := filepath.Glob("*.go")
+	files, err := goFiles(dir)
 	check(err)
-
-	for i, n := 0, len(files); i < n; i++ {
-		fname := filepath.Base(files[i])
-		if pos := strings.LastIndex(fname, "_"); pos >= 0 {
-			switch os := fname[pos+1 : len(fname)-3]; os {
-			case "darwin", "linux", "windows":
-				if os != runtime.GOOS { // skip
-					n--
-					files[i], files[n] = files[n], files[i]
-					files = files[:n]
-					i--
-				}
-			}
-		}
-	}
 
 	if doRunTest {
 		for _, file := range files {
@@ -298,13 +301,15 @@ func runCApp(dir string, stdout, stderr io.Writer) {
 }
 
 var (
-	clangOut = "./a.out"
+	clangOut    = "./a.out"
+	clangTarget string
 )
 
 func init() {
 	if runtime.GOOS == "windows" {
 		clangOut = "./a.exe"
 	}
+	clangTarget = getClangTarget()
 }
 
 func chdir(dir string) string {
@@ -365,4 +370,25 @@ func getBytes(stdout, stderr io.Writer) (o iBytes, ok bool) {
 	}
 	o, ok = stdout.(iBytes)
 	return
+}
+
+func getClangTarget() string {
+	cmd := exec.Command("clang", "--version")
+	data, err := cmd.CombinedOutput()
+	check(err)
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "Target:") {
+			return strings.TrimSpace(line[7:])
+		}
+	}
+	return ""
+}
+
+func getBuildTags() string {
+	if strings.HasSuffix(clangTarget, "-windows-msvc") {
+		return "windows_msvc"
+	} else if strings.HasSuffix(clangTarget, "-windows-gnu") {
+		return "windows_gnu"
+	}
+	return ""
 }
