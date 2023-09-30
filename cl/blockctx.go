@@ -502,27 +502,27 @@ func (p *bfType) String() string {
 }
 
 /*
-func (p *blockCtx) initCTypes() {
-	pkg := p.pkg.Types
-	scope := pkg.Scope()
-	p.tyI128 = ctypes.NotImpl
-	p.tyU128 = ctypes.NotImpl
-	c := p.pkg.Import("github.com/goplus/c2go/clang")
+	func (p *blockCtx) initCTypes() {
+		pkg := p.pkg.Types
+		scope := pkg.Scope()
+		p.tyI128 = ctypes.NotImpl
+		p.tyU128 = ctypes.NotImpl
+		c := p.pkg.Import("github.com/goplus/c2go/clang")
 
-	aliasType(scope, pkg, "__int128", p.tyI128)
-	aliasType(scope, pkg, "void", ctypes.Void)
+		aliasType(scope, pkg, "__int128", p.tyI128)
+		aliasType(scope, pkg, "void", ctypes.Void)
 
-	aliasCType(scope, pkg, "char", c, "Char")
-	aliasCType(scope, pkg, "float", c, "Float")
-	aliasCType(scope, pkg, "double", c, "Double")
-	aliasCType(scope, pkg, "_Bool", c, "Bool")
+		aliasCType(scope, pkg, "char", c, "Char")
+		aliasCType(scope, pkg, "float", c, "Float")
+		aliasCType(scope, pkg, "double", c, "Double")
+		aliasCType(scope, pkg, "_Bool", c, "Bool")
 
-	decl_builtin(p)
-}
+		decl_builtin(p)
+	}
 
-func aliasCType(scope *types.Scope, pkg *types.Package, name string, c *gox.PkgRef, cname string) {
-	aliasType(scope, pkg, name, c.Ref(cname).Type())
-}
+	func aliasCType(scope *types.Scope, pkg *types.Package, name string, c *gox.PkgRef, cname string) {
+		aliasType(scope, pkg, name, c.Ref(cname).Type())
+	}
 */
 func (p *blockCtx) initCTypes() {
 	pkg := p.pkg.Types
@@ -531,6 +531,9 @@ func (p *blockCtx) initCTypes() {
 	p.tyU128 = ctypes.NotImpl
 
 	aliasType(scope, pkg, "__int128", p.tyI128)
+	aliasType(scope, pkg, "__int128_t", p.tyI128)
+	aliasType(scope, pkg, "__uint128_t", p.tyU128)
+
 	aliasType(scope, pkg, "void", ctypes.Void)
 
 	aliasType(scope, pkg, "char", types.Typ[types.Int8])
