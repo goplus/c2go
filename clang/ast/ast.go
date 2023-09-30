@@ -60,6 +60,7 @@ const (
 	DeprecatedAttr           Kind = "DeprecatedAttr"
 	BuiltinAttr              Kind = "BuiltinAttr"
 	FormatAttr               Kind = "FormatAttr"
+	FormatArgAttr            Kind = "FormatArgAttr"
 	ColdAttr                 Kind = "ColdAttr"
 	ConstAttr                Kind = "ConstAttr"
 	PureAttr                 Kind = "PureAttr"

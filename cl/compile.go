@@ -217,7 +217,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
 		interp.fset = pkg.Fset
 	}
-	pkg.SetVarRedeclarable(true)
+	pkg.SetRedeclarable(true)
 	pkg.pi, err = loadFile(pkg.Package, conf, file)
 	return
 }
@@ -402,7 +402,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 			ast.AlwaysInlineAttr, ast.WarnUnusedResultAttr, ast.NoThrowAttr, ast.NoInlineAttr, ast.AllocSizeAttr,
 			ast.NonNullAttr, ast.ConstAttr, ast.PureAttr, ast.GNUInlineAttr, ast.ReturnsTwiceAttr, ast.NoSanitizeAttr,
 			ast.RestrictAttr, ast.MSAllocatorAttr, ast.VisibilityAttr, ast.C11NoReturnAttr, ast.StrictFPAttr,
-			ast.AllocAlignAttr, ast.DisableTailCallsAttr:
+			ast.AllocAlignAttr, ast.DisableTailCallsAttr, ast.FormatArgAttr:
 		default:
 			log.Panicln("compileFunc: unknown kind =", item.Kind)
 		}
@@ -436,7 +436,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 		if rewritten { // for fnName is a recursive function
 			scope := pkg.Types.Scope()
-			substObj(pkg.Types, scope, origName, f.Func)
+			substObj(pkg.Types, scope, origName, f.Obj())
 			rewritten = false
 		}
 		cb := f.BodyStart(pkg)
@@ -468,7 +468,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 					cb.Val(pkg.Import("os").Ref("Exit")).Typ(types.Typ[types.Int])
 				}
 			}
-			cb.Val(f.Func)
+			cb.Val(f.Obj())
 			if params != nil {
 				panic("TODO: main func with params")
 			}

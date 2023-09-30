@@ -42,12 +42,14 @@ func (at *blockMarkCtx) markComplicated(ctx *markCtx, ref *blockMarkCtx) {
 	}
 }
 
+/*
 func (at *blockMarkCtx) getName() string {
 	if at != nil {
 		return at.name
 	}
 	return "funcBody"
 }
+*/
 
 func (at *blockMarkCtx) depth() (n int) {
 	for at != nil {
@@ -265,7 +267,6 @@ func (p *markCtx) markSwitch(ctx *blockCtx, switchStmt *ast.Node) {
 			p.mark(ctx, caseBody)
 		}
 	}
-	return
 }
 
 func (p *markCtx) markEnd() {
