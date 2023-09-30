@@ -468,7 +468,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 					cb.Val(pkg.Import("os").Ref("Exit")).Typ(types.Typ[types.Int])
 				}
 			}
-			cb.Val(f.Func)
+			cb.Val(f.Obj())
 			if params != nil {
 				panic("TODO: main func with params")
 			}
