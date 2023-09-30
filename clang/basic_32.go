@@ -1,5 +1,5 @@
-//go:build 386
-// +build 386
+//go:build 386 || arm || armbe || mips || mipsle || ppc || s390 || sparc
+// +build 386 arm armbe mips mipsle ppc s390 sparc
 
 package clang
 
