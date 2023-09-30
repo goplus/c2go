@@ -436,7 +436,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 		}
 		if rewritten { // for fnName is a recursive function
 			scope := pkg.Types.Scope()
-			substObj(pkg.Types, scope, origName, f.Func)
+			substObj(pkg.Types, scope, origName, f.Obj())
 			rewritten = false
 		}
 		cb := f.BodyStart(pkg)
