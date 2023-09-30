@@ -217,7 +217,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
 		interp.fset = pkg.Fset
 	}
-	pkg.SetVarRedeclarable(true)
+	pkg.SetRedeclarable(true)
 	pkg.pi, err = loadFile(pkg.Package, conf, file)
 	return
 }

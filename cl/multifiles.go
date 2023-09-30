@@ -145,7 +145,6 @@ func (p *blockCtx) logFile(node *ast.Node) {
 			}
 		}
 	}
-	return
 }
 
 func (p *blockCtx) checkExists(name string) (exist bool) {
