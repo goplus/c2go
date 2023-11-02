@@ -28,10 +28,10 @@ func TestPkgInfo_Basic(t *testing.T) {
 	pkg := testFunc(t, "Basic", `
 
 void f();
-void test(struct foo* in) {
+void test(struct foo* in, struct bar* out) {
 	f();
 }
-`, `func test(in *struct_foo) {
+`, `func test(in *struct_foo, out *struct_bar) {
 	f()
 }`)
 	var out bytes.Buffer
@@ -39,6 +39,8 @@ void test(struct foo* in) {
 	deps := out.String()
 	if deps != `package main
 
+type struct_bar struct {
+}
 type struct_foo struct {
 }
 
