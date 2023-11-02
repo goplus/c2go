@@ -98,7 +98,7 @@ func compileCompoundLiteralExpr(ctx *blockCtx, expr *ast.Node) {
 	case ast.InitListExpr:
 		var tyAnonym types.Type
 		if fld := inner.Field; fld != nil {
-			tyAnonym = toAnonymType(ctx, ctx.goNodePos(expr), fld)
+			tyAnonym = toAnonymType(ctx, ctx.goNode(expr), fld)
 		}
 		typ, _ := toTypeEx(ctx, ctx.cb.Scope(), tyAnonym, inner.Type, 0, false)
 		initLit(ctx, typ, inner)

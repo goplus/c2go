@@ -23,6 +23,11 @@ const (
 	depsFile = "deps"
 )
 
+type undefStruct struct {
+	name string
+	typeDecl
+}
+
 func (p Package) InitDependencies() {
 	if p.pi == nil {
 		panic("Please set conf.NeedPkgInfo = true")
@@ -31,13 +36,15 @@ func (p Package) InitDependencies() {
 		return
 	}
 
-	var uds []string
+	var uds []undefStruct
 	for name, tdecl := range p.pi.typdecls {
 		if tdecl.State() == gox.TyStateUninited {
-			uds = append(uds, name)
+			uds = append(uds, undefStruct{name, tdecl})
 		}
 	}
-	sort.Strings(uds)
+	sort.Slice(uds, func(i, j int) bool {
+		return uds[i].name < uds[j].name
+	})
 	extfns := make([]string, 0, len(p.pi.extfns))
 	for name := range p.pi.extfns {
 		extfns = append(extfns, name)
@@ -51,7 +58,8 @@ func (p Package) InitDependencies() {
 	scope := pkg.Types.Scope()
 	empty := types.NewStruct(nil, nil)
 	for _, us := range uds {
-		p.pi.typdecls[us].InitType(pkg, empty)
+		us.defineHere()
+		us.InitType(pkg, empty)
 	}
 	vPanic := types.Universe.Lookup("panic")
 	for _, uf := range extfns {
@@ -103,12 +111,12 @@ func ensureSig(sig *types.Signature) *types.Signature {
 
 func (p Package) WriteDepTo(dst io.Writer) error {
 	p.InitDependencies()
-	return gox.WriteTo(dst, p.Package, depsFile)
+	return p.Package.WriteTo(dst, depsFile)
 }
 
 func (p Package) WriteDepFile(file string) error {
 	p.InitDependencies()
-	return gox.WriteFile(file, p.Package, depsFile)
+	return p.Package.WriteFile(file, depsFile)
 }
 
 // -----------------------------------------------------------------------------

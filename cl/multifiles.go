@@ -37,7 +37,7 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, baseDir string, conf *
 		pi := reused.pkg.pi
 		if pi == nil {
 			pi = new(PkgInfo)
-			pi.typdecls = make(map[string]*gox.TypeDecl)
+			pi.typdecls = make(map[string]typeDecl)
 			pi.extfns = make(map[string]none)
 			reused.pkg.pi = pi
 			reused.pkg.Package = pkg
@@ -59,7 +59,7 @@ func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, baseDir string, conf *
 		p.incs = reused.deps.incs
 		p.skipLibcH = reused.deps.skipLibcH
 	} else {
-		p.typdecls = make(map[string]*gox.TypeDecl)
+		p.typdecls = make(map[string]typeDecl)
 		p.extfns = make(map[string]none)
 		p.base = new(int)
 	}

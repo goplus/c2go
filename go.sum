@@ -2,10 +2,10 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
-github.com/goplus/gox v1.12.5 h1:YkdsZDIOW3DZLJctWYKVzdsqMeuCYNn7J4BsFi6B058=
-github.com/goplus/gox v1.12.5/go.mod h1:ferIrvJSoXae8gABk5Z4olEzfAxZpUy4hD91Vm5E/qs=
-github.com/goplus/mod v0.11.7 h1:OTGFi/Jk0qmTy3ih8u3BQ6CbtcaPlTrJBlTacnge0jE=
-github.com/goplus/mod v0.11.7/go.mod h1:yl2QncBKTdXk+8UaNsdo4u2zSpGEJYA5JKjgD3K2h00=
+github.com/goplus/gox v1.12.2-0.20231102132054-7ebd369dd022 h1:1g5BzuA9FfZgQwQ4XJXFsNh7KfscSIJfbUp9KkOWY80=
+github.com/goplus/gox v1.12.2-0.20231102132054-7ebd369dd022/go.mod h1:MOJnwqA8/rSUkn0vsayHFK7TD/3XQrdexMTqdzR70X0=
+github.com/goplus/mod v0.11.8 h1:90Kbg+MJhrdsonNGXYx3HUcW4IbBlRHYpIMssJaMMxM=
+github.com/goplus/mod v0.11.8/go.mod h1:yl2QncBKTdXk+8UaNsdo4u2zSpGEJYA5JKjgD3K2h00=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
 github.com/json-iterator/go v1.1.12/go.mod h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 h1:ZqeYNhU3OHLH3mGKHDcjJRFFRrJa6eAM5H+CtDdOsPc=

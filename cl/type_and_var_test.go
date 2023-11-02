@@ -421,12 +421,12 @@ void test() {
 	};
 }
 `, `func test() {
-	type _cgoa_1 struct {
-		v float64
-	}
 	type struct_foo struct {
 		a int32
 		_cgoa_1
+	}
+	type _cgoa_1 struct {
+		v float64
 	}
 }`)
 	testFunc(t, "testAnonymousVar", `
@@ -439,12 +439,12 @@ void test() {
 	};
 }
 `, `func test() {
-	type _cgoa_1 struct {
-		v float64
-	}
 	type struct_foo struct {
 		a int32
 		b _cgoa_1
+	}
+	type _cgoa_1 struct {
+		v float64
 	}
 }`)
 	testFunc(t, "testNestStruct", `
@@ -457,12 +457,12 @@ void test() {
 	};
 }
 `, `func test() {
-	type struct_bar struct {
-		v float64
-	}
 	type struct_foo struct {
 		a int32
 		b struct_bar
+	}
+	type struct_bar struct {
+		v float64
 	}
 }`)
 	testFunc(t, "testUnion", `
@@ -489,12 +489,12 @@ void test() {
 	};
 }
 `, `func test() {
+	type union_foo struct {
+		c struct_bar
+	}
 	type struct_bar struct {
 		x int32
 		y float64
-	}
-	type union_foo struct {
-		c struct_bar
 	}
 }`)
 	testFunc(t, "testUnionAnonymous", `
@@ -509,12 +509,12 @@ void test() {
 	};
 }
 `, `func test() {
+	type union_foo struct {
+		 _cgoa_1
+	}
 	type _cgoa_1 struct {
 		x int32
 		y float64
-	}
-	type union_foo struct {
-		 _cgoa_1
 	}
 }`)
 	testFunc(t, "testUnionAnonymousVar", `
@@ -529,12 +529,12 @@ void test() {
 	};
 }
 `, `func test() {
+	type union_foo struct {
+		c _cgoa_1
+	}
 	type _cgoa_1 struct {
 		x int32
 		y float64
-	}
-	type union_foo struct {
-		c _cgoa_1
 	}
 }`)
 	testFunc(t, "testTypedef", `
