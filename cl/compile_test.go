@@ -28,6 +28,7 @@ var (
 
 func init() {
 	SetDebug(DbgFlagAll)
+	gox.SetDebug(gox.DbgFlagAll)
 	preprocessor.SetDebug(preprocessor.DbgFlagAll)
 
 	home, err := os.UserHomeDir()
@@ -93,7 +94,7 @@ func newTestEnv(code string) *testEnv {
 		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
 		unnameds: make(map[ast.ID]unnamedType),
 	}
-	ctx.typdecls = make(map[string]*gox.TypeDecl)
+	ctx.typdecls = make(map[string]typeDecl)
 	ctx.initCTypes()
 	return &testEnv{doc: doc, pkg: p, ctx: ctx, json: json}
 }
@@ -216,14 +217,11 @@ void test(int var) {
 	interp := &nodeInterp{fset: fset}
 	base := token.Pos(ctx.file.Base())
 	v := &node{ctx: ctx, pos: base, end: base}
-	src, pos := interp.LoadExpr(v)
-	if src != "" || pos.String() != "1:1" {
-		t.Fatal("interp.LoadExpr:", src, pos)
+	src := interp.LoadExpr(v)
+	if src != "" {
+		t.Fatal("interp.LoadExpr:", src)
 	}
 	interp.Caller(v)
-	if ret := interp.Position(v.Pos()); ret != pos {
-		t.Fatal("interp.Position:", ret, "expected:", pos)
-	}
 }
 
 func TestComplicatedFor(t *testing.T) {

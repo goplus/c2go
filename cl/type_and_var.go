@@ -1,6 +1,7 @@
 package cl
 
 import (
+	goast "go/ast"
 	"go/constant"
 	"go/token"
 	"go/types"
@@ -41,7 +42,7 @@ retry:
 			if pub {
 				name = gox.CPubName(name)
 			}
-			newStructOrUnionType(ctx, token.NoPos, name)
+			newStructOrUnionType(ctx, nil, name)
 			if pub {
 				substObj(ctx.pkg.Types, scope, e.Literal, scope.Lookup(name))
 			}
@@ -51,7 +52,7 @@ retry:
 	return
 }
 
-func toAnonymType(ctx *blockCtx, pos token.Pos, decl *ast.Node) (ret *types.Named) {
+func toAnonymType(ctx *blockCtx, src goast.Node, decl *ast.Node) (ret *types.Named) {
 	scope := types.NewScope(ctx.cb.Scope(), token.NoPos, token.NoPos, "")
 	switch decl.Kind {
 	case ast.FieldDecl:
@@ -59,7 +60,7 @@ func toAnonymType(ctx *blockCtx, pos token.Pos, decl *ast.Node) (ret *types.Name
 		typ, _ := toTypeEx(ctx, scope, nil, decl.Type, 0, false)
 		fld := types.NewField(ctx.goNodePos(decl), pkg.Types, decl.Name, typ, false)
 		struc := types.NewStruct([]*types.Var{fld}, nil)
-		ret = pkg.NewType(ctx.getAnonyName(), pos).InitType(pkg, struc)
+		ret = pkg.NewTypeDefs().NewType(ctx.getAnonyName(), src).InitType(pkg, struc)
 	default:
 		log.Panicln("toAnonymType: unknown kind -", decl.Kind)
 	}
@@ -212,7 +213,7 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 				} else {
 					log.Panicf("compileTypedef %v: unknown id = %v\n", name, owned.ID)
 				}
-				ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+				ctx.cb.AliasType(name, typ, ctx.goNode(decl))
 				return typ
 			}
 		}
@@ -230,19 +231,22 @@ func compileTypedef(ctx *blockCtx, decl *ast.Node, global, pub bool) types.Type 
 		}
 	}
 	if scope == ctx.pkg.Types.Scope() {
-		ctx.cb.AliasType(name, typ, ctx.goNodePos(decl))
+		ctx.cb.AliasType(name, typ, ctx.goNode(decl))
 	} else {
 		aliasType(scope, ctx.pkg.Types, name, typ)
 	}
 	return typ
 }
 
-func newStructOrUnionType(ctx *blockCtx, pos token.Pos, name string) (t *gox.TypeDecl) {
-	t, decled := ctx.typdecls[name]
-	if !decled {
-		t = ctx.cb.NewType(name, pos)
-		ctx.typdecls[name] = t
+func newStructOrUnionType(ctx *blockCtx, src goast.Node, name string) (ret typeDecl) {
+	ret, decled := ctx.typdecls[name]
+	if decled {
+		return
 	}
+	decls, defineHere := ctx.cb.NewTypeDecls()
+	t := decls.NewType(name, src)
+	ret = typeDecl{t, defineHere}
+	ctx.typdecls[name] = ret
 	return
 }
 
@@ -251,24 +255,28 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
 	var t *gox.TypeDecl
-	pos := ctx.goNodePos(decl)
+	src := ctx.goNode(decl)
 	pkg := ctx.pkg
 	if ctx.inSrcFile() && decl.Name != "" {
 		realName := ctx.autoStaticName(decl.Name)
 		var scope = ctx.cb.Scope()
-		t = ctx.cb.NewType(realName, pos)
+		t = ctx.cb.NewType(realName, src)
 		substObj(pkg.Types, scope, name, t.Type().Obj())
 	} else {
-		t = newStructOrUnionType(ctx, pos, name)
+		ret := newStructOrUnionType(ctx, src, name)
+		t = ret.TypeDecl
+		if decl.CompleteDefinition {
+			ret.defineHere()
+		}
 	}
 	if decl.CompleteDefinition {
 		var inner types.Type
 		var del delfunc
 		switch decl.TagUsed {
-		case "struct":
-			inner, del = toStructType(ctx, t.Type(), decl, pub)
-		default:
+		case "union":
 			inner, del = toUnionType(ctx, t.Type(), decl, pub)
+		default:
+			inner, del = toStructType(ctx, t.Type(), decl, pub)
 		}
 		ret := t.InitType(pkg, inner)
 		if pub {

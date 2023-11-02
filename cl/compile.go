@@ -89,14 +89,13 @@ func (p *nodeInterp) Caller(v goast.Node) string {
 	return "the function call"
 }
 
-func (p *nodeInterp) LoadExpr(v goast.Node) (code string, pos token.Position) {
+func (p *nodeInterp) LoadExpr(v goast.Node) string {
 	src := v.(*node)
 	ctx := src.ctx
 	start := src.Pos()
 	n := int(src.End() - start)
-	pos = ctx.file.Position(start)
-	code = string(ctx.src[pos.Offset : pos.Offset+n])
-	return
+	pos := ctx.file.Position(start)
+	return string(ctx.src[pos.Offset : pos.Offset+n])
 }
 
 // -----------------------------------------------------------------------------
@@ -111,8 +110,13 @@ const (
 
 // -----------------------------------------------------------------------------
 
+type typeDecl struct {
+	*gox.TypeDecl
+	defineHere func()
+}
+
 type PkgInfo struct {
-	typdecls map[string]*gox.TypeDecl
+	typdecls map[string]typeDecl
 	extfns   map[string]none // external functions which are used
 }
 
