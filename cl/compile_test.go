@@ -221,7 +221,6 @@ void test(int var) {
 	if src != "" {
 		t.Fatal("interp.LoadExpr:", src)
 	}
-	interp.Caller(v)
 }
 
 func TestComplicatedFor(t *testing.T) {
