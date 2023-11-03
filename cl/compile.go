@@ -85,10 +85,6 @@ func (p *nodeInterp) Position(start token.Pos) token.Position {
 	return p.fset.Position(start)
 }
 
-func (p *nodeInterp) Caller(v goast.Node) string {
-	return "the function call"
-}
-
 func (p *nodeInterp) LoadExpr(v goast.Node) string {
 	src := v.(*node)
 	ctx := src.ctx
