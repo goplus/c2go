@@ -15,7 +15,7 @@ var (
 )
 
 func LoadDeps(dir string, deps []string) (pkgs []*Package, err error) {
-	mod, err := gopmod.Load(dir, 0)
+	mod, err := gopmod.Load(dir)
 	if err != nil {
 		err = errors.NewWith(err, `gopmod.Load(dir, 0)`, -2, "gopmod.Load", dir, 0)
 		return
