@@ -199,6 +199,7 @@ type blockCtx struct {
 	tyI128   types.Type
 	tyU128   types.Type
 	unnameds map[ast.ID]unnamedType
+	srcenums map[ast.ID]string
 	gblvars  map[string]*gox.VarDefs
 	public   map[string]string
 	ignored  []string

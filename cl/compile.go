@@ -267,6 +267,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]unnamedType),
+		srcenums: make(map[ast.ID]string),
 		gblvars:  make(map[string]*gox.VarDefs),
 		ignored:  conf.Ignored,
 		public:   conf.Public,

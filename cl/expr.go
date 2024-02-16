@@ -287,6 +287,9 @@ func compileTypeCast(ctx *blockCtx, v *ast.Node, src goast.Node) {
 
 func compileDeclRefExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	name := v.ReferencedDecl.Name
+	if n, ok := ctx.srcenums[v.ReferencedDecl.ID]; ok {
+		name = n
+	}
 	avoidKeyword(&name)
 	obj := ctx.lookupParent(name)
 	if obj == nil {
