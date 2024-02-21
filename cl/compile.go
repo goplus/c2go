@@ -559,14 +559,14 @@ func compileVAArgExpr(ctx *blockCtx, expr *ast.Node) {
 		}
 		cb.TypeSwitch(tagName).Val(args).Val(0).Index(1, false).TypeAssertThen()
 
-		cb.Typ(typ).TypeCase(1)
+		cb.TypeCase().Typ(typ).Then()
 		cb.VarRef(ret).Val(cb.Scope().Lookup(tagName)).Assign(1).End()
 
-		cb.Typ(typ2).TypeCase(1)
+		cb.TypeCase().Typ(typ2).Then()
 		cb.VarRef(ret).Typ(typ).Val(cb.Scope().Lookup(tagName)).Call(1).Assign(1).End()
 
 		if t.Kind() == types.Int32 {
-			cb.Typ(types.Typ[types.Uint64]).TypeCase(1)
+			cb.TypeCase().Typ(types.Typ[types.Uint64]).Then()
 			cb.VarRef(ret).Typ(typ).Val(cb.Scope().Lookup(tagName)).Call(1).Assign(1).End()
 		}
 		cb.End() // end switch

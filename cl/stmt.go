@@ -407,10 +407,11 @@ func compileSimpleSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 			cb.End()
 			hasCase = false
 		}
+		cb.Case()
 		if idx != 0 {
 			compileExpr(ctx, stmt.Inner[0])
 		}
-		cb.Case(idx)
+		cb.Then()
 		switch caseBody := stmt.Inner[idx]; caseBody.Kind {
 		case ast.CaseStmt, ast.DefaultStmt:
 			cb.Fallthrough().End()
