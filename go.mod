@@ -4,9 +4,9 @@ go 1.18
 
 require (
 	github.com/goplus/gox v1.14.13-0.20240221041432-a29adc8f26fd
-	github.com/goplus/mod v0.13.7
+	github.com/goplus/mod v0.13.8
 	github.com/json-iterator/go v1.1.12
-	github.com/qiniu/x v1.13.8
+	github.com/qiniu/x v1.13.9
 )
 
 require (
