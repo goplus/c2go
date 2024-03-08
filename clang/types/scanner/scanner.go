@@ -11,13 +11,11 @@ import (
 // encountered and a handler was installed, the handler is called with a
 // position and an error message. The position points to the beginning of
 // the offending token.
-//
 type ErrorHandler func(pos token.Position, msg string)
 
 // A Scanner holds the scanner's internal state while processing
 // a given text. It can be allocated as part of another data
 // structure but must be initialized via Init before use.
-//
 type Scanner struct {
 	// immutable state
 	src string

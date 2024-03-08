@@ -7,7 +7,7 @@ import (
 	"github.com/goplus/c2go"
 	"github.com/goplus/c2go/cl"
 	"github.com/goplus/c2go/clang/preprocessor"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 const (
@@ -49,7 +49,7 @@ func Main(flag *flag.FlagSet, args []string) {
 	if *verbose {
 		cl.SetDebug(cl.DbgFlagAll)
 		preprocessor.SetDebug(preprocessor.DbgFlagAll)
-		gox.SetDebug(gox.DbgFlagInstruction) // | gox.DbgFlagMatch)
+		gogen.SetDebug(gogen.DbgFlagInstruction) // | gogen.DbgFlagMatch)
 	}
 	if *test || *runcmd != "" {
 		flags |= c2go.FlagRunTest

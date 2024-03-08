@@ -16,7 +16,7 @@ import (
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/preprocessor"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -28,7 +28,7 @@ var (
 
 func init() {
 	SetDebug(DbgFlagAll)
-	gox.SetDebug(gox.DbgFlagAll)
+	gogen.SetDebug(gogen.DbgFlagAll)
 	preprocessor.SetDebug(preprocessor.DbgFlagAll)
 
 	home, err := os.UserHomeDir()
@@ -81,7 +81,7 @@ func check(err error) {
 
 type testEnv struct {
 	doc  *ast.Node
-	pkg  *gox.Package
+	pkg  *gogen.Package
 	ctx  *blockCtx
 	json []byte
 }
@@ -89,7 +89,7 @@ type testEnv struct {
 func newTestEnv(code string) *testEnv {
 	var json []byte
 	doc, src := parse(code, &json)
-	p := gox.NewPackage("", "main", nil)
+	p := gogen.NewPackage("", "main", nil)
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset, src: src,
 		unnameds: make(map[ast.ID]unnamedType),
@@ -131,7 +131,7 @@ func testWith(t *testing.T, name string, fn string, code string, outFunc string,
 		}
 		pkg, err := NewPackage("", "main", doc, conf)
 		check(err)
-		file := gox.ASTFile(pkg.Package)
+		file := gogen.ASTFile(pkg.Package)
 		ret := goast.Node(file)
 		if fn != "" {
 			ret = findFunc(file, fn)
