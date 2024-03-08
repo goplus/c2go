@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/goplus/c2go/clang/ast"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -156,7 +156,7 @@ func compileComplicatedIfStmt(ctx *blockCtx, stmt *ast.Node) {
 	defer ctx.leave(flow)
 
 	var done = flow.EndLabel(ctx)
-	var label *gox.Label
+	var label *gogen.Label
 	if stmt.HasElse {
 		label = flow.elseLabel(ctx)
 	} else {
@@ -320,8 +320,8 @@ func compileComplicatedSwitchStmt(ctx *blockCtx, switchStmt *ast.Node) {
 	ctx.newVar(scope, token.NoPos, tag.Type, tagNamePrefix)
 	ctx.newVar(scope, token.NoPos, types.Typ[types.Bool], notMatchedNamePrefix)
 
-	sw.tag = gox.Lookup(scope, tagNamePrefix)
-	sw.notmat = gox.Lookup(scope, notMatchedNamePrefix)
+	sw.tag = gogen.Lookup(scope, tagNamePrefix)
+	sw.notmat = gogen.Lookup(scope, notMatchedNamePrefix)
 
 	cb := ctx.cb.VarRef(sw.tag).VarRef(sw.notmat).Val(tag).Val(true).Assign(2)
 
@@ -469,11 +469,11 @@ func compileReturnStmt(ctx *blockCtx, stmt *ast.Node) {
 	ctx.cb.Return(n, ctx.goNode(stmt))
 }
 
-func getRetType(cb *gox.CodeBuilder) types.Type {
+func getRetType(cb *gogen.CodeBuilder) types.Type {
 	return cb.Func().Type().(*types.Signature).Results().At(0).Type()
 }
 
-func getRetTypeEx(cb *gox.CodeBuilder) (ret types.Type, ok bool) {
+func getRetTypeEx(cb *gogen.CodeBuilder) (ret types.Type, ok bool) {
 	results := cb.Func().Type().(*types.Signature).Results()
 	if results.Len() == 1 {
 		return results.At(0).Type(), true

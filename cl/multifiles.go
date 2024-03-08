@@ -12,7 +12,7 @@ import (
 	ctypes "github.com/goplus/c2go/clang/types"
 
 	"github.com/goplus/c2go/clang/ast"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -31,7 +31,7 @@ type multiFileCtl struct {
 }
 
 // baseDir should be absolute path
-func (p *multiFileCtl) initMultiFileCtl(pkg *gox.Package, baseDir string, conf *Config) {
+func (p *multiFileCtl) initMultiFileCtl(pkg *gogen.Package, baseDir string, conf *Config) {
 	reused := conf.Reused
 	if reused != nil {
 		pi := reused.pkg.pi
@@ -184,13 +184,13 @@ type depPkgs struct {
 	skipLibcH bool // skip libc header
 }
 
-func initDepPkgs(pkg *gox.Package, deps *depPkgs) {
+func initDepPkgs(pkg *gogen.Package, deps *depPkgs) {
 	scope := pkg.Types.Scope()
 	for _, dep := range deps.pkgs {
 		depPkg := pkg.Import(dep.path)
 		for _, pub := range dep.pubs {
 			if obj := depPkg.TryRef(pub.goName); obj != nil {
-				if old := scope.Insert(gox.NewSubst(token.NoPos, pkg.Types, pub.name, obj)); old != nil {
+				if old := scope.Insert(gogen.NewSubst(token.NoPos, pkg.Types, pub.name, obj)); old != nil {
 					log.Panicf("conflicted name `%v` in %v, previous definition is %v\n", pub.name, dep.path, old)
 				}
 				if t, ok := obj.Type().(*types.Named); ok {

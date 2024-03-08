@@ -5,7 +5,7 @@ import (
 	"go/types"
 	"unsafe"
 
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -35,7 +35,7 @@ func MangledName(tag, name string) string {
 
 var (
 	ValistTag types.Type
-	Valist    types.Type = types.NewSlice(gox.TyEmptyInterface)
+	Valist    types.Type = types.NewSlice(gogen.TyEmptyInterface)
 )
 
 func init() {
@@ -47,7 +47,7 @@ func init() {
 // -----------------------------------------------------------------------------
 
 func NewFunc(params, results *types.Tuple, variadic bool) *types.Signature {
-	return gox.NewCSignature(params, results, variadic)
+	return gogen.NewCSignature(params, results, variadic)
 }
 
 func NewPointer(typ types.Type) types.Type {
@@ -57,7 +57,7 @@ func NewPointer(typ types.Type) types.Type {
 			return types.Typ[types.UnsafePointer]
 		}
 	case *types.Signature:
-		if gox.IsCSignature(t) {
+		if gogen.IsCSignature(t) {
 			return types.NewSignature(nil, t.Params(), t.Results(), t.Variadic())
 		}
 	case *types.Named:
@@ -71,7 +71,7 @@ func NewPointer(typ types.Type) types.Type {
 func IsFunc(typ types.Type) bool {
 	sig, ok := typ.(*types.Signature)
 	if ok {
-		ok = gox.IsCSignature(sig)
+		ok = gogen.IsCSignature(sig)
 	}
 	return ok
 }

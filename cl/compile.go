@@ -12,7 +12,7 @@ import (
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/cmod"
 	"github.com/goplus/c2go/clang/types/parser"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 
 	ctypes "github.com/goplus/c2go/clang/types"
 )
@@ -107,7 +107,7 @@ const (
 // -----------------------------------------------------------------------------
 
 type typeDecl struct {
-	*gox.TypeDecl
+	*gogen.TypeDecl
 	defineHere func()
 }
 
@@ -117,7 +117,7 @@ type PkgInfo struct {
 }
 
 type Package struct {
-	*gox.Package
+	*gogen.Package
 	pi *PkgInfo
 }
 
@@ -204,7 +204,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 		pkg = reused.pkg
 	} else {
 		interp := &nodeInterp{}
-		confGox := &gox.Config{
+		confGox := &gogen.Config{
 			Fset:            conf.Fset,
 			Importer:        conf.Importer,
 			LoadNamed:       nil,
@@ -214,7 +214,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 			CanImplicitCast: implicitCast,
 			DefaultGoFile:   headerGoFile,
 		}
-		pkg.Package = gox.NewPackage(pkgPath, pkgName, confGox)
+		pkg.Package = gogen.NewPackage(pkgPath, pkgName, confGox)
 		interp.fset = pkg.Fset
 	}
 	pkg.SetRedeclarable(true)
@@ -222,7 +222,7 @@ func NewPackage(pkgPath, pkgName string, file *ast.Node, conf *Config) (pkg Pack
 	return
 }
 
-func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
+func implicitCast(pkg *gogen.Package, V, T types.Type, pv *gogen.Element) bool {
 	switch t := T.(type) {
 	case *types.Basic:
 		/* TODO:
@@ -237,7 +237,7 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 			return false
 		}
 		if (t.Info() & types.IsInteger) != 0 { // int type
-			if e, ok := gox.CastFromBool(pkg.CB(), T, pv); ok {
+			if e, ok := gogen.CastFromBool(pkg.CB(), T, pv); ok {
 				pv.Type, pv.Val = T, e.Val
 				return true
 			}
@@ -256,7 +256,7 @@ func implicitCast(pkg *gox.Package, V, T types.Type, pv *gox.Element) bool {
 
 // -----------------------------------------------------------------------------
 
-func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err error) {
+func loadFile(p *gogen.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err error) {
 	if file.Kind != ast.TranslationUnitDecl {
 		return nil, syscall.EINVAL
 	}
@@ -267,7 +267,7 @@ func loadFile(p *gox.Package, conf *Config, file *ast.Node) (pi *PkgInfo, err er
 	ctx := &blockCtx{
 		pkg: p, cb: p.CB(), fset: p.Fset,
 		unnameds: make(map[ast.ID]unnamedType),
-		gblvars:  make(map[string]*gox.VarDefs),
+		gblvars:  make(map[string]*gogen.VarDefs),
 		ignored:  conf.Ignored,
 		public:   conf.Public,
 		srcdir:   filepath.Dir(srcFile),
@@ -415,7 +415,7 @@ func compileFunc(ctx *blockCtx, fn *ast.Node) {
 	if tyRet := toType(ctx, fnType, parser.FlagGetRetType); ctypes.NotVoid(tyRet) {
 		results = types.NewTuple(pkg.NewParam(token.NoPos, "", tyRet))
 	}
-	sig := gox.NewCSignature(types.NewTuple(params...), results, variadic)
+	sig := gogen.NewCSignature(types.NewTuple(params...), results, variadic)
 	origName, rewritten := fnName, false
 	if !ctx.inHeader && fn.StorageClass == ast.Static {
 		fnName, rewritten = ctx.autoStaticName(origName), true
@@ -505,11 +505,11 @@ func (p *blockCtx) getPubName(pfnName *string) (ok bool) {
 	goName, ok := p.public[name]
 	if ok {
 		if goName == "" {
-			goName = gox.CPubName(name)
+			goName = gogen.CPubName(name)
 		}
 	} else if _, ok = p.autopub[name]; ok {
 		p.public[name] = ""
-		goName = gox.CPubName(name)
+		goName = gogen.CPubName(name)
 	} else {
 		return
 	}

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 
 	cast "github.com/goplus/c2go/clang/ast"
 	ctypes "github.com/goplus/c2go/clang/types"
@@ -105,21 +105,21 @@ func decl_builtin(ctx *blockCtx) {
 			}
 			fns[i] = pkg.Scope().Lookup(item)
 		}
-		scope.Insert(gox.NewOverloadFunc(token.NoPos, pkg, o.name, fns...))
+		scope.Insert(gogen.NewOverloadFunc(token.NoPos, pkg, o.name, fns...))
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type unionBuilder struct {
-	fields []*gox.UnionField
+	fields []*gogen.UnionField
 }
 
 func newUnionBuilder() *unionBuilder {
 	return &unionBuilder{}
 }
 
-func unionEmbeddedField(ctx *blockCtx, fields []*gox.UnionField, t *types.Named, off int) []*gox.UnionField {
+func unionEmbeddedField(ctx *blockCtx, fields []*gogen.UnionField, t *types.Named, off int) []*gogen.UnionField {
 	o := t.Underlying().(*types.Struct)
 	for i, n := 0, o.NumFields(); i < n; i++ {
 		fld := o.Field(i)
@@ -127,7 +127,7 @@ func unionEmbeddedField(ctx *blockCtx, fields []*gox.UnionField, t *types.Named,
 		if fld.Embedded() {
 			fields = unionEmbeddedField(ctx, fields, fldType.(*types.Named), off)
 		} else {
-			fields = append(fields, &gox.UnionField{
+			fields = append(fields, &gogen.UnionField{
 				Name: fld.Name(),
 				Off:  off,
 				Type: fldType,
@@ -139,7 +139,7 @@ func unionEmbeddedField(ctx *blockCtx, fields []*gox.UnionField, t *types.Named,
 }
 
 func (p *unionBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
-	var fldLargest *gox.UnionField
+	var fldLargest *gogen.UnionField
 	var fields = p.fields
 	var lenLargest, n = 0, len(fields)
 	for i := 0; i < n; i++ {
@@ -154,7 +154,7 @@ func (p *unionBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
 	flds := make([]*types.Var, 0, 1)
 	if fldLargest != nil {
 		pkg := ctx.pkg
-		pkg.SetVFields(t, gox.NewUnionFields(fields))
+		pkg.SetVFields(t, gogen.NewUnionFields(fields))
 		fld := types.NewField(fldLargest.Pos, pkg.Types, fldLargest.Name, fldLargest.Type, false)
 		flds = append(flds, fld)
 	}
@@ -165,7 +165,7 @@ func (p *unionBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name 
 	if embedded {
 		name = ""
 	}
-	fld := &gox.UnionField{
+	fld := &gogen.UnionField{
 		Name: name,
 		Type: typ,
 		Pos:  pos,
@@ -177,7 +177,7 @@ func (p *unionBuilder) Field(ctx *blockCtx, pos token.Pos, typ types.Type, name 
 
 type structBuilder struct {
 	fields      []*types.Var
-	bitFields   []*gox.BitField
+	bitFields   []*gogen.BitField
 	lastFldName string
 	lastTy      types.Type
 	totalBits   int
@@ -192,7 +192,7 @@ func newStructBuilder() *structBuilder {
 func (p *structBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
 	struc := types.NewStruct(p.fields, nil)
 	if len(p.bitFields) > 0 {
-		ctx.pkg.SetVFields(t, gox.NewBitFields(p.bitFields))
+		ctx.pkg.SetVFields(t, gogen.NewBitFields(p.bitFields))
 	}
 	return struc
 }
@@ -200,7 +200,7 @@ func (p *structBuilder) Type(ctx *blockCtx, t *types.Named) *types.Struct {
 func (p *structBuilder) BitField(ctx *blockCtx, typ types.Type, name string, bits int) {
 	if p.leftBits >= bits && ctypes.Identical(typ, p.lastTy) {
 		if name != "" {
-			p.bitFields = append(p.bitFields, &gox.BitField{
+			p.bitFields = append(p.bitFields, &gogen.BitField{
 				Name:    name,
 				FldName: p.lastFldName,
 				Off:     p.totalBits - p.leftBits,
@@ -216,7 +216,7 @@ func (p *structBuilder) BitField(ctx *blockCtx, typ types.Type, name string, bit
 		p.lastTy = typ
 		p.leftBits = p.totalBits - bits
 		if name != "" {
-			p.bitFields = append(p.bitFields, &gox.BitField{
+			p.bitFields = append(p.bitFields, &gogen.BitField{
 				Name:    name,
 				FldName: p.lastFldName,
 				Bits:    bits,
@@ -255,7 +255,7 @@ func toInt64(ctx *blockCtx, v *cast.Node, emsg string) int64 {
 
 // -----------------------------------------------------------------------------
 
-func typeCast(ctx *blockCtx, typ types.Type, arg *gox.Element) {
+func typeCast(ctx *blockCtx, typ types.Type, arg *gogen.Element) {
 	if !ctypes.Identical(typ, arg.Type) {
 		adjustIntConst(ctx, arg, typ)
 		*arg = *ctx.cb.Typ(typ).Val(arg).Call(1).InternalStack().Pop()
@@ -266,7 +266,7 @@ func assign(ctx *blockCtx, src ast.Node) {
 	cb := ctx.cb
 	arg1 := cb.Get(-2)
 	arg2 := cb.Get(-1)
-	arg1Type, _ := gox.DerefType(arg1.Type)
+	arg1Type, _ := gogen.DerefType(arg1.Type)
 	typeCast(ctx, arg1Type, arg2)
 	cb.AssignWith(1, 1, src)
 }
@@ -275,7 +275,7 @@ func assignOp(ctx *blockCtx, op token.Token, src ast.Node) {
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	arg1 := stk.Get(-2)
-	arg1Type, _ := gox.DerefType(arg1.Type)
+	arg1Type, _ := gogen.DerefType(arg1.Type)
 	switch op {
 	case token.ADD_ASSIGN, token.SUB_ASSIGN: // ptr+=n, ptr-=n
 		if t1, ok := arg1Type.(*types.Pointer); ok {
@@ -308,7 +308,7 @@ done:
 	cb.AssignOp(op, src)
 }
 
-func isNegConst(v *gox.Element) bool {
+func isNegConst(v *gogen.Element) bool {
 	if cval := v.CVal; cval != nil && cval.Kind() == constant.Int {
 		if v, ok := constant.Int64Val(cval); ok {
 			return v < 0
@@ -317,7 +317,7 @@ func isNegConst(v *gox.Element) bool {
 	return false
 }
 
-func isNilConst(v *gox.Element) bool {
+func isNilConst(v *gogen.Element) bool {
 	if cval := v.CVal; cval != nil && cval.Kind() == constant.Int {
 		if v, ok := constant.Int64Val(cval); ok {
 			return v == 0
@@ -326,7 +326,7 @@ func isNilConst(v *gox.Element) bool {
 	return false
 }
 
-func isZeroNumber(v *gox.Element) bool {
+func isZeroNumber(v *gogen.Element) bool {
 	if cval := v.CVal; cval != nil {
 		return constant.Sign(cval) == 0
 	}
@@ -347,7 +347,7 @@ func unaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 		t := toType(ctx, v.Type, 0)
 		args := ctx.cb.InternalStack().GetArgs(1)
 		if isInteger(t) && isBool(args[0].Type) {
-			if v, ok := gox.CastFromBool(ctx.cb, t, args[0]); ok {
+			if v, ok := gogen.CastFromBool(ctx.cb, t, args[0]); ok {
 				args[0] = v
 			}
 		}
@@ -448,10 +448,10 @@ func binaryOp(ctx *blockCtx, op token.Token, v *cast.Node) {
 	t := toType(ctx, v.Type, 0)
 	if isInteger(t) { // bool => int
 		args := stk.GetArgs(2)
-		if v, ok := gox.CastFromBool(cb, t, args[0]); ok {
+		if v, ok := gogen.CastFromBool(cb, t, args[0]); ok {
 			args[0] = v
 		}
-		if v, ok := gox.CastFromBool(cb, t, args[1]); ok {
+		if v, ok := gogen.CastFromBool(cb, t, args[1]); ok {
 			args[1] = v
 		}
 	}
@@ -464,13 +464,13 @@ func compareOp(ctx *blockCtx, op token.Token, src ast.Node) {
 	ctx.cb.BinaryOp(op, src)
 }
 
-func untypedZeroToNil(v *gox.Element) {
+func untypedZeroToNil(v *gogen.Element) {
 	v.Type = types.Typ[types.UntypedNil]
 	v.Val = &ast.Ident{Name: "nil"}
 	v.CVal = nil
 }
 
-func castPtrOrFnPtrType(cb *gox.CodeBuilder, kind int, from, to types.Type, v *gox.Element) {
+func castPtrOrFnPtrType(cb *gogen.CodeBuilder, kind int, from, to types.Type, v *gogen.Element) {
 	switch kind {
 	case ncKindSignature:
 		castFnPtrType(cb, from, to, v)
@@ -479,7 +479,7 @@ func castPtrOrFnPtrType(cb *gox.CodeBuilder, kind int, from, to types.Type, v *g
 	}
 }
 
-func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
+func stringLit(cb *gogen.CodeBuilder, s string, typ types.Type) {
 	n := len(s)
 	eos := true
 	if typ == nil {
@@ -501,7 +501,7 @@ func stringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
 	}
 }
 
-func wstringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
+func wstringLit(cb *gogen.CodeBuilder, s string, typ types.Type) {
 	var n int
 	for _, c := range s {
 		n++
@@ -520,17 +520,17 @@ func wstringLit(cb *gox.CodeBuilder, s string, typ types.Type) {
 	}
 }
 
-func arrayToElemPtr(cb *gox.CodeBuilder) {
+func arrayToElemPtr(cb *gogen.CodeBuilder) {
 	arr := cb.InternalStack().Pop()
-	t, _ := gox.DerefType(arr.Type)
+	t, _ := gogen.DerefType(arr.Type)
 	elem := t.(*types.Array).Elem()
 	cb.Typ(ctypes.NewPointer(elem)).Typ(ctypes.UnsafePointer).
 		Val(arr).UnaryOp(token.AND).Call(1).Call(1)
 }
 
-func arrayToElemPtrClosure(cb *gox.CodeBuilder) {
+func arrayToElemPtrClosure(cb *gogen.CodeBuilder) {
 	arr := cb.InternalStack().Pop()
-	t, _ := gox.DerefType(arr.Type)
+	t, _ := gogen.DerefType(arr.Type)
 	elem := t.(*types.Array).Elem()
 	pkg := cb.Pkg()
 	ret := types.NewParam(token.NoPos, pkg.Types, "", ctypes.NewPointer(elem))
@@ -541,7 +541,7 @@ func arrayToElemPtrClosure(cb *gox.CodeBuilder) {
 		End().Call(0)
 }
 
-func castToBoolExpr(cb *gox.CodeBuilder) {
+func castToBoolExpr(cb *gogen.CodeBuilder) {
 	elem := cb.InternalStack().Get(-1)
 	if t := elem.Type; isNumber(t) {
 		cb.Val(0).BinaryOp(token.NEQ)
@@ -550,7 +550,7 @@ func castToBoolExpr(cb *gox.CodeBuilder) {
 	}
 }
 
-func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize int) {
+func valOfAddr(cb *gogen.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize int) {
 	typ := addr.Type()
 	if t, ok := typ.(*types.Pointer); ok {
 		typ = t.Elem()
@@ -563,12 +563,12 @@ func valOfAddr(cb *gox.CodeBuilder, addr types.Object, ctx *blockCtx) (elemSize 
 	return 1
 }
 
-func isBasicLit(v *gox.Element) (ok bool) {
+func isBasicLit(v *gogen.Element) (ok bool) {
 	_, ok = v.Val.(*ast.BasicLit)
 	return
 }
 
-func adjustBigIntConst(ctx *blockCtx, v *gox.Element, t *types.Basic) {
+func adjustBigIntConst(ctx *blockCtx, v *gogen.Element, t *types.Basic) {
 	var bits = 8 * ctx.sizeof(t)
 	var mask = (uint64(1) << bits) - 1
 	var val = constant.BinaryOp(v.CVal, token.AND, constant.MakeUint64(mask))
@@ -588,7 +588,7 @@ func adjustBigIntConst(ctx *blockCtx, v *gox.Element, t *types.Basic) {
 	}
 }
 
-func adjustIntConst(ctx *blockCtx, v *gox.Element, typ types.Type) {
+func adjustIntConst(ctx *blockCtx, v *gogen.Element, typ types.Type) {
 	if e := v.CVal; e == nil || e.Kind() != constant.Int {
 		return
 	}
@@ -691,7 +691,7 @@ func typeCastIndex(ctx *blockCtx, lhs bool) {
 	}
 }
 
-func castFnPtrType(cb *gox.CodeBuilder, from, to types.Type, v *gox.Element) {
+func castFnPtrType(cb *gogen.CodeBuilder, from, to types.Type, v *gogen.Element) {
 	pkg := cb.Pkg()
 	fn := types.NewParam(token.NoPos, pkg.Types, "_cgo_fn", from)
 	ret := types.NewParam(token.NoPos, pkg.Types, "", to)
@@ -702,7 +702,7 @@ func castFnPtrType(cb *gox.CodeBuilder, from, to types.Type, v *gox.Element) {
 		End().Val(v).Call(1)
 }
 
-func castPtrType(cb *gox.CodeBuilder, typ types.Type, v interface{}) {
+func castPtrType(cb *gogen.CodeBuilder, typ types.Type, v interface{}) {
 	cb.Typ(typ).Typ(ctypes.UnsafePointer).Val(v).Call(1).Call(1)
 }
 

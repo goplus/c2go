@@ -28,8 +28,8 @@ import (
 	"github.com/goplus/c2go/clang/parser"
 	"github.com/goplus/c2go/clang/pathutil"
 	"github.com/goplus/c2go/clang/preprocessor"
-	"github.com/goplus/gox"
-	"github.com/goplus/gox/cpackages"
+	"github.com/goplus/gogen"
+	"github.com/goplus/gogen/cpackages"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -243,7 +243,7 @@ func execProjDone(base string, flags int, conf *c2goConf) {
 	if pkg := conf.Reused.Pkg(); pkg.IsValid() {
 		dir := pathutil.Canonical(base, conf.Target.Dir)
 		os.MkdirAll(dir, 0777)
-		pkg.ForEachFile(func(fname string, file *gox.File) {
+		pkg.ForEachFile(func(fname string, file *gogen.File) {
 			gofile := fname
 			if strings.HasPrefix(fname, "_") {
 				gofile = "x2g" + fname

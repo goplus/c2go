@@ -12,7 +12,7 @@ import (
 
 	"github.com/goplus/c2go/clang/ast"
 	"github.com/goplus/c2go/clang/types/parser"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -40,7 +40,7 @@ retry:
 		if e, ok := err.(*parser.TypeNotFound); ok && e.StructOrUnion {
 			name := e.Literal
 			if pub {
-				name = gox.CPubName(name)
+				name = gogen.CPubName(name)
 			}
 			newStructOrUnionType(ctx, nil, name)
 			if pub {
@@ -69,7 +69,7 @@ func toAnonymType(ctx *blockCtx, src goast.Node, decl *ast.Node) (ret *types.Nam
 
 func checkFieldName(pname *string, pub bool) {
 	if pub {
-		*pname = gox.CPubName(*pname)
+		*pname = gogen.CPubName(*pname)
 	} else {
 		avoidKeyword(pname)
 	}
@@ -254,7 +254,7 @@ func compileStructOrUnion(ctx *blockCtx, name string, decl *ast.Node, pub bool) 
 	if debugCompileDecl {
 		log.Println(decl.TagUsed, name, "-", decl.Loc.PresumedLine)
 	}
-	var t *gox.TypeDecl
+	var t *gogen.TypeDecl
 	src := ctx.goNode(decl)
 	pkg := ctx.pkg
 	if ctx.inSrcFile() && decl.Name != "" {
@@ -300,8 +300,8 @@ func compileEnum(ctx *blockCtx, decl *ast.Node, global bool) {
 	}
 }
 
-func compileEnumConst(ctx *blockCtx, cdecl *gox.ConstDefs, v *ast.Node, iotav int) int {
-	fn := func(cb *gox.CodeBuilder) int {
+func compileEnumConst(ctx *blockCtx, cdecl *gogen.ConstDefs, v *ast.Node, iotav int) int {
+	fn := func(cb *gogen.CodeBuilder) int {
 		if len(v.Inner) > 0 {
 			compileExpr(ctx, v.Inner[0])
 			cval := cb.Get(-1).CVal
@@ -366,16 +366,16 @@ func compileVarDecl(ctx *blockCtx, decl *ast.Node, global bool) {
 		if rewritten {
 			substObj(ctx.pkg.Types, ctx.cb.Scope(), origName, scope.Lookup(decl.Name))
 		} else if kind == parser.KindFVolatile && !global {
-			addr := gox.Lookup(scope, decl.Name)
+			addr := gogen.Lookup(scope, decl.Name)
 			ctx.cb.VarRef(nil).Val(addr).Assign(1) // musl: use volatile to mark unused
 		}
 	}
 }
 
 func substObj(pkg *types.Package, scope *types.Scope, origName string, real types.Object) {
-	old := scope.Insert(gox.NewSubst(token.NoPos, pkg, origName, real))
+	old := scope.Insert(gogen.NewSubst(token.NoPos, pkg, origName, real))
 	if old != nil {
-		if t, ok := old.Type().(*gox.SubstType); ok {
+		if t, ok := old.Type().(*gogen.SubstType); ok {
 			t.Real = real
 		} else {
 			log.Panicln(origName, "redefined")
@@ -443,7 +443,7 @@ func newVarAndInit(ctx *blockCtx, scope *types.Scope, typ types.Type, decl *ast.
 			cb.EndInit(1)
 		}
 	} else if inVBlock {
-		addr := gox.Lookup(scope, decl.Name)
+		addr := gogen.Lookup(scope, decl.Name)
 		ctx.cb.VarRef(addr).ZeroLit(typ).Assign(1)
 	}
 }
@@ -465,7 +465,7 @@ retry:
 }
 
 func varAssign(ctx *blockCtx, scope *types.Scope, typ types.Type, name string, initExpr *ast.Node) {
-	addr := gox.Lookup(scope, name)
+	addr := gogen.Lookup(scope, name)
 	cb := ctx.cb.VarRef(addr)
 	varInit(ctx, typ, initExpr)
 	cb.Assign(1)
@@ -528,17 +528,17 @@ func structLit(ctx *blockCtx, typ *types.Named, decl *ast.Node) {
 	ctx.cb.StructLit(typ, n, false)
 }
 
-func checkUnion(ctx *blockCtx, typ types.Type) (ufs *gox.UnionFields, is bool) {
+func checkUnion(ctx *blockCtx, typ types.Type) (ufs *gogen.UnionFields, is bool) {
 	if t, ok := typ.(*types.Named); ok {
 		if vft, ok := ctx.pkg.VFields(t); ok {
-			ufs, is = vft.(*gox.UnionFields)
+			ufs, is = vft.(*gogen.UnionFields)
 			return
 		}
 	}
 	return nil, false
 }
 
-func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.Node) {
+func initUnionVar(ctx *blockCtx, name string, ufs *gogen.UnionFields, decl *ast.Node) {
 	initExpr := decl.Inner[0]
 	t := toType(ctx, initExpr.Type, 0)
 	for i, n := 0, ufs.Len(); i < n; i++ {
@@ -546,7 +546,7 @@ func initUnionVar(ctx *blockCtx, name string, ufs *gox.UnionFields, decl *ast.No
 		if ctypes.Identical(fld.Type, t) {
 			pkg, cb := ctx.pkg, ctx.cb
 			scope := cb.Scope()
-			obj := gox.Lookup(scope, name)
+			obj := gogen.Lookup(scope, name)
 			global := scope == pkg.Types.Scope()
 			if global {
 				pkg.NewFunc(nil, "init", nil, nil, false).BodyStart(pkg)
@@ -570,7 +570,7 @@ const (
 	ncKindSignature
 )
 
-func checkNilComparable(v *gox.Element) int {
+func checkNilComparable(v *gogen.Element) int {
 	switch t := v.Type.(type) {
 	case *types.Pointer:
 		return ncKindPointer

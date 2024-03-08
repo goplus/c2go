@@ -3,12 +3,12 @@ package cl
 import (
 	"testing"
 
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 func TestInitDepPkgs(t *testing.T) {
 	testPanic(t, "conflicted name `printf` in github.com/goplus/c2go/cl/internal/libc, previous definition is var printf substType{real: func github.com/goplus/c2go/cl/internal/libc.Printf(fmt *int8, args ...interface{})}\n", func() {
-		pkg := gox.NewPackage("", "foo", nil)
+		pkg := gogen.NewPackage("", "foo", nil)
 		dep := depPkg{
 			path: "github.com/goplus/c2go/cl/internal/libc",
 			pubs: []pubName{{name: "printf", goName: "Printf"}},

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/goplus/c2go/clang/ast"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 	"github.com/qiniu/x/ctype"
 
 	ctypes "github.com/goplus/c2go/clang/types"
@@ -24,16 +24,16 @@ const (
 // -----------------------------------------------------------------------------
 
 type funcCtx struct {
-	labels  map[string]*gox.Label
-	vdefs   *gox.VarDefs
+	labels  map[string]*gogen.Label
+	vdefs   *gogen.VarDefs
 	basel   int
 	basev   int
 	orgName string
 }
 
-func newFuncCtx(pkg *gox.Package, complicated bool, orgName string) *funcCtx {
+func newFuncCtx(pkg *gogen.Package, complicated bool, orgName string) *funcCtx {
 	ctx := &funcCtx{
-		labels:  make(map[string]*gox.Label),
+		labels:  make(map[string]*gogen.Label),
 		orgName: orgName,
 	}
 	if complicated {
@@ -42,19 +42,19 @@ func newFuncCtx(pkg *gox.Package, complicated bool, orgName string) *funcCtx {
 	return ctx
 }
 
-func (p *funcCtx) newLabel(cb *gox.CodeBuilder) *gox.Label {
+func (p *funcCtx) newLabel(cb *gogen.CodeBuilder) *gogen.Label {
 	p.basel++
 	name := "_cgol_" + strconv.Itoa(p.basel)
 	return cb.NewLabel(token.NoPos, name)
 }
 
-func (p *funcCtx) label(cb *gox.CodeBuilder) *gox.Label {
+func (p *funcCtx) label(cb *gogen.CodeBuilder) *gogen.Label {
 	l := p.newLabel(cb)
 	cb.Label(l)
 	return l
 }
 
-func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) (*gox.VarDecl, types.Object) {
+func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) (*gogen.VarDecl, types.Object) {
 	p.basev++
 	realName := name + "_cgo" + strconv.Itoa(p.basev)
 	ret := p.vdefs.New(pos, typ, realName)
@@ -65,8 +65,8 @@ func (p *funcCtx) newAutoVar(pos token.Pos, typ types.Type, name string) (*gox.V
 
 type flowCtx interface { // switch, for
 	Parent() flowCtx
-	EndLabel(ctx *blockCtx) *gox.Label
-	ContinueLabel(ctx *blockCtx) *gox.Label
+	EndLabel(ctx *blockCtx) *gogen.Label
+	ContinueLabel(ctx *blockCtx) *gogen.Label
 }
 
 // -----------------------------------------------------------------------------
@@ -86,14 +86,14 @@ func (p *baseFlowCtx) Parent() flowCtx {
 	return p.parent
 }
 
-func (p *baseFlowCtx) EndLabel(ctx *blockCtx) *gox.Label {
+func (p *baseFlowCtx) EndLabel(ctx *blockCtx) *gogen.Label {
 	if (p.kind & (flowKindLoop | flowKindSwitch)) != 0 {
 		return nil
 	}
 	return p.parent.EndLabel(ctx)
 }
 
-func (p *baseFlowCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+func (p *baseFlowCtx) ContinueLabel(ctx *blockCtx) *gogen.Label {
 	if (p.kind & flowKindLoop) != 0 {
 		return nil
 	}
@@ -103,10 +103,10 @@ func (p *baseFlowCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
 // -----------------------------------------------------------------------------
 
 type endLabelCtx struct {
-	done *gox.Label
+	done *gogen.Label
 }
 
-func (p *endLabelCtx) EndLabel(ctx *blockCtx) *gox.Label {
+func (p *endLabelCtx) EndLabel(ctx *blockCtx) *gogen.Label {
 	done := p.done
 	if done == nil {
 		done = ctx.curfn.newLabel(ctx.cb)
@@ -120,8 +120,8 @@ func (p *endLabelCtx) EndLabel(ctx *blockCtx) *gox.Label {
 type switchCtx struct {
 	endLabelCtx
 	parent flowCtx
-	next   *gox.Label
-	defau  *gox.Label
+	next   *gogen.Label
+	defau  *gogen.Label
 	tag    types.Object
 	notmat types.Object // notMatched
 }
@@ -130,11 +130,11 @@ func (p *switchCtx) Parent() flowCtx {
 	return p.parent
 }
 
-func (p *switchCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+func (p *switchCtx) ContinueLabel(ctx *blockCtx) *gogen.Label {
 	return p.parent.ContinueLabel(ctx)
 }
 
-func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gox.Label {
+func (p *switchCtx) nextCaseLabel(ctx *blockCtx) *gogen.Label {
 	l := ctx.curfn.newLabel(ctx.cb)
 	p.next = l
 	return l
@@ -155,11 +155,11 @@ func (p *ifCtx) Parent() flowCtx {
 	return p.parent
 }
 
-func (p *ifCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+func (p *ifCtx) ContinueLabel(ctx *blockCtx) *gogen.Label {
 	return p.parent.ContinueLabel(ctx)
 }
 
-func (p *ifCtx) elseLabel(ctx *blockCtx) *gox.Label {
+func (p *ifCtx) elseLabel(ctx *blockCtx) *gogen.Label {
 	return ctx.curfn.newLabel(ctx.cb)
 }
 
@@ -168,14 +168,14 @@ func (p *ifCtx) elseLabel(ctx *blockCtx) *gox.Label {
 type loopCtx struct {
 	endLabelCtx
 	parent flowCtx
-	start  *gox.Label
+	start  *gogen.Label
 }
 
 func (p *loopCtx) Parent() flowCtx {
 	return p.parent
 }
 
-func (p *loopCtx) ContinueLabel(ctx *blockCtx) *gox.Label {
+func (p *loopCtx) ContinueLabel(ctx *blockCtx) *gogen.Label {
 	return p.start
 }
 
@@ -193,13 +193,13 @@ type unnamedType struct {
 }
 
 type blockCtx struct {
-	pkg      *gox.Package
-	cb       *gox.CodeBuilder
+	pkg      *gogen.Package
+	cb       *gogen.CodeBuilder
 	fset     *token.FileSet
 	tyI128   types.Type
 	tyU128   types.Type
 	unnameds map[ast.ID]unnamedType
-	gblvars  map[string]*gox.VarDefs
+	gblvars  map[string]*gogen.VarDefs
 	public   map[string]string
 	ignored  []string
 	srcdir   string
@@ -250,11 +250,11 @@ func (p *blockCtx) addExternFunc(name string) {
 }
 
 func (p *blockCtx) lookupParent(name string) types.Object {
-	_, o := gox.LookupParent(p.cb.Scope(), name, token.NoPos)
+	_, o := gogen.LookupParent(p.cb.Scope(), name, token.NoPos)
 	return o
 }
 
-func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, name string) (ret *gox.VarDecl, inVBlock bool) {
+func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, name string) (ret *gogen.VarDecl, inVBlock bool) {
 	cb, pkg := p.cb, p.pkg
 	inGlobal := scope == pkg.Types.Scope()
 	if !inGlobal {
@@ -263,7 +263,7 @@ func (p *blockCtx) newVar(scope *types.Scope, pos token.Pos, typ types.Type, nam
 	if inVBlock {
 		var obj types.Object
 		ret, obj = p.curfn.newAutoVar(pos, typ, name)
-		if scope.Insert(gox.NewSubst(pos, pkg.Types, name, obj)) != nil {
+		if scope.Insert(gogen.NewSubst(pos, pkg.Types, name, obj)) != nil {
 			log.Panicf("newVar: variable %v exists already\n", name)
 		}
 	} else {
@@ -343,7 +343,7 @@ func (p *blockCtx) initSource() []byte {
 	return b
 }
 
-func (p *blockCtx) getLabel(pos token.Pos, name string) *gox.Label {
+func (p *blockCtx) getLabel(pos token.Pos, name string) *gogen.Label {
 	if fn := p.curfn; fn != nil {
 		l, ok := fn.labels[name]
 		if !ok {
@@ -444,11 +444,11 @@ func getFld(t *types.Struct, name string, from int) (flds []*types.Var, i int) {
 	return nil, -1
 }
 
-func (p *blockCtx) buildVStruct(struc *types.Struct, vfs gox.VFields) *types.Struct {
+func (p *blockCtx) buildVStruct(struc *types.Struct, vfs gogen.VFields) *types.Struct {
 	var pkg = p.pkg.Types
 	var vFlds []*types.Var
 	switch v := vfs.(type) {
-	case *gox.BitFields:
+	case *gogen.BitFields:
 		from, n := 0, v.Len()
 		for i := 0; i < n; i++ {
 			f := v.At(i)
@@ -493,7 +493,7 @@ func (p *blockCtx) getVStruct(typ *types.Named) *types.Struct {
 
 type bfType struct {
 	types.Type
-	*gox.BitField
+	*gogen.BitField
 	first bool
 }
 
@@ -520,7 +520,7 @@ func (p *bfType) String() string {
 		decl_builtin(p)
 	}
 
-	func aliasCType(scope *types.Scope, pkg *types.Package, name string, c *gox.PkgRef, cname string) {
+	func aliasCType(scope *types.Scope, pkg *types.Package, name string, c *gogen.PkgRef, cname string) {
 		aliasType(scope, pkg, name, c.Ref(cname).Type())
 	}
 */

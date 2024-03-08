@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	ctypes "github.com/goplus/c2go/clang/types"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -78,7 +78,7 @@ func newStrucT(pkg *types.Package, flds []structFld) *types.Struct {
 func newBftype(typ types.Type, fldName, name string, off, bits int, first bool) *bfType {
 	return &bfType{
 		Type: typ,
-		BitField: &gox.BitField{
+		BitField: &gogen.BitField{
 			Name:    name,
 			FldName: fldName,
 			Off:     off,

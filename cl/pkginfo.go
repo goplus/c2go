@@ -14,7 +14,7 @@ import (
 	ctypes "github.com/goplus/c2go/clang/types"
 
 	"github.com/goplus/c2go/clang/ast"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ func (p Package) InitDependencies() {
 
 	var uds []undefStruct
 	for name, tdecl := range p.pi.typdecls {
-		if tdecl.State() == gox.TyStateUninited {
+		if tdecl.State() == gogen.TyStateUninited {
 			uds = append(uds, undefStruct{name, tdecl})
 		}
 	}
@@ -67,7 +67,7 @@ func (p Package) InitDependencies() {
 		switch t := scope.Lookup(uf).Type().(type) {
 		case *types.Signature:
 			sig = t
-		case *gox.SubstType:
+		case *gogen.SubstType:
 			real := t.Real
 			uf, sig = real.Name(), real.Type().(*types.Signature)
 		}
@@ -135,7 +135,7 @@ func loadPubFile(pubfile string) (pubs []pubName) {
 		goName := ""
 		switch len(flds) {
 		case 1:
-			goName = gox.CPubName(flds[0])
+			goName = gogen.CPubName(flds[0])
 		case 2:
 			goName = flds[1]
 		case 0:

@@ -13,7 +13,7 @@ import (
 	ctypes "github.com/goplus/c2go/clang/types"
 
 	"github.com/goplus/c2go/clang/ast"
-	"github.com/goplus/gox"
+	"github.com/goplus/gogen"
 )
 
 // -----------------------------------------------------------------------------
@@ -329,13 +329,13 @@ func compileCallExpr(ctx *blockCtx, v *ast.Node) {
 		for i := 0; i < n; i++ {
 			compileExpr(ctx, v.Inner[i])
 		}
-		var flags gox.InstrFlags
+		var flags gogen.InstrFlags
 		var ellipsis = n > 2 && isVariadic(cb.Get(-n).Type) && isValist(cb.Get(-1).Type)
 		if ellipsis {
 			_, o := cb.Scope().LookupParent(valistName, token.NoPos)
 			cb.InternalStack().Pop()
 			cb.Val(o)
-			flags = gox.InstrFlagEllipsis
+			flags = gogen.InstrFlagEllipsis
 		}
 		cb.CallWith(n-1, flags, ctx.goNode(v))
 	}
@@ -383,16 +383,16 @@ func compileMemberExpr(ctx *blockCtx, v *ast.Node, lhs bool) {
 	if lhs {
 		cb.MemberRef(name, src)
 	} else {
-		_, err := cb.Member(name, gox.MemberFlagVal, src)
+		_, err := cb.Member(name, gogen.MemberFlagVal, src)
 		if err != nil { // see aslong @ testdata/compoundlit.c
 			if t, ok := checkAnonyUnion(cb.InternalStack().Get(-1).Type); ok {
 				if stru, ok := t.Underlying().(*types.Struct); ok && stru.NumFields() == 1 {
 					fld := stru.Field(0)
-					fields := []*gox.UnionField{
+					fields := []*gogen.UnionField{
 						{Name: fld.Name(), Type: fld.Type()},
 						{Name: name, Type: toType(ctx, v.Type, 0)},
 					}
-					ctx.pkg.SetVFields(t, gox.NewUnionFields(fields))
+					ctx.pkg.SetVFields(t, gogen.NewUnionFields(fields))
 					cb.MemberVal(name, src)
 					return
 				}
@@ -567,7 +567,7 @@ func compileSimpleIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 	cb := ctx.cb
 	stk := cb.InternalStack()
 	compileExprLHS(ctx, v.Inner[0])
-	typ, _ := gox.DerefType(stk.Get(-1).Type)
+	typ, _ := gogen.DerefType(stk.Get(-1).Type)
 	if t, ok := typ.(*types.Pointer); ok { // *type
 		cb.UnaryOp(token.AND)
 		castPtrType(cb, tyUintptrPtr, stk.Pop())
@@ -601,7 +601,7 @@ func compileIncDec(ctx *blockCtx, op token.Token, v *ast.Node) {
 	cb.Return(n).End().Call(0)
 }
 
-func closureStartInitAddr(ctx *blockCtx, v *ast.Node) (*gox.CodeBuilder, *types.Var) {
+func closureStartInitAddr(ctx *blockCtx, v *ast.Node) (*gogen.CodeBuilder, *types.Var) {
 	pos := ctx.goNodePos(v)
 	cb, ret := closureStart(ctx, pos, "_cgo_ret")
 	cb.DefineVarStart(pos, addrVarName)
@@ -610,13 +610,13 @@ func closureStartInitAddr(ctx *blockCtx, v *ast.Node) (*gox.CodeBuilder, *types.
 	return cb, ret
 }
 
-func closureStart(ctx *blockCtx, pos token.Pos, retName string) (*gox.CodeBuilder, *types.Var) {
+func closureStart(ctx *blockCtx, pos token.Pos, retName string) (*gogen.CodeBuilder, *types.Var) {
 	pkg := ctx.pkg
 	ret := pkg.NewAutoParamEx(pos, retName)
 	return ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg), ret
 }
 
-func closureStartT(ctx *blockCtx, pos token.Pos, t types.Type) (*gox.CodeBuilder, *types.Var) {
+func closureStartT(ctx *blockCtx, pos token.Pos, t types.Type) (*gogen.CodeBuilder, *types.Var) {
 	pkg := ctx.pkg
 	ret := pkg.NewParam(pos, "", t)
 	return ctx.cb.NewClosure(nil, types.NewTuple(ret), false).BodyStart(pkg), ret
@@ -647,7 +647,7 @@ func compileConditionalOperator(ctx *blockCtx, v *ast.Node) {
 	}
 }
 
-func returnIf(notVoid bool, cb *gox.CodeBuilder, src goast.Node) {
+func returnIf(notVoid bool, cb *gogen.CodeBuilder, src goast.Node) {
 	if notVoid {
 		cb.Return(1, src)
 	} else {
@@ -730,7 +730,7 @@ func compileAtomicExpr(ctx *blockCtx, v *ast.Node) {
 	}
 }
 
-func getCaller(cb *gox.CodeBuilder) (string, bool) {
+func getCaller(cb *gogen.CodeBuilder) (string, bool) {
 	v := cb.Get(-1)
 	if e, ok := v.Val.(*goast.CallExpr); ok {
 		if fn, ok := e.Fun.(*goast.Ident); ok {
