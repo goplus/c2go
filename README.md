@@ -12,7 +12,7 @@ This project is **DEPRECATED**! We are shifting our technical roadmap to [llgo](
 
 This is a subproject of [the Go+ project](https://github.com/goplus/gop). Its goal is converting any C project into Go without any human intervention and keeping performance close to C.
 
-* Make it passed. Stage: `Done Almost`. We have compiled [libc](https://github.com/goplus/libc) (in progress) and [sqlite3](https://github.com/goplus/sqlite) (done).
+* Make it passed. Stage: `Done Almost`. We have compiled [libc](https://github.com/goplus/libc) (in progress) and [sqlite3](https://github.com/goplus/sqlite-c2go) (done).
 * Make it correct. Stage: `Doing`. We ported `libc-test` to test [c2go](https://github.com/goplus/c2go) and [libc](https://github.com/goplus/libc). Coverage: [![Coverage Status](https://codecov.io/gh/goplus/libc/branch/musl-go/graph/badge.svg)](https://codecov.io/gh/goplus/libc)
 * Make it fast. Stage: `Planning`.
 
