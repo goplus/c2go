@@ -8,6 +8,8 @@ c2go - Convert C to Go
 [![GoDoc](https://pkg.go.dev/badge/github.com/goplus/c2go.svg)](https://pkg.go.dev/mod/github.com/goplus/c2go)
 [![Language](https://img.shields.io/badge/language-Go+-blue.svg)](https://github.com/goplus/gop)
 
+This project is **DEPRECATED**! We are shifting our technical roadmap to [llgo](https://github.com/goplus/llgo).
+
 This is a subproject of [the Go+ project](https://github.com/goplus/gop). Its goal is converting any C project into Go without any human intervention and keeping performance close to C.
 
 * Make it passed. Stage: `Done Almost`. We have compiled [libc](https://github.com/goplus/libc) (in progress) and [sqlite3](https://github.com/goplus/sqlite) (done).
